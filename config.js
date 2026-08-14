@@ -5,7 +5,7 @@
 // ─────────────────────────────────────────────────────────────
 
 // Your web app's Firebase configuration
-const firebaseConfig = {
+export const firebaseConfig = {
   apiKey: "AIzaSyCQ8jiMdIHKwdfUoVj2MFgp8rin0PLwI20",
   authDomain: "arcade-a185d.firebaseapp.com",
   databaseURL: "https://arcade-a185d-default-rtdb.firebaseio.com/",
