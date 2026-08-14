@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Arkanoid</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,800&family=DM+Sans:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --fondo:#241634;
+    --panel:#31204A;
+    --ambar:#FFC94A;
+    --menta:#6FE7C4;
+    --tinta:#F3ECFF;
+    --tenue:#A794C4;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;overflow:hidden;overscroll-behavior:none}
+  body{
+    background:radial-gradient(120% 80% at 50% -10%, #3A2352 0%, transparent 60%), var(--fondo);
+    color:var(--tinta);
+    font-family:'DM Sans',system-ui,sans-serif;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    padding:12px calc(12px + env(safe-area-inset-left)) calc(12px + env(safe-area-inset-bottom));
+    touch-action:none;user-select:none;
+  }
+  .hud{
+    width:100%;max-width:420px;display:flex;justify-content:space-between;align-items:center;
+    padding:0 4px 8px;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--tenue);
+  }
+  .hud b{display:block;font-family:'Bricolage Grotesque',sans-serif;font-size:20px;color:var(--tinta);letter-spacing:0}
+  .hud .centro{text-align:center}
+  .hud .der{text-align:right}
+  #vidas{font-size:18px;letter-spacing:2px;color:var(--ambar)}
+  .marco{position:relative;width:100%;max-width:420px}
+  canvas{
+    display:block;width:100%;border-radius:16px;
+    background:rgba(0,0,0,.22);border:2px solid #48305F;
+  }
+  #capa{
+    position:absolute;inset:0;display:grid;place-content:center;text-align:center;
+    gap:10px;padding:24px;background:rgba(36,22,52,.86);border-radius:16px;
+  }
+  #capa.oculta{display:none}
+  #titulo{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:clamp(24px,7vw,32px);line-height:1.1}
+  #sub{font-size:14px;color:var(--tenue);max-width:240px;margin:0 auto}
+  #btn{
+    margin-top:6px;font-family:'DM Sans',sans-serif;font-weight:700;font-size:15px;
+    padding:13px 26px;border-radius:14px;border:none;background:var(--ambar);color:#241634;cursor:pointer;
+  }
+  #btn:focus-visible{outline:3px solid var(--tinta);outline-offset:3px}
+  .pista{margin-top:10px;font-size:12px;color:var(--tenue);text-align:center}
+</style>
+</head>
+<body>
+
+<div class="hud">
+  <div>Puntos<b id="puntos">0</b></div>
+  <div class="centro">Nivel<b id="nivel">1</b></div>
+  <div class="der">Vidas<b id="vidas">●●●</b></div>
+</div>
+
+<div class="marco">
+  <canvas id="lienzo"></canvas>
+  <div id="capa">
+    <div id="titulo">Arkanoid</div>
+    <p id="sub">Desliza el dedo para mover la paleta. No dejes caer la bola.</p>
+    <button id="btn">Jugar</button>
+  </div>
+</div>
+
+<p class="pista">Arrastra sobre el tablero · flechas ← → en teclado</p>
+
+<script>
+const W = 360, H = 520;
+const lienzo = document.getElementById('lienzo');
+const ctx = lienzo.getContext('2d');
+lienzo.style.aspectRatio = W + '/' + H;
+
+function ajustar(){
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  lienzo.width = W * dpr;
+  lienzo.height = H * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+ajustar();
+addEventListener('resize', ajustar);
+
+const COLORES = ['#FFC94A','#FF8C6B','#E86FA8','#9B7BE8','#6FE7C4'];
+const COLS = 7, PAD = 6, MARGEN = 12, ALTO_L = 20, TOPE = 46;
+const ANCHO_L = (W - MARGEN*2 - PAD*(COLS-1)) / COLS;
+
+let paleta, bola, ladrillos, puntos, vidas, nivel, jugando, pegada, animId;
+
+function nuevaPaleta(){ return {x:W/2, y:H-42, w:76, h:12}; }
+
+function nuevaBola(){
+  return {x:paleta.x, y:paleta.y-10, r:6, vx:0, vy:0, v:4 + (nivel-1)*0.45};
+}
+
+function crearLadrillos(){
+  const filas = Math.min(3 + nivel, 6);
+  ladrillos = [];
+  for (let f = 0; f < filas; f++)
+    for (let c = 0; c < COLS; c++)
+      ladrillos.push({
+        x: MARGEN + c*(ANCHO_L+PAD),
+        y: TOPE + f*(ALTO_L+PAD),
+        vivo: true,
+        color: COLORES[f % COLORES.length],
+        valor: (filas - f) * 10
+      });
+}
+
+function reiniciar(){
+  puntos = 0; vidas = 3; nivel = 1;
+  paleta = nuevaPaleta();
+  crearLadrillos();
+  bola = nuevaBola();
+  pegada = true; jugando = true;
+  actualizarHud();
+  ocultarCapa();
+  cancelAnimationFrame(animId);
+  bucle();
+}
+
+function actualizarHud(){
+  document.getElementById('puntos').textContent = puntos;
+  document.getElementById('nivel').textContent = nivel;
+  document.getElementById('vidas').textContent = '●'.repeat(Math.max(vidas,0)) || '—';
+}
+
+function mostrarCapa(titulo, sub, boton){
+  document.getElementById('titulo').textContent = titulo;
+  document.getElementById('sub').textContent = sub;
+  document.getElementById('btn').textContent = boton;
+  document.getElementById('capa').classList.remove('oculta');
+}
+function ocultarCapa(){ document.getElementById('capa').classList.add('oculta'); }
+
+function lanzar(){
+  if (!pegada || !jugando) return;
+  pegada = false;
+  const ang = (-Math.PI/2) + (Math.random()*0.6 - 0.3);
+  bola.vx = Math.cos(ang) * bola.v;
+  bola.vy = Math.sin(ang) * bola.v;
+}
+
+function moverPaleta(x){
+  paleta.x = Math.max(paleta.w/2, Math.min(W - paleta.w/2, x));
+}
+
+// Controles
+function xLocal(e){
+  const r = lienzo.getBoundingClientRect();
+  const cx = (e.touches ? e.touches[0].clientX : e.clientX) - r.left;
+  return cx * (W / r.width);
+}
+['pointerdown','pointermove'].forEach(ev =>
+  lienzo.addEventListener(ev, e => { e.preventDefault(); moverPaleta(xLocal(e)); }, {passive:false})
+);
+lienzo.addEventListener('pointerup', lanzar);
+addEventListener('keydown', e => {
+  if (e.key === 'ArrowLeft')  moverPaleta(paleta.x - 26);
+  if (e.key === 'ArrowRight') moverPaleta(paleta.x + 26);
+  if (e.key === ' ') { e.preventDefault(); lanzar(); }
+});
+document.getElementById('btn').addEventListener('click', reiniciar);
+
+function paso(){
+  if (pegada){ bola.x = paleta.x; bola.y = paleta.y - 10; return; }
+
+  bola.x += bola.vx;
+  bola.y += bola.vy;
+
+  if (bola.x - bola.r < 0){ bola.x = bola.r; bola.vx *= -1; }
+  if (bola.x + bola.r > W){ bola.x = W - bola.r; bola.vx *= -1; }
+  if (bola.y - bola.r < 0){ bola.y = bola.r; bola.vy *= -1; }
+
+  // Paleta
+  if (bola.vy > 0 &&
+      bola.y + bola.r >= paleta.y && bola.y - bola.r <= paleta.y + paleta.h &&
+      bola.x >= paleta.x - paleta.w/2 - bola.r && bola.x <= paleta.x + paleta.w/2 + bola.r){
+    const rel = (bola.x - paleta.x) / (paleta.w/2);
+    const ang = rel * (Math.PI/3);
+    bola.vx = Math.sin(ang) * bola.v;
+    bola.vy = -Math.abs(Math.cos(ang)) * bola.v;
+    bola.y = paleta.y - bola.r;
+  }
+
+  // Ladrillos
+  for (const l of ladrillos){
+    if (!l.vivo) continue;
+    if (bola.x + bola.r > l.x && bola.x - bola.r < l.x + ANCHO_L &&
+        bola.y + bola.r > l.y && bola.y - bola.r < l.y + ALTO_L){
+      l.vivo = false;
+      puntos += l.valor;
+      const dx = Math.min(Math.abs(bola.x - l.x), Math.abs(bola.x - (l.x+ANCHO_L)));
+      const dy = Math.min(Math.abs(bola.y - l.y), Math.abs(bola.y - (l.y+ALTO_L)));
+      if (dx < dy) bola.vx *= -1; else bola.vy *= -1;
+      actualizarHud();
+      break;
+    }
+  }
+
+  // Nivel superado
+  if (ladrillos.every(l => !l.vivo)){
+    nivel++;
+    paleta = nuevaPaleta();
+    paleta.w = Math.max(52, 76 - nivel*4);
+    crearLadrillos();
+    bola = nuevaBola();
+    pegada = true;
+    actualizarHud();
+  }
+
+  // Caída
+  if (bola.y - bola.r > H){
+    vidas--;
+    actualizarHud();
+    if (vidas <= 0){
+      jugando = false;
+      mostrarCapa('Fin del juego', 'Puntaje final: ' + puntos + ' · Nivel ' + nivel, 'Otra vez');
+    } else {
+      paleta = nuevaPaleta();
+      bola = nuevaBola();
+      pegada = true;
+    }
+  }
+}
+
+function dibujar(){
+  ctx.clearRect(0,0,W,H);
+
+  for (const l of ladrillos){
+    if (!l.vivo) continue;
+    ctx.fillStyle = l.color;
+    ctx.beginPath();
+    ctx.roundRect(l.x, l.y, ANCHO_L, ALTO_L, 5);
+    ctx.fill();
+  }
+
+  ctx.fillStyle = '#F3ECFF';
+  ctx.beginPath();
+  ctx.roundRect(paleta.x - paleta.w/2, paleta.y, paleta.w, paleta.h, 6);
+  ctx.fill();
+
+  ctx.fillStyle = '#6FE7C4';
+  ctx.beginPath();
+  ctx.arc(bola.x, bola.y, bola.r, 0, Math.PI*2);
+  ctx.fill();
+
+  if (pegada && jugando){
+    ctx.fillStyle = 'rgba(243,236,255,.6)';
+    ctx.font = '13px "DM Sans", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Toca para lanzar', W/2, H/2 + 40);
+  }
+}
+
+function bucle(){
+  if (jugando) paso();
+  dibujar();
+  animId = requestAnimationFrame(bucle);
+}
+
+// Estado inicial
+paleta = nuevaPaleta();
+nivel = 1; puntos = 0; vidas = 3;
+crearLadrillos();
+bola = nuevaBola();
+pegada = true; jugando = false;
+dibujar();
+</script>
+</body>
+</html>

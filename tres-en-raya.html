@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tres en raya</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="estilo.css">
+<style>
+  main{max-width:420px;margin:0 auto}
+  .pantalla{display:none;flex-direction:column;gap:14px}
+  .pantalla.activa{display:flex}
+  .volver{display:inline-block;font-size:13px;color:var(--tenue);text-decoration:none;margin-bottom:6px}
+
+  /* Marcador */
+  .marcador{display:grid;grid-template-columns:1fr auto 1fr;gap:8px}
+  .jugador{background:var(--panel);border:2px solid transparent;border-radius:16px;
+           padding:10px 8px;text-align:center;transition:border-color .2s,transform .2s}
+  .jugador.activo{border-color:currentColor;transform:translateY(-2px)}
+  .jugador[data-m="X"]{color:var(--ambar)}
+  .jugador[data-m="O"]{color:var(--menta)}
+  .jugador .nom{font-family:var(--texto);font-weight:700;font-size:13px;color:var(--tinta);
+                white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .jugador .yo{font-size:10px;letter-spacing:.1em;text-transform:uppercase;opacity:.75}
+  .puntos{font-family:var(--display);font-weight:800;font-size:28px;line-height:1.15}
+  .punto-luz{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--rojo);
+             vertical-align:middle;margin-right:4px}
+  .punto-luz.on{background:var(--menta)}
+  .empates{align-self:center;text-align:center;font-size:10px;color:var(--tenue);
+           letter-spacing:.1em;text-transform:uppercase}
+  .empates b{display:block;font-family:var(--display);font-size:19px;color:var(--tinta);letter-spacing:0}
+
+  /* Tablero */
+  #tablero{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;aspect-ratio:1}
+  .casilla{background:var(--panel);border:2px solid var(--borde);border-radius:18px;
+           display:grid;place-items:center;cursor:pointer;padding:14%;
+           transition:background .15s,transform .1s}
+  .casilla:hover:not(:disabled){background:#3B2757}
+  .casilla:active:not(:disabled){transform:scale(.96)}
+  .casilla:disabled{cursor:default}
+  .casilla.gana{background:#3F2A5C;border-color:currentColor}
+  .casilla svg{width:100%;height:100%;overflow:visible}
+  .casilla svg *{fill:none;stroke:currentColor;stroke-width:11;stroke-linecap:round;
+                 stroke-dasharray:var(--largo);stroke-dashoffset:var(--largo);
+                 animation:trazo .28s ease-out forwards}
+  .casilla svg line:last-child{animation-delay:.14s}
+  @keyframes trazo{to{stroke-dashoffset:0}}
+  .marca-X{color:var(--ambar)} .marca-O{color:var(--menta)}
+
+  #estado{text-align:center;font-size:15px;color:var(--tenue);min-height:24px}
+  #estado strong{font-family:var(--display);font-weight:800;color:var(--tinta);font-size:18px}
+  .acciones{display:flex;gap:10px}
+
+  /* Sala */
+  .codigo{font-family:var(--display);font-weight:800;font-size:44px;letter-spacing:.22em;
+          text-align:center;color:var(--ambar);background:var(--panel);border:2px dashed var(--borde);
+          border-radius:18px;padding:20px 10px 20px 22px}
+  input.codigo-in{font-family:var(--display);font-weight:800;font-size:26px;letter-spacing:.2em;
+                  text-align:center;text-transform:uppercase}
+  .aviso{font-size:13px;color:var(--rojo);text-align:center;min-height:18px}
+  .cargando{text-align:center;font-size:14px;color:var(--tenue)}
+  .puntitos::after{content:'';animation:pts 1.2s steps(4,end) infinite}
+  @keyframes pts{0%{content:''}25%{content:'.'}50%{content:'..'}75%{content:'...'}}
+</style>
+</head>
+<body>
+<main>
+
+  <!-- MENÚ -->
+  <section class="pantalla activa" id="p-menu">
+    <a class="volver" href="index.html">← Sala de juegos</a>
+    <h1>Tres en <em>raya</em></h1>
+    <p class="nota">¿Cómo quieren jugar?</p>
+    <button class="accion" id="b-online">En línea · dos celulares</button>
+    <button class="accion fantasma" id="b-local">Aquí mismo · un teléfono</button>
+    <p class="aviso" id="aviso-config"></p>
+  </section>
+
+  <!-- SALA -->
+  <section class="pantalla" id="p-sala">
+    <a class="volver" href="#" id="b-atras">← Atrás</a>
+    <h1>Sala <em>compartida</em></h1>
+    <input class="campo" id="mi-nombre" placeholder="Tu nombre" maxlength="12" autocomplete="off">
+    <button class="accion" id="b-crear">Crear sala nueva</button>
+    <p class="nota">o entra a la de tu pareja</p>
+    <input class="campo codigo-in" id="codigo-in" placeholder="CÓDIGO" maxlength="4" autocomplete="off" autocapitalize="characters" spellcheck="false">
+    <button class="accion menta" id="b-unir">Entrar</button>
+    <p class="aviso" id="aviso-sala"></p>
+  </section>
+
+  <!-- ESPERA -->
+  <section class="pantalla" id="p-espera">
+    <h1>Sala <em>lista</em></h1>
+    <p class="nota">Pásale este código o mándale el enlace.</p>
+    <div class="codigo" id="codigo-out">----</div>
+    <button class="accion" id="b-compartir">Compartir enlace</button>
+    <p class="cargando puntitos" id="txt-espera">Esperando a que entre</p>
+    <button class="accion fantasma" id="b-cancelar">Cancelar</button>
+  </section>
+
+  <!-- JUEGO -->
+  <section class="pantalla" id="p-juego">
+    <a class="volver" href="#" id="b-salir">← Salir</a>
+    <div class="marcador">
+      <div class="jugador" data-m="X" id="tj-X">
+        <div class="nom" id="nom-X">Jugador X</div>
+        <div class="puntos" id="pt-X">0</div>
+        <div class="yo" id="yo-X">&nbsp;</div>
+      </div>
+      <div class="empates">Empates<b id="pt-E">0</b></div>
+      <div class="jugador" data-m="O" id="tj-O">
+        <div class="nom" id="nom-O">Jugador O</div>
+        <div class="puntos" id="pt-O">0</div>
+        <div class="yo" id="yo-O">&nbsp;</div>
+      </div>
+    </div>
+    <div id="tablero"></div>
+    <p id="estado"></p>
+    <div class="acciones">
+      <button class="accion" id="b-nueva">Nueva partida</button>
+    </div>
+  </section>
+
+</main>
+
+<script type="module">
+import { firebaseConfig, configurado } from './config.js';
+
+/* ── Utilidades de tablero ─────────────────────────────── */
+const SVG = {
+  X:'<svg viewBox="0 0 100 100" style="--largo:100"><line x1="8" y1="8" x2="92" y2="92"/><line x1="92" y1="8" x2="8" y2="92"/></svg>',
+  O:'<svg viewBox="0 0 100 100" style="--largo:245"><circle cx="50" cy="50" r="39"/></svg>'
+};
+const LINEAS = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+const buscarLinea = (t,m) => LINEAS.find(l => l.every(p => t[p] === m));
+const VACIO = '---------';
+
+const $ = id => document.getElementById(id);
+const ir = id => document.querySelectorAll('.pantalla').forEach(p => p.classList.toggle('activa', p.id === id));
+
+/* ── Estado ────────────────────────────────────────────── */
+let modo = null;         // 'local' | 'online'
+let miMarca = null;      // 'X' | 'O'  (en local: el del turno)
+let sala = null;         // código
+let salaRef = null, quitarEscucha = null;
+let vista = null;        // último estado pintado
+
+/* ── Tablero: construcción ─────────────────────────────── */
+const tablero = $('tablero');
+for (let i = 0; i < 9; i++){
+  const b = document.createElement('button');
+  b.className = 'casilla';
+  b.setAttribute('aria-label','Casilla ' + (i+1));
+  b.addEventListener('click', () => jugar(i));
+  tablero.appendChild(b);
+}
+
+/* ── Pintado ───────────────────────────────────────────── */
+function pintar(s){
+  const previo = vista;
+  vista = s;
+  const t = s.partida.tablero, gan = s.partida.ganador, linea = s.partida.linea || '';
+
+  [...tablero.children].forEach((b,i) => {
+    const m = t[i];
+    const cambio = !previo || previo.partida.tablero[i] !== m;
+    if (cambio){
+      b.className = 'casilla';
+      b.innerHTML = m === '-' ? '' : SVG[m];
+      if (m !== '-') b.classList.add('marca-' + m);
+    }
+    if (linea.includes(String(i))) b.classList.add('gana');
+    const mio = modo === 'local' ? true : s.partida.turno === miMarca;
+    b.disabled = !!gan || m !== '-' || !mio || (modo === 'online' && !s.jugadores.O);
+  });
+
+  const nom = m => (s.jugadores[m] && s.jugadores[m].nombre) || (m === 'X' ? 'Jugador X' : 'Jugador O');
+  ['X','O'].forEach(m => {
+    $('nom-'+m).textContent = nom(m);
+    $('pt-'+m).textContent = (s.marcador && s.marcador[m]) || 0;
+    $('tj-'+m).classList.toggle('activo', !gan && s.partida.turno === m);
+    if (modo === 'online'){
+      const on = s.jugadores[m] && s.jugadores[m].online;
+      $('yo-'+m).innerHTML = '<span class="punto-luz' + (on ? ' on' : '') + '"></span>' +
+                             (m === miMarca ? 'Tú' : (on ? 'En línea' : 'Ausente'));
+    } else {
+      $('yo-'+m).innerHTML = '&nbsp;';
+    }
+  });
+  $('pt-E').textContent = (s.marcador && s.marcador.E) || 0;
+
+  let msg;
+  if (gan === 'empate') msg = 'Empate, otra vez';
+  else if (gan) msg = '<strong>' + nom(gan) + '</strong> gana';
+  else if (modo === 'online' && !s.jugadores.O) msg = 'Esperando a tu pareja…';
+  else if (modo === 'online') msg = s.partida.turno === miMarca
+        ? 'Es <strong>tu turno</strong>'
+        : 'Turno de <strong>' + nom(s.partida.turno) + '</strong>';
+  else msg = 'Turno de <strong>' + nom(s.partida.turno) + '</strong>';
+  $('estado').innerHTML = msg;
+
+  $('b-nueva').disabled = modo === 'online' && !gan;
+}
+
+/* ── Lógica de jugada (compartida) ─────────────────────── */
+function aplicarJugada(s, i, marca){
+  const p = s.partida;
+  if (p.ganador || p.turno !== marca || p.tablero[i] !== '-') return null;
+  const t = p.tablero.split('');
+  t[i] = marca;
+  p.tablero = t.join('');
+  s.marcador = s.marcador || {X:0,O:0,E:0};
+  const linea = buscarLinea(t, marca);
+  if (linea){
+    p.ganador = marca; p.linea = linea.join('');
+    s.marcador[marca] = (s.marcador[marca] || 0) + 1;
+  } else if (!t.includes('-')){
+    p.ganador = 'empate';
+    s.marcador.E = (s.marcador.E || 0) + 1;
+  } else {
+    p.turno = marca === 'X' ? 'O' : 'X';
+  }
+  return s;
+}
+
+function reiniciarPartida(s){
+  const inicia = s.partida.inicia === 'X' ? 'O' : 'X';
+  s.partida = { tablero:VACIO, turno:inicia, ganador:'', linea:'', inicia };
+  return s;
+}
+
+const salaVacia = (nombre) => ({
+  juego:'tresenraya', creada: Date.now(),
+  jugadores:{},
+  partida:{ tablero:VACIO, turno:'X', ganador:'', linea:'', inicia:'X' },
+  marcador:{X:0,O:0,E:0}
+});
+
+/* ── MODO LOCAL ────────────────────────────────────────── */
+let local = null;
+function jugarLocal(){
+  modo = 'local';
+  local = salaVacia();
+  local.jugadores = { X:{nombre:'Jugador 1'}, O:{nombre:'Jugador 2'} };
+  ir('p-juego');
+  pintar(local);
+}
+
+/* ── MODO EN LÍNEA ─────────────────────────────────────── */
+let db, uid, fb = {};
+
+async function iniciarFirebase(){
+  if (db) return;
+  const [{ initializeApp }, auth, rtdb] = await Promise.all([
+    import('https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js'),
+    import('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js'),
+    import('https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js')
+  ]);
+  const app = initializeApp(firebaseConfig);
+  const cred = await auth.signInAnonymously(auth.getAuth(app));
+  uid = cred.user.uid;
+  db = rtdb.getDatabase(app);
+  fb = rtdb;
+}
+
+const codigoNuevo = () => Array.from({length:4},
+  () => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random()*32)]).join('');
+
+function miNombre(){
+  const n = $('mi-nombre').value.trim();
+  if (n) localStorage.setItem('nombreJugador', n);
+  return n || 'Jugador';
+}
+
+async function crearSala(){
+  $('aviso-sala').textContent = '';
+  try{
+    await iniciarFirebase();
+    let codigo, hecho = false;
+    for (let intento = 0; intento < 5 && !hecho; intento++){
+      codigo = codigoNuevo();
+      const r = await fb.runTransaction(fb.ref(db,'salas/'+codigo), s => {
+        if (s) return;                       // ya existe: aborta y reintenta
+        const nueva = salaVacia();
+        nueva.jugadores = { X:{ uid, nombre: miNombre(), online:true } };
+        return nueva;
+      });
+      hecho = r.committed;
+    }
+    if (!hecho) throw new Error('No se pudo crear la sala');
+    entrar(codigo, 'X');
+    $('codigo-out').textContent = codigo;
+    ir('p-espera');
+  } catch(e){ $('aviso-sala').textContent = 'No se pudo crear la sala. ' + e.message; }
+}
+
+async function unirse(codigo){
+  $('aviso-sala').textContent = '';
+  codigo = (codigo || '').toUpperCase().trim();
+  if (codigo.length !== 4){ $('aviso-sala').textContent = 'El código tiene 4 caracteres.'; return; }
+  try{
+    await iniciarFirebase();
+    const r = await fb.runTransaction(fb.ref(db,'salas/'+codigo), s => {
+      if (!s) return;                                     // no existe
+      const j = s.jugadores || {};
+      if (j.X && j.X.uid === uid){ j.X.online = true; s.jugadores = j; return s; }
+      if (j.O && j.O.uid === uid){ j.O.online = true; s.jugadores = j; return s; }
+      if (!j.X){ j.X = { uid, nombre: miNombre(), online:true }; s.jugadores = j; return s; }
+      if (!j.O){ j.O = { uid, nombre: miNombre(), online:true }; s.jugadores = j; return s; }
+      return;                                             // llena
+    });
+    if (!r.committed){ $('aviso-sala').textContent = 'Esa sala no existe o ya está llena.'; return; }
+    const s = r.snapshot.val();
+    entrar(codigo, (s.jugadores.X && s.jugadores.X.uid === uid) ? 'X' : 'O');
+    ir('p-juego');
+  } catch(e){ $('aviso-sala').textContent = 'No se pudo entrar. ' + e.message; }
+}
+
+function entrar(codigo, marca){
+  modo = 'online'; sala = codigo; miMarca = marca;
+  salaRef = fb.ref(db, 'salas/' + codigo);
+  location.hash = codigo;
+  sessionStorage.setItem('sala', codigo);
+
+  const luz = fb.ref(db, 'salas/' + codigo + '/jugadores/' + marca + '/online');
+  fb.set(luz, true);
+  fb.onDisconnect(luz).set(false);
+
+  quitarEscucha = fb.onValue(salaRef, snap => {
+    const s = snap.val();
+    if (!s){ salir('La sala se cerró.'); return; }
+    s.jugadores = s.jugadores || {};
+    if (s.jugadores.O && $('p-espera').classList.contains('activa')) ir('p-juego');
+    pintar(s);
+  });
+}
+
+function salir(msg){
+  if (quitarEscucha) quitarEscucha();
+  if (salaRef && miMarca) fb.set(fb.ref(db,'salas/'+sala+'/jugadores/'+miMarca+'/online'), false);
+  quitarEscucha = null; salaRef = null; sala = null; miMarca = null; vista = null; modo = null;
+  history.replaceState(null,'',location.pathname);
+  sessionStorage.removeItem('sala');
+  $('aviso-sala').textContent = msg || '';
+  ir(msg ? 'p-sala' : 'p-menu');
+}
+
+/* ── Acciones ──────────────────────────────────────────── */
+async function jugar(i){
+  if (modo === 'local'){
+    const s = aplicarJugada(local, i, local.partida.turno);
+    if (s) pintar(s);
+    return;
+  }
+  await fb.runTransaction(salaRef, s => {
+    if (!s) return s;
+    s.jugadores = s.jugadores || {};
+    if (!s.jugadores.O) return s;
+    return aplicarJugada(s, i, miMarca) || s;
+  });
+}
+
+$('b-nueva').addEventListener('click', async () => {
+  if (modo === 'local'){ pintar(reiniciarPartida(local)); return; }
+  await fb.runTransaction(salaRef, s => {
+    if (!s || !s.partida.ganador) return s;
+    return reiniciarPartida(s);
+  });
+});
+
+$('b-online').addEventListener('click', () => {
+  $('mi-nombre').value = localStorage.getItem('nombreJugador') || '';
+  ir('p-sala');
+});
+$('b-local').addEventListener('click', jugarLocal);
+$('b-atras').addEventListener('click', e => { e.preventDefault(); ir('p-menu'); });
+$('b-crear').addEventListener('click', crearSala);
+$('b-unir').addEventListener('click', () => unirse($('codigo-in').value));
+$('codigo-in').addEventListener('keydown', e => { if (e.key === 'Enter') unirse($('codigo-in').value); });
+$('b-cancelar').addEventListener('click', () => salir());
+$('b-salir').addEventListener('click', e => { e.preventDefault(); salir(); });
+
+$('b-compartir').addEventListener('click', async () => {
+  const url = location.origin + location.pathname + '#' + $('codigo-out').textContent;
+  const texto = 'Entra a jugar tres en raya: ' + url;
+  try{
+    if (navigator.share) await navigator.share({ title:'Tres en raya', text:texto, url });
+    else { await navigator.clipboard.writeText(url); $('b-compartir').textContent = '¡Enlace copiado!'; }
+  } catch(e){}
+});
+
+/* ── Arranque ──────────────────────────────────────────── */
+if (!configurado){
+  $('b-online').disabled = true;
+  $('aviso-config').textContent = 'El modo en línea necesita la configuración de Firebase en config.js';
+} else {
+  const codigo = (location.hash || '').replace('#','').toUpperCase();
+  if (codigo.length === 4){
+    $('mi-nombre').value = localStorage.getItem('nombreJugador') || '';
+    $('codigo-in').value = codigo;
+    ir('p-sala');
+  }
+}
+</script>
+</body>
+</html>

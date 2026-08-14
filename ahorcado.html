@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ahorcado</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --fondo:#241634;--panel:#31204A;--borde:#48305F;
+    --ambar:#FFC94A;--menta:#6FE7C4;--rojo:#FF7B7B;
+    --tinta:#F3ECFF;--tenue:#A794C4;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  body{
+    background:radial-gradient(120% 80% at 50% -10%, #3A2352 0%, transparent 60%), var(--fondo);
+    color:var(--tinta);font-family:'DM Sans',system-ui,sans-serif;
+    min-height:100dvh;display:flex;align-items:center;justify-content:center;
+    padding:16px calc(16px + env(safe-area-inset-left)) calc(16px + env(safe-area-inset-bottom));
+  }
+  main{width:100%;max-width:420px}
+  .pantalla{display:none;flex-direction:column;gap:14px}
+  .pantalla.activa{display:flex}
+
+  h1{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:clamp(24px,7vw,32px);
+     line-height:1.1;text-align:center}
+  h1 em{font-style:normal;color:var(--ambar)}
+  .nota{font-size:14px;color:var(--tenue);text-align:center;line-height:1.45}
+
+  .campo{position:relative}
+  input[type=text],input[type=password]{
+    width:100%;font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:22px;
+    letter-spacing:.06em;text-align:center;padding:18px 52px;border-radius:16px;
+    border:2px solid var(--borde);background:var(--panel);color:var(--tinta);
+  }
+  input::placeholder{font-family:'DM Sans',sans-serif;font-weight:400;font-size:15px;letter-spacing:0;color:var(--tenue)}
+  input:focus{outline:none;border-color:var(--ambar)}
+  .ojo{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;
+       font-size:20px;padding:10px;cursor:pointer;color:var(--tenue)}
+  input.pista{font-family:'DM Sans',sans-serif;font-weight:500;font-size:16px;letter-spacing:0;padding:14px 16px}
+
+  button.accion{
+    font-family:inherit;font-weight:700;font-size:16px;padding:16px;border-radius:15px;
+    border:none;background:var(--ambar);color:#241634;cursor:pointer;width:100%;
+  }
+  button.accion.fantasma{background:transparent;color:var(--tenue);border:2px solid var(--borde)}
+  button:focus-visible{outline:3px solid var(--tinta);outline-offset:2px}
+  .aviso{font-size:13px;color:var(--rojo);text-align:center;min-height:18px}
+
+  /* Juego */
+  .escena{display:flex;align-items:center;gap:12px}
+  svg.horca{width:120px;flex:none}
+  svg.horca *{stroke:var(--tinta);stroke-width:5;stroke-linecap:round;fill:none}
+  svg.horca .cuerda{stroke:var(--tenue)}
+  svg.horca .reo{stroke:var(--rojo);opacity:0;transition:opacity .25s}
+  svg.horca .reo.visible{opacity:1}
+  .datos{flex:1;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--tenue)}
+  .datos b{display:block;font-family:'Bricolage Grotesque',sans-serif;font-size:22px;color:var(--tinta);letter-spacing:0;margin-bottom:8px}
+  .falladas{font-family:'Bricolage Grotesque',sans-serif;font-size:15px;color:var(--rojo);letter-spacing:.15em;min-height:20px}
+
+  #palabra{
+    display:flex;flex-wrap:wrap;justify-content:center;gap:6px;
+    font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:26px;
+  }
+  #palabra .l{width:26px;text-align:center;border-bottom:3px solid var(--borde);padding-bottom:2px}
+  #palabra .l.ok{border-color:var(--menta)}
+  #palabra .l.falta{color:var(--rojo);border-color:var(--rojo)}
+  #palabra .esp{width:14px;border:none}
+
+  #teclado{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+  #teclado button{
+    font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:17px;
+    padding:12px 0;border-radius:11px;border:2px solid var(--borde);
+    background:var(--panel);color:var(--tinta);cursor:pointer;
+  }
+  #teclado button:active{background:#3F2A5C}
+  #teclado button.si{background:var(--menta);border-color:var(--menta);color:#241634}
+  #teclado button.no{background:transparent;color:#5B4574;border-color:#3A2653}
+  #teclado button:disabled{cursor:default}
+
+  .final{text-align:center;padding:6px 0}
+  .final h2{font-family:'Bricolage Grotesque',sans-serif;font-size:26px;margin-bottom:4px}
+  .final .rev{font-size:15px;color:var(--tenue)}
+  .final .rev b{color:var(--ambar);font-family:'Bricolage Grotesque',sans-serif;font-size:20px;letter-spacing:.05em}
+</style>
+</head>
+<body>
+<main>
+
+  <!-- 1. Escribir la palabra -->
+  <section class="pantalla activa" id="p1">
+    <h1>El <em>ahorcado</em></h1>
+    <p class="nota">Jugador 1: escribe la palabra secreta. Se oculta al escribirla.</p>
+    <div class="campo">
+      <input type="password" id="secreta" placeholder="Palabra o frase corta" autocomplete="off" autocapitalize="characters" spellcheck="false">
+      <button class="ojo" id="ojo" aria-label="Ver la palabra">👁</button>
+    </div>
+    <input type="text" class="pista" id="pista" placeholder="Pista o categoría (opcional)" autocomplete="off" maxlength="40">
+    <p class="aviso" id="aviso"></p>
+    <button class="accion" id="btn-listo">Listo, ocultar</button>
+  </section>
+
+  <!-- 2. Pasar el teléfono -->
+  <section class="pantalla" id="p2">
+    <h1>Pásale el <em>teléfono</em></h1>
+    <p class="nota">La palabra ya está guardada. Jugador 2, tienes 6 intentos fallidos.</p>
+    <button class="accion" id="btn-empezar">Empezar a adivinar</button>
+  </section>
+
+  <!-- 3. Adivinar -->
+  <section class="pantalla" id="p3">
+    <div class="escena">
+      <svg class="horca" viewBox="0 0 120 150" aria-hidden="true">
+        <line x1="10" y1="145" x2="70" y2="145"/>
+        <line x1="30" y1="145" x2="30" y2="10"/>
+        <line x1="30" y1="10" x2="85" y2="10"/>
+        <line class="cuerda" x1="85" y1="10" x2="85" y2="28"/>
+        <circle class="reo" data-p="0" cx="85" cy="42" r="14"/>
+        <line class="reo" data-p="1" x1="85" y1="56" x2="85" y2="98"/>
+        <line class="reo" data-p="2" x1="85" y1="66" x2="66" y2="84"/>
+        <line class="reo" data-p="3" x1="85" y1="66" x2="104" y2="84"/>
+        <line class="reo" data-p="4" x1="85" y1="98" x2="68" y2="126"/>
+        <line class="reo" data-p="5" x1="85" y1="98" x2="102" y2="126"/>
+      </svg>
+      <div class="datos">
+        Intentos<b id="restantes">6</b>
+        <span id="txt-pista"></span>
+        <div class="falladas" id="falladas"></div>
+      </div>
+    </div>
+
+    <div id="palabra"></div>
+    <div id="teclado"></div>
+
+    <div class="final" id="final" hidden>
+      <h2 id="final-titulo"></h2>
+      <p class="rev" id="final-texto"></p>
+    </div>
+    <button class="accion fantasma" id="btn-otra" hidden>Otra ronda</button>
+  </section>
+
+</main>
+
+<script>
+const ABC = 'ABCDEFGHIJKLMNÑOPQRSTUVWXYZ'.split('');
+const MAX = 6;
+let secreta = '', pista = '', usadas, errores, terminado;
+
+const norm = s => s.toUpperCase()
+  .replace(/Ñ/g,'\u0001').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\u0001/g,'Ñ');
+
+const ir = id => document.querySelectorAll('.pantalla')
+  .forEach(p => p.classList.toggle('activa', p.id === id));
+
+// --- Pantalla 1
+const campo = document.getElementById('secreta');
+document.getElementById('ojo').addEventListener('click', () => {
+  campo.type = campo.type === 'password' ? 'text' : 'password';
+  campo.focus();
+});
+
+document.getElementById('btn-listo').addEventListener('click', () => {
+  const valor = campo.value.trim().replace(/\s+/g,' ');
+  const aviso = document.getElementById('aviso');
+  if (norm(valor).replace(/[^A-ZÑ]/g,'').length < 2){
+    aviso.textContent = 'Escribe al menos 2 letras.';
+    return;
+  }
+  if (/[^a-zA-ZáéíóúüñÁÉÍÓÚÜÑ ]/.test(valor)){
+    aviso.textContent = 'Solo letras y espacios.';
+    return;
+  }
+  aviso.textContent = '';
+  secreta = valor.toUpperCase();
+  pista = document.getElementById('pista').value.trim();
+  campo.type = 'password';
+  ir('p2');
+});
+
+document.getElementById('btn-empezar').addEventListener('click', () => { arrancar(); ir('p3'); });
+document.getElementById('btn-otra').addEventListener('click', () => {
+  campo.value = ''; campo.type = 'password';
+  document.getElementById('pista').value = '';
+  ir('p1');
+});
+
+// --- Juego
+function arrancar(){
+  usadas = new Set(); errores = 0; terminado = false;
+  document.getElementById('final').hidden = true;
+  document.getElementById('btn-otra').hidden = true;
+  document.getElementById('txt-pista').textContent = pista ? 'Pista: ' + pista : '';
+  document.querySelectorAll('.reo').forEach(p => p.classList.remove('visible'));
+
+  const tec = document.getElementById('teclado');
+  tec.innerHTML = '';
+  ABC.forEach(l => {
+    const b = document.createElement('button');
+    b.textContent = l;
+    b.addEventListener('click', () => probar(l, b));
+    tec.appendChild(b);
+  });
+  render();
+}
+
+function probar(l, boton){
+  if (terminado || usadas.has(l)) return;
+  usadas.add(l);
+  const acierta = norm(secreta).includes(l);
+  boton.classList.add(acierta ? 'si' : 'no');
+  boton.disabled = true;
+
+  if (!acierta){
+    document.querySelector('.reo[data-p="' + errores + '"]').classList.add('visible');
+    errores++;
+  }
+  render();
+  revisar();
+}
+
+function render(){
+  const cont = document.getElementById('palabra');
+  const n = norm(secreta);
+  cont.innerHTML = '';
+  [...secreta].forEach((ch, i) => {
+    const d = document.createElement('span');
+    if (ch === ' '){ d.className = 'esp'; }
+    else {
+      const visto = usadas.has(n[i]);
+      d.className = 'l' + (visto ? ' ok' : (terminado ? ' falta' : ''));
+      d.textContent = (visto || terminado) ? ch : '';
+    }
+    cont.appendChild(d);
+  });
+
+  document.getElementById('restantes').textContent = MAX - errores;
+  document.getElementById('falladas').textContent =
+    [...usadas].filter(l => !norm(secreta).includes(l)).join(' ');
+}
+
+function revisar(){
+  const n = norm(secreta);
+  const gano = [...n].every(c => c === ' ' || usadas.has(c));
+  if (!gano && errores < MAX) return;
+
+  terminado = true;
+  document.querySelectorAll('#teclado button').forEach(b => b.disabled = true);
+  render();
+
+  document.getElementById('final-titulo').textContent = gano ? '¡Adivinada!' : 'Te ahorcaron';
+  document.getElementById('final-titulo').style.color = gano ? 'var(--menta)' : 'var(--rojo)';
+  document.getElementById('final-texto').innerHTML =
+    gano ? 'Con ' + errores + (errores === 1 ? ' error' : ' errores')
+         : 'La palabra era <b>' + secreta + '</b>';
+  document.getElementById('final').hidden = false;
+  document.getElementById('btn-otra').hidden = false;
+}
+
+addEventListener('keydown', e => {
+  if (terminado || !document.getElementById('p3').classList.contains('activa')) return;
+  const l = norm(e.key);
+  if (l.length === 1 && ABC.includes(l)){
+    const b = [...document.querySelectorAll('#teclado button')].find(x => x.textContent === l);
+    if (b) probar(l, b);
+  }
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Tetris</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,800&family=DM+Sans:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --fondo:#241634;
+    --panel:#31204A;
+    --borde:#48305F;
+    --ambar:#FFC94A;
+    --menta:#6FE7C4;
+    --tinta:#F3ECFF;
+    --tenue:#A794C4;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;overflow:hidden;overscroll-behavior:none}
+  body{
+    background:radial-gradient(120% 80% at 50% -10%, #3A2352 0%, transparent 60%), var(--fondo);
+    color:var(--tinta);font-family:'DM Sans',system-ui,sans-serif;
+    display:flex;flex-direction:column;align-items:center;
+    padding:10px calc(10px + env(safe-area-inset-left)) calc(10px + env(safe-area-inset-bottom));
+    touch-action:none;user-select:none;gap:8px;
+  }
+  .hud{
+    width:100%;max-width:380px;display:flex;justify-content:space-between;align-items:center;gap:10px;
+    font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--tenue);
+  }
+  .hud b{display:block;font-family:'Bricolage Grotesque',sans-serif;font-size:19px;color:var(--tinta);letter-spacing:0}
+  .siguiente{display:flex;align-items:center;gap:8px}
+  #proximo{background:rgba(0,0,0,.25);border:2px solid var(--borde);border-radius:10px;width:56px;height:42px}
+
+  .marco{position:relative;flex:1;min-height:0;display:flex;justify-content:center}
+  canvas#lienzo{
+    height:100%;aspect-ratio:1/2;background:rgba(0,0,0,.25);
+    border:2px solid var(--borde);border-radius:12px;
+  }
+  #capa{
+    position:absolute;inset:0;display:grid;place-content:center;text-align:center;gap:8px;padding:20px;
+    background:rgba(36,22,52,.88);border-radius:12px;
+  }
+  #capa.oculta{display:none}
+  #titulo{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:26px}
+  #sub{font-size:13px;color:var(--tenue);max-width:200px}
+  #btn{margin-top:4px;font-family:inherit;font-weight:700;font-size:15px;padding:12px 24px;
+       border-radius:13px;border:none;background:var(--ambar);color:#241634;cursor:pointer}
+
+  .mandos{width:100%;max-width:380px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+  .mandos button{
+    font-family:'Bricolage Grotesque',sans-serif;font-size:20px;font-weight:800;
+    padding:16px 0;border-radius:14px;border:2px solid var(--borde);
+    background:var(--panel);color:var(--tinta);cursor:pointer;
+  }
+  .mandos button:active{background:#3F2A5C}
+  .mandos button.girar{color:var(--menta)}
+  .mandos button.soltar{color:var(--ambar);font-size:15px}
+  button:focus-visible{outline:3px solid var(--tinta);outline-offset:2px}
+</style>
+</head>
+<body>
+
+<div class="hud">
+  <div>Puntos<b id="puntos">0</b></div>
+  <div>Nivel<b id="nivel">1</b></div>
+  <div>Líneas<b id="lineas">0</b></div>
+  <div class="siguiente"><canvas id="proximo" width="112" height="84"></canvas></div>
+</div>
+
+<div class="marco">
+  <canvas id="lienzo" width="300" height="600"></canvas>
+  <div id="capa">
+    <div id="titulo">Tetris</div>
+    <p id="sub">Completa filas horizontales. Se acelera con cada nivel.</p>
+    <button id="btn">Jugar</button>
+  </div>
+</div>
+
+<div class="mandos">
+  <button id="izq" aria-label="Mover a la izquierda">←</button>
+  <button id="gir" class="girar" aria-label="Girar">↻</button>
+  <button id="der" aria-label="Mover a la derecha">→</button>
+  <button id="caer" class="soltar" aria-label="Soltar">▼▼</button>
+</div>
+
+<script>
+const COLS = 10, FILAS = 20, T = 30;
+const ctx = document.getElementById('lienzo').getContext('2d');
+const ctxP = document.getElementById('proximo').getContext('2d');
+ctxP.scale(2,2);
+
+const PIEZAS = {
+  I:{c:'#6FE7C4', f:[[1,1,1,1]]},
+  O:{c:'#FFC94A', f:[[1,1],[1,1]]},
+  T:{c:'#C77BE8', f:[[0,1,0],[1,1,1]]},
+  S:{c:'#7BE87B', f:[[0,1,1],[1,1,0]]},
+  Z:{c:'#FF7B7B', f:[[1,1,0],[0,1,1]]},
+  J:{c:'#7B9BE8', f:[[1,0,0],[1,1,1]]},
+  L:{c:'#FF9B5B', f:[[0,0,1],[1,1,1]]}
+};
+const TIPOS = Object.keys(PIEZAS);
+
+let malla, pieza, siguiente, puntos, nivel, lineas, jugando, caida, ultimo, bolsa = [];
+
+function sacarPieza(){
+  if (!bolsa.length){
+    bolsa = [...TIPOS];
+    for (let i = bolsa.length-1; i > 0; i--){
+      const j = Math.floor(Math.random()*(i+1));
+      [bolsa[i], bolsa[j]] = [bolsa[j], bolsa[i]];
+    }
+  }
+  const t = bolsa.pop();
+  return {t, c:PIEZAS[t].c, f:PIEZAS[t].f.map(r => [...r]), x:0, y:0};
+}
+
+function colocarArriba(p){
+  p.x = Math.floor((COLS - p.f[0].length)/2);
+  p.y = 0;
+  return p;
+}
+
+function choca(p, dx, dy, forma){
+  const f = forma || p.f;
+  for (let y = 0; y < f.length; y++)
+    for (let x = 0; x < f[y].length; x++){
+      if (!f[y][x]) continue;
+      const nx = p.x + x + dx, ny = p.y + y + dy;
+      if (nx < 0 || nx >= COLS || ny >= FILAS) return true;
+      if (ny >= 0 && malla[ny][nx]) return true;
+    }
+  return false;
+}
+
+function girar(){
+  const f = pieza.f;
+  const nueva = f[0].map((_, i) => f.map(r => r[i]).reverse());
+  for (const k of [0,-1,1,-2,2]){
+    if (!choca(pieza, k, 0, nueva)){ pieza.f = nueva; pieza.x += k; return; }
+  }
+}
+
+function fijar(){
+  pieza.f.forEach((fila, y) => fila.forEach((v, x) => {
+    if (v && pieza.y + y >= 0) malla[pieza.y+y][pieza.x+x] = pieza.c;
+  }));
+
+  let hechas = 0;
+  for (let y = FILAS-1; y >= 0; y--){
+    if (malla[y].every(Boolean)){
+      malla.splice(y,1);
+      malla.unshift(Array(COLS).fill(null));
+      hechas++; y++;
+    }
+  }
+  if (hechas){
+    puntos += [0,100,300,500,800][hechas] * nivel;
+    lineas += hechas;
+    nivel = Math.floor(lineas/10) + 1;
+    caida = Math.max(90, 800 - (nivel-1)*70);
+  }
+
+  pieza = colocarArriba(siguiente);
+  siguiente = sacarPieza();
+  hud();
+  dibujarProximo();
+
+  if (choca(pieza, 0, 0)){
+    jugando = false;
+    capa('Fin del juego', 'Puntaje: ' + puntos + ' · ' + lineas + ' líneas', 'Otra vez');
+  }
+}
+
+function bajar(){
+  if (!choca(pieza, 0, 1)) pieza.y++;
+  else fijar();
+}
+
+function soltar(){
+  while (!choca(pieza, 0, 1)) pieza.y++;
+  fijar();
+}
+
+function mover(d){ if (!choca(pieza, d, 0)) pieza.x += d; }
+
+function hud(){
+  document.getElementById('puntos').textContent = puntos;
+  document.getElementById('nivel').textContent = nivel;
+  document.getElementById('lineas').textContent = lineas;
+}
+
+function capa(t, s, b){
+  document.getElementById('titulo').textContent = t;
+  document.getElementById('sub').textContent = s;
+  document.getElementById('btn').textContent = b;
+  document.getElementById('capa').classList.remove('oculta');
+}
+
+function bloque(c, x, y, color, tam){
+  c.fillStyle = color;
+  c.beginPath();
+  c.roundRect(x+1, y+1, tam-2, tam-2, 4);
+  c.fill();
+  c.fillStyle = 'rgba(255,255,255,.22)';
+  c.fillRect(x+4, y+4, tam-8, 3);
+}
+
+function dibujar(){
+  ctx.clearRect(0,0,COLS*T,FILAS*T);
+
+  ctx.strokeStyle = 'rgba(255,255,255,.05)';
+  for (let x = 1; x < COLS; x++){ ctx.beginPath(); ctx.moveTo(x*T,0); ctx.lineTo(x*T,FILAS*T); ctx.stroke(); }
+  for (let y = 1; y < FILAS; y++){ ctx.beginPath(); ctx.moveTo(0,y*T); ctx.lineTo(COLS*T,y*T); ctx.stroke(); }
+
+  malla.forEach((fila, y) => fila.forEach((c, x) => { if (c) bloque(ctx, x*T, y*T, c, T); }));
+
+  if (jugando){
+    let s = 0;
+    while (!choca(pieza, 0, s+1)) s++;
+    ctx.globalAlpha = .18;
+    pieza.f.forEach((fila, y) => fila.forEach((v, x) => {
+      if (v) bloque(ctx, (pieza.x+x)*T, (pieza.y+y+s)*T, pieza.c, T);
+    }));
+    ctx.globalAlpha = 1;
+
+    pieza.f.forEach((fila, y) => fila.forEach((v, x) => {
+      if (v) bloque(ctx, (pieza.x+x)*T, (pieza.y+y)*T, pieza.c, T);
+    }));
+  }
+}
+
+function dibujarProximo(){
+  ctxP.clearRect(0,0,56,42);
+  const f = siguiente.f, t = 12;
+  const ox = (56 - f[0].length*t)/2, oy = (42 - f.length*t)/2;
+  f.forEach((fila, y) => fila.forEach((v, x) => {
+    if (v) bloque(ctxP, ox + x*t, oy + y*t, siguiente.c, t);
+  }));
+}
+
+function bucle(ahora){
+  requestAnimationFrame(bucle);
+  if (!jugando){ dibujar(); return; }
+  if (ahora - ultimo > caida){ bajar(); ultimo = ahora; }
+  dibujar();
+}
+
+function iniciar(){
+  malla = Array.from({length:FILAS}, () => Array(COLS).fill(null));
+  puntos = 0; nivel = 1; lineas = 0; caida = 800; ultimo = 0; bolsa = [];
+  pieza = colocarArriba(sacarPieza());
+  siguiente = sacarPieza();
+  jugando = true;
+  hud();
+  dibujarProximo();
+  document.getElementById('capa').classList.add('oculta');
+}
+
+document.getElementById('btn').addEventListener('click', iniciar);
+
+function accion(id, fn){
+  const b = document.getElementById(id);
+  b.addEventListener('click', () => { if (jugando){ fn(); dibujar(); } });
+}
+accion('izq',  () => mover(-1));
+accion('der',  () => mover(1));
+accion('gir',  girar);
+accion('caer', soltar);
+
+addEventListener('keydown', e => {
+  if (!jugando) return;
+  const t = {ArrowLeft:() => mover(-1), ArrowRight:() => mover(1),
+             ArrowUp:girar, ArrowDown:bajar, ' ':soltar}[e.key];
+  if (t){ e.preventDefault(); t(); dibujar(); }
+});
+
+// Estado inicial
+malla = Array.from({length:FILAS}, () => Array(COLS).fill(null));
+puntos = 0; nivel = 1; lineas = 0; jugando = false;
+siguiente = sacarPieza();
+dibujarProximo();
+requestAnimationFrame(bucle);
+</script>
+</body>
+</html>

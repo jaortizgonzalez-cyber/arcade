@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Combate de tanques</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,800&family=DM+Sans:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --fondo:#241634;--panel:#31204A;--borde:#48305F;
+    --ambar:#FFC94A;--menta:#6FE7C4;--tinta:#F3ECFF;--tenue:#A794C4;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;overflow:hidden;overscroll-behavior:none}
+  body{
+    background:radial-gradient(120% 80% at 50% -10%, #3A2352 0%, transparent 60%), var(--fondo);
+    color:var(--tinta);font-family:'DM Sans',system-ui,sans-serif;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
+    padding:8px calc(8px + env(safe-area-inset-left)) calc(8px + env(safe-area-inset-bottom));
+    touch-action:none;user-select:none;
+  }
+  .tanteo{
+    display:flex;align-items:center;gap:16px;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--tenue);
+  }
+  .tanteo b{font-family:'Bricolage Grotesque',sans-serif;font-size:24px;letter-spacing:0;margin-left:6px}
+  .p1 b{color:var(--ambar)} .p2 b{color:var(--menta)}
+  .tanteo .vs{font-size:11px;opacity:.5}
+
+  .mesa{display:flex;align-items:center;gap:8px;width:100%;flex:1;min-height:0;justify-content:center}
+  .marco{position:relative;flex:1;min-width:0;max-height:100%;display:flex;justify-content:center}
+  canvas{
+    max-width:100%;max-height:100%;aspect-ratio:8/5;
+    background:#1B0F28;border:2px solid var(--borde);border-radius:12px;
+  }
+  #capa{
+    position:absolute;inset:0;display:grid;place-content:center;text-align:center;gap:8px;padding:16px;
+    background:rgba(36,22,52,.9);border-radius:12px;
+  }
+  #capa.oculta{display:none}
+  #titulo{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:clamp(20px,5vw,28px)}
+  #sub{font-size:13px;color:var(--tenue);max-width:260px}
+  #btn{margin-top:4px;font-family:inherit;font-weight:700;font-size:15px;padding:12px 26px;
+       border-radius:13px;border:none;background:var(--ambar);color:#241634;cursor:pointer}
+
+  .mandos{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;width:104px;flex:none}
+  .mandos button{
+    font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:18px;
+    aspect-ratio:1;border-radius:12px;border:2px solid var(--borde);
+    background:var(--panel);color:var(--tinta);cursor:pointer;
+  }
+  .mandos button:active,.mandos button.on{background:#3F2A5C}
+  .mandos .fuego{font-size:11px;letter-spacing:.05em}
+  .m1 .fuego{color:var(--ambar);border-color:var(--ambar)}
+  .m2 .fuego{color:var(--menta);border-color:var(--menta)}
+
+  .pie{font-size:11px;color:var(--tenue);text-align:center}
+  @media (orientation:portrait){ .pie::before{content:'Gira el teléfono para más espacio · '} }
+</style>
+</head>
+<body>
+
+<div class="tanteo">
+  <span class="p1">Ámbar<b id="s1">0</b></span>
+  <span class="vs">primero a 5</span>
+  <span class="p2">Menta<b id="s2">0</b></span>
+</div>
+
+<div class="mesa">
+  <div class="mandos m1">
+    <button data-j="0" data-a="izq" aria-label="Girar izquierda">↺</button>
+    <button data-j="0" data-a="der" aria-label="Girar derecha">↻</button>
+    <button data-j="0" data-a="adel" aria-label="Avanzar">▲</button>
+    <button data-j="0" data-a="fuego" class="fuego">FUEGO</button>
+  </div>
+
+  <div class="marco">
+    <canvas id="lienzo" width="480" height="300"></canvas>
+    <div id="capa">
+      <div id="titulo">Combate</div>
+      <p id="sub">Dos tanques, un laberinto. Las balas rebotan: se puede acertar de rebote.</p>
+      <button id="btn">Jugar</button>
+    </div>
+  </div>
+
+  <div class="mandos m2">
+    <button data-j="1" data-a="izq" aria-label="Girar izquierda">↺</button>
+    <button data-j="1" data-a="der" aria-label="Girar derecha">↻</button>
+    <button data-j="1" data-a="adel" aria-label="Avanzar">▲</button>
+    <button data-j="1" data-a="fuego" class="fuego">FUEGO</button>
+  </div>
+</div>
+
+<p class="pie">Teclado: jugador 1 = A D W + S · jugador 2 = ← → ↑ + Enter</p>
+
+<script>
+const W = 480, H = 300, META = 5;
+const ctx = document.getElementById('lienzo').getContext('2d');
+const COLOR = ['#FFC94A', '#6FE7C4'];
+
+const MUROS = [
+  {x:0,y:0,w:W,h:10},{x:0,y:H-10,w:W,h:10},{x:0,y:0,w:10,h:H},{x:W-10,y:0,w:10,h:H},
+  {x:100,y:40,w:12,h:90},   {x:368,y:170,w:12,h:90},
+  {x:150,y:150,w:100,h:12}, {x:230,y:138,w:100,h:12},
+  {x:60,y:200,w:90,h:12},   {x:330,y:88,w:90,h:12},
+  {x:200,y:40,w:12,h:60},   {x:268,y:200,w:12,h:60},
+  {x:150,y:240,w:80,h:12},  {x:250,y:48,w:80,h:12}
+];
+
+const INICIO = [{x:38,y:150,a:0}, {x:442,y:150,a:Math.PI}];
+const tanques = [], balas = [];
+let marcador = [0,0], jugando = false, pausa = 0, chispas = [];
+const tecla = {};
+
+function reset(){
+  tanques.length = 0; balas.length = 0; chispas.length = 0;
+  INICIO.forEach((p,i) => tanques.push({x:p.x, y:p.y, a:p.a, vivo:true, color:COLOR[i]}));
+}
+
+function reiniciar(){
+  marcador = [0,0]; hud(); reset();
+  jugando = true; pausa = 0;
+  document.getElementById('capa').classList.add('oculta');
+}
+
+function hud(){
+  document.getElementById('s1').textContent = marcador[0];
+  document.getElementById('s2').textContent = marcador[1];
+}
+
+function capa(t, s, b){
+  document.getElementById('titulo').textContent = t;
+  document.getElementById('sub').textContent = s;
+  document.getElementById('btn').textContent = b;
+  document.getElementById('capa').classList.remove('oculta');
+}
+
+// --- Controles
+const pulsado = {};
+function key(j, a){ return j + ':' + a; }
+
+document.querySelectorAll('.mandos button').forEach(b => {
+  const k = key(b.dataset.j, b.dataset.a);
+  const on  = e => { e.preventDefault(); pulsado[k] = true;  b.classList.add('on'); };
+  const off = e => { e.preventDefault(); pulsado[k] = false; b.classList.remove('on'); };
+  b.addEventListener('pointerdown', on);
+  ['pointerup','pointercancel','pointerleave'].forEach(ev => b.addEventListener(ev, off));
+});
+
+const MAPA = {
+  a:'0:izq', d:'0:der', w:'0:adel', s:'0:fuego',
+  arrowleft:'1:izq', arrowright:'1:der', arrowup:'1:adel', enter:'1:fuego'
+};
+addEventListener('keydown', e => {
+  const k = MAPA[e.key.toLowerCase()];
+  if (k){ e.preventDefault(); tecla[k] = true; }
+});
+addEventListener('keyup', e => {
+  const k = MAPA[e.key.toLowerCase()];
+  if (k) tecla[k] = false;
+});
+const activo = (j, a) => pulsado[key(j,a)] || tecla[key(j,a)];
+
+document.getElementById('btn').addEventListener('click', reiniciar);
+
+// --- Física
+function chocaMuro(x, y, r){
+  return MUROS.some(m => x + r > m.x && x - r < m.x + m.w && y + r > m.y && y - r < m.y + m.h);
+}
+
+function disparar(i){
+  if (balas.some(b => b.de === i)) return;   // una bala a la vez, como en el original
+  const t = tanques[i];
+  balas.push({
+    x: t.x + Math.cos(t.a)*12, y: t.y + Math.sin(t.a)*12,
+    vx: Math.cos(t.a)*4.2, vy: Math.sin(t.a)*4.2,
+    de: i, rebotes: 0, vida: 300
+  });
+}
+
+function paso(){
+  if (pausa > 0){ pausa--; if (pausa === 0) reset(); return; }
+
+  tanques.forEach((t, i) => {
+    if (activo(i,'izq'))  t.a -= 0.055;
+    if (activo(i,'der'))  t.a += 0.055;
+    if (activo(i,'adel')){
+      const nx = t.x + Math.cos(t.a)*1.5, ny = t.y + Math.sin(t.a)*1.5;
+      if (!chocaMuro(nx, t.y, 7)) t.x = nx;
+      if (!chocaMuro(t.x, ny, 7)) t.y = ny;
+    }
+    if (activo(i,'fuego')) disparar(i);
+  });
+
+  for (let k = balas.length - 1; k >= 0; k--){
+    const b = balas[k];
+    b.vida--;
+
+    if (chocaMuro(b.x + b.vx, b.y, 2)){ b.vx *= -1; b.rebotes++; }
+    if (chocaMuro(b.x, b.y + b.vy, 2)){ b.vy *= -1; b.rebotes++; }
+    b.x += b.vx; b.y += b.vy;
+
+    let fuera = b.vida <= 0 || b.rebotes > 4;
+
+    tanques.forEach((t, i) => {
+      if (fuera) return;
+      if (Math.hypot(b.x - t.x, b.y - t.y) < 9){
+        const anotador = (i === b.de) ? 1 - i : b.de;   // autogol cuenta para el rival
+        marcador[anotador]++;
+        hud();
+        for (let n = 0; n < 14; n++)
+          chispas.push({x:t.x, y:t.y, vx:(Math.random()-.5)*4, vy:(Math.random()-.5)*4, v:22, c:t.color});
+        t.vivo = false;
+        fuera = true;
+        pausa = 55;
+        if (marcador[anotador] >= META){
+          jugando = false;
+          capa(anotador === 0 ? 'Gana Ámbar' : 'Gana Menta',
+               marcador[0] + ' — ' + marcador[1], 'Otra vez');
+        }
+      }
+    });
+
+    if (fuera) balas.splice(k,1);
+  }
+
+  chispas.forEach(c => { c.x += c.vx; c.y += c.vy; c.v--; });
+  chispas = chispas.filter(c => c.v > 0);
+}
+
+// --- Dibujo
+function dibujar(){
+  ctx.clearRect(0,0,W,H);
+
+  ctx.fillStyle = '#4A3168';
+  MUROS.forEach(m => { ctx.beginPath(); ctx.roundRect(m.x, m.y, m.w, m.h, 3); ctx.fill(); });
+
+  tanques.forEach(t => {
+    if (!t.vivo) return;
+    ctx.save();
+    ctx.translate(t.x, t.y);
+    ctx.rotate(t.a);
+    ctx.fillStyle = t.color;
+    ctx.beginPath(); ctx.roundRect(-9, -7, 18, 14, 3); ctx.fill();
+    ctx.fillStyle = 'rgba(0,0,0,.35)';
+    ctx.fillRect(-9, -7, 18, 3); ctx.fillRect(-9, 4, 18, 3);
+    ctx.fillStyle = t.color;
+    ctx.fillRect(4, -2.5, 12, 5);
+    ctx.restore();
+  });
+
+  balas.forEach(b => {
+    ctx.fillStyle = '#F3ECFF';
+    ctx.beginPath(); ctx.arc(b.x, b.y, 2.6, 0, Math.PI*2); ctx.fill();
+  });
+
+  chispas.forEach(c => {
+    ctx.globalAlpha = c.v / 22;
+    ctx.fillStyle = c.c;
+    ctx.fillRect(c.x - 1.5, c.y - 1.5, 3, 3);
+  });
+  ctx.globalAlpha = 1;
+}
+
+function bucle(){
+  requestAnimationFrame(bucle);
+  if (jugando) paso();
+  dibujar();
+}
+
+reset();
+hud();
+bucle();
+</script>
+</body>
+</html>

@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sala de juegos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="estilo.css">
+<style>
+  main{max-width:460px;margin:0 auto}
+  header{text-align:center;margin-bottom:26px}
+  header .nota{margin-top:8px}
+
+  .grupo{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--tenue);
+         margin:26px 0 12px;display:flex;align-items:center;gap:10px}
+  .grupo::after{content:'';flex:1;height:1px;background:var(--borde)}
+
+  .rejilla{display:grid;gap:12px}
+  a.tarjeta{
+    display:flex;align-items:center;gap:14px;text-decoration:none;color:inherit;
+    background:var(--panel);border:2px solid var(--borde);border-radius:18px;
+    padding:16px;transition:transform .15s,border-color .15s;
+  }
+  a.tarjeta:hover{transform:translateY(-2px);border-color:var(--ambar)}
+  .icono{
+    width:52px;height:52px;flex:none;border-radius:14px;display:grid;place-items:center;
+    font-size:26px;background:rgba(0,0,0,.25);
+  }
+  .texto h2{font-family:var(--display);font-weight:800;font-size:19px;line-height:1.15}
+  .texto p{font-size:13px;color:var(--tenue);margin-top:3px;line-height:1.35}
+  .flecha{margin-left:auto;color:var(--tenue);font-size:20px}
+
+  .destacada{border-color:var(--ambar)}
+  .etiqueta{
+    display:inline-block;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+    background:var(--ambar);color:#241634;padding:3px 8px;border-radius:20px;margin-bottom:5px;
+  }
+  footer{margin-top:34px;text-align:center;font-size:12px;color:var(--tenue);line-height:1.6}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Sala de <em>juegos</em></h1>
+    <p class="nota">Para jugar juntos, desde el sofá o cada uno en su celular.</p>
+  </header>
+
+  <div class="grupo">En línea · dos celulares</div>
+  <div class="rejilla">
+    <a class="tarjeta destacada" href="tres-en-raya.html">
+      <div class="icono">⭕</div>
+      <div class="texto">
+        <span class="etiqueta">Sala compartida</span>
+        <h2>Tres en raya</h2>
+        <p>Uno crea la sala, el otro entra con el código. También sirve en un solo teléfono.</p>
+      </div>
+      <div class="flecha">→</div>
+    </a>
+  </div>
+
+  <div class="grupo">En un solo dispositivo</div>
+  <div class="rejilla">
+    <a class="tarjeta" href="tanques-combate.html">
+      <div class="icono">💥</div>
+      <div class="texto">
+        <h2>Combate de tanques</h2>
+        <p>Homenaje al Combat de Atari. Dos jugadores, balas que rebotan.</p>
+      </div>
+      <div class="flecha">→</div>
+    </a>
+    <a class="tarjeta" href="ahorcado.html">
+      <div class="icono">🔤</div>
+      <div class="texto">
+        <h2>Ahorcado</h2>
+        <p>Uno escribe la palabra secreta y el otro la adivina.</p>
+      </div>
+      <div class="flecha">→</div>
+    </a>
+    <a class="tarjeta" href="tetris.html">
+      <div class="icono">🧱</div>
+      <div class="texto">
+        <h2>Tetris</h2>
+        <p>El clásico de siempre, por turnos a ver quién hace más puntos.</p>
+      </div>
+      <div class="flecha">→</div>
+    </a>
+    <a class="tarjeta" href="arkanoid.html">
+      <div class="icono">🎯</div>
+      <div class="texto">
+        <h2>Arkanoid</h2>
+        <p>Rompe todos los ladrillos sin dejar caer la bola.</p>
+      </div>
+      <div class="flecha">→</div>
+    </a>
+  </div>
+
+  <footer>Añade el sitio a la pantalla de inicio<br>y queda como una app.</footer>
+</main>
+</body>
+</html>
