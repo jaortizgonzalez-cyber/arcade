@@ -14,7 +14,11 @@
 
   /* Banner de turno */
   #banner{border-radius:14px;padding:12px;text-align:center;background:var(--panel);
-          border:2px solid var(--borde);transition:background .2s,border-color .2s}
+          border:2px solid var(--borde);transition:background .2s,border-color .2s;
+          position:relative}
+  #b-son{position:absolute;right:8px;top:50%;transform:translateY(-50%);
+         background:none;border:none;font-size:17px;padding:8px;cursor:pointer;opacity:.75}
+  #b-son:hover{opacity:1}
   #banner b{display:block;font-family:var(--display);font-weight:800;font-size:19px;line-height:1.2}
   #banner span{font-size:12px;color:var(--tenue)}
   #banner.mio{background:#4A3A16;border-color:var(--ambar)}
@@ -120,7 +124,10 @@
       </div>
     </div>
 
-    <div id="banner"><b id="banner-t">—</b><span id="banner-s"></span></div>
+    <div id="banner">
+      <b id="banner-t">—</b><span id="banner-s"></span>
+      <button id="b-son" aria-label="Activar o silenciar sonido">🔊</button>
+    </div>
 
     <!-- COLOCACIÓN -->
     <div id="zona-colocar" hidden>
@@ -172,6 +179,9 @@
 
 <script type="module">
 import { Lobby } from './lobby.js?v=3';
+import { Sonido } from './sonido.js?v=3';
+
+const sonido = new Sonido();
 
 /* ── Flota clásica: 17 casillas ────────────────────────── */
 const FLOTA = [
@@ -357,7 +367,7 @@ async function resolver(p){
 }
 
 /* ── Pintado ───────────────────────────────────────────── */
-let tiroVisto = 0, tempToast = null;
+let tiroVisto = 0, tempToast = null, turnoVisto = null;
 
 function avisar(t, rival){
   const mio = t.de === miRol;
@@ -374,6 +384,10 @@ function avisar(t, rival){
   $('toast').className = 'ver ' + t.res;
   clearTimeout(tempToast);
   tempToast = setTimeout(() => { $('toast').className = ''; }, 4000);
+
+  if (t.hundido) sonido.hundimiento();
+  else if (t.res === 'tocado') sonido.explosion();
+  else sonido.chapoteo();
 
   if (!mio && navigator.vibrate) navigator.vibrate(t.res === 'tocado' ? [90,60,90] : 40);
 }
@@ -492,8 +506,11 @@ function pintar(s){
     $('b-otra').hidden = true;
     if (!sala.completa) banner('Esperando rival', 'Comparte el código para empezar', '');
     else if (e.pendiente) banner(e.pendiente.de === miRol ? 'Disparo en camino…' : 'Te están disparando…', eco, '');
-    else if (e.turno === miRol) banner('Tu turno', 'Toca una casilla del mar enemigo. ' + eco, 'mio');
-    else banner('Turno de ' + sala.nombre(rival), eco, '');
+    else if (e.turno === miRol){
+      banner('Tu turno', 'Toca una casilla del mar enemigo. ' + eco, 'mio');
+      if (turnoVisto !== 'mio'){ turnoVisto = 'mio'; if (t) setTimeout(() => sonido.turno(), 700); }
+    }
+    else { banner('Turno de ' + sala.nombre(rival), eco, ''); turnoVisto = 'suyo'; }
   }
 
   pintarBitacora(e.log);
@@ -503,6 +520,11 @@ function pintar(s){
 }
 
 /* ── Botones ───────────────────────────────────────────── */
+$('b-son').textContent = sonido.activo ? '🔊' : '🔇';
+$('b-son').addEventListener('click', () => {
+  $('b-son').textContent = sonido.alternar() ? '🔊' : '🔇';
+});
+
 $('b-rotar').addEventListener('click', () => { horizontal = !horizontal; pintarColocacion(); });
 $('b-azar').addEventListener('click', () => { colocarAlAzar(); pintarColocacion(); });
 
@@ -518,7 +540,7 @@ $('b-listo').addEventListener('click', async () => {
 });
 
 $('b-otra').addEventListener('click', async () => {
-  misBarcos = {}; sel = FLOTA[0].id; tiroVisto = 0; colocarAlAzar();
+  misBarcos = {}; sel = FLOTA[0].id; tiroVisto = 0; turnoVisto = null; colocarAlAzar();
   await sala.actualizar(s => {
     const e = s.estado;
     if (e.fase !== 'fin') return false;
