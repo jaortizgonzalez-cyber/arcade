@@ -5,13 +5,13 @@
 // ─────────────────────────────────────────────────────────────
 
 export const firebaseConfig = {
-  apiKey: "PEGA_TU_API_KEY",
-  authDomain: "PEGA_TU_PROYECTO.firebaseapp.com",
-  databaseURL: "https://PEGA_TU_PROYECTO-default-rtdb.firebaseio.com",
-  projectId: "PEGA_TU_PROYECTO",
-  storageBucket: "PEGA_TU_PROYECTO.appspot.com",
-  messagingSenderId: "000000000000",
-  appId: "1:000000000000:web:0000000000000000000000"
+  databaseURL: "https://arcade-a185d-default-rtdb.firebaseio.com/",
+  apiKey: "AIzaSyCQ8jiMdIHKwdfUoVj2MFgp8rin0PLwI20",
+  authDomain: "arcade-a185d.firebaseapp.com",
+  projectId: "arcade-a185d",
+  storageBucket: "arcade-a185d.firebasestorage.app",
+  messagingSenderId: "731103905413",
+  appId: "1:731103905413:web:b963e3c9125790e3878bec"
 };
 
 export const configurado = !firebaseConfig.apiKey.startsWith("PEGA_");
