@@ -93,6 +93,30 @@ export class Sonido {
     this._tono(0.22, 700, 180, 0.18);
   }
 
+  /** Fanfarria de victoria: arpegio ascendente sobre un retumbo. */
+  victoria(){
+    if (!this._listo()) return;
+    const notas = [523, 659, 784, 1047];
+    notas.forEach((f,i) => {
+      this._tono(0.5, f, f, 0.22, 'triangle', i*0.13);
+      this._tono(0.5, f/2, f/2, 0.12, 'sine', i*0.13);
+    });
+    this._tono(1.6, 1047, 1047, 0.2, 'triangle', 0.62);
+    this._tono(1.6, 1568, 1568, 0.12, 'triangle', 0.62);
+    this._tono(1.8, 262, 262, 0.22, 'sine', 0.62);
+    this._ruido(0.8, 'lowpass', 2000, 70, 0.4);
+    this._ruido(0.6, 'highpass', 3000, 6000, 0.12, 0.7);
+  }
+
+  /** Derrota: caída grave con retumbo largo. */
+  derrota(){
+    if (!this._listo()) return;
+    [440, 392, 330, 262].forEach((f,i) =>
+      this._tono(0.7, f, f*0.98, 0.2, 'sine', i*0.22));
+    this._tono(2.2, 110, 55, 0.3, 'sine', 0.3);
+    this._ruido(1.4, 'lowpass', 1200, 45, 0.45);
+  }
+
   /** Aviso suave de "es tu turno". */
   turno(){
     if (!this._listo()) return;

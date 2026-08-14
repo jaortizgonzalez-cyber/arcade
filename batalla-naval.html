@@ -42,7 +42,24 @@
   .celda.barco{background:#5A4080;border-color:#7B59AB}
   .celda.previa{background:#4A3570;border-color:var(--ambar)}
   .celda.mala{background:#5A2B3C;border-color:var(--rojo)}
-  .rival .celda:not(:disabled):hover{background:#3E2A5A;border-color:var(--ambar)}
+  /* El mar enemigo es la zona jugable: se destaca y respira cuando es tu turno */
+  .tabla.rival{padding:6px;border-radius:14px;
+               background:rgba(110,150,255,.07);
+               box-shadow:0 0 0 2px rgba(122,160,255,.22);
+               transition:box-shadow .4s,background .4s}
+  .tabla.rival.activo{background:rgba(110,150,255,.13);
+                      animation:respirar 2.6s ease-in-out infinite}
+  @keyframes respirar{
+    0%,100%{box-shadow:0 0 0 2px rgba(122,160,255,.45), 0 0 16px rgba(122,160,255,.18)}
+    50%    {box-shadow:0 0 0 2px rgba(122,160,255,.85), 0 0 30px rgba(122,160,255,.45)}}
+  .rival .celda{background:#352456;border-color:#4C3672}
+  .rival .celda:not(:disabled){cursor:crosshair}
+  .rival .celda:not(:disabled):hover{background:#4B3578;border-color:var(--ambar);
+                                     transform:scale(1.08);z-index:3}
+
+  /* Tu flota es solo informativa: queda un paso atrás */
+  .mini .tabla{opacity:.62;filter:saturate(.9);transition:opacity .25s}
+  .mini:hover .tabla{opacity:1}
 
   /* Clavijas: blanca = agua, roja = tocado (como el juego de mesa) */
   .clavija{width:46%;height:46%;border-radius:50%;box-shadow:inset 0 -1px 2px rgba(0,0,0,.45)}
@@ -106,6 +123,43 @@
   .fila-botones{display:flex;gap:8px;margin-top:10px}
   .fila-botones .accion{font-size:14px;padding:13px}
   .ayuda{font-size:12px;color:var(--tenue);text-align:center;line-height:1.45}
+
+  /* ── Pantalla de victoria / derrota ── */
+  #final{position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:18px;
+         background:rgba(16,8,28,.82);backdrop-filter:blur(6px);
+         animation:aparecer .35s ease-out}
+  @keyframes aparecer{from{opacity:0}to{opacity:1}}
+  .tarjeta-final{width:100%;max-width:420px;background:var(--panel);
+                 border:2px solid var(--borde);border-radius:24px;overflow:hidden;
+                 box-shadow:0 24px 70px rgba(0,0,0,.6);
+                 animation:subir .45s cubic-bezier(.2,1.3,.4,1)}
+  @keyframes subir{from{transform:translateY(30px) scale(.92);opacity:0}
+                   to{transform:none;opacity:1}}
+  .escena{display:block;width:100%;height:auto;background:#0E1230}
+  .tarjeta-final .cuerpo{padding:20px 20px 22px;text-align:center}
+  .tarjeta-final h2{font-family:var(--display);font-weight:800;font-size:29px;
+                    line-height:1.1;margin-bottom:6px}
+  .gane .tarjeta-final h2{color:var(--ambar)}
+  .perdio .tarjeta-final h2{color:#9FB4E8}
+  .tarjeta-final .sub{font-size:14px;color:var(--tenue);line-height:1.5}
+  .cifras{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:18px 0}
+  .cifra{background:rgba(0,0,0,.25);border-radius:13px;padding:10px 4px}
+  .cifra b{display:block;font-family:var(--display);font-weight:800;font-size:21px}
+  .cifra span{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--tenue)}
+  .tarjeta-final .accion + .accion{margin-top:8px}
+
+  /* Animaciones de la escena */
+  .barco-hundido{animation:hundirse 4s ease-in-out infinite}
+  @keyframes hundirse{0%,100%{transform:translateY(0) rotate(0deg)}
+                      50%{transform:translateY(5px) rotate(-3deg)}}
+  .llama{transform-origin:center bottom;animation:arder .5s ease-in-out infinite alternate}
+  @keyframes arder{from{transform:scaleY(.82) scaleX(1.05);opacity:.85}
+                   to{transform:scaleY(1.15);opacity:1}}
+  .ola{animation:ondear 3.5s ease-in-out infinite}
+  .ola2{animation:ondear 4.5s ease-in-out infinite reverse}
+  @keyframes ondear{0%,100%{transform:translateX(0)}50%{transform:translateX(-14px)}}
+  .destello{animation:brillar 2.5s ease-in-out infinite}
+  @keyframes brillar{0%,100%{opacity:.35}50%{opacity:.9}}
 
   .editar-nom{background:none;border:none;color:inherit;font:inherit;
               text-transform:uppercase;letter-spacing:.1em;cursor:pointer;
@@ -204,6 +258,62 @@
     </div>
   </section>
 </main>
+
+<div id="final" hidden>
+  <div class="tarjeta-final">
+    <svg class="escena" viewBox="0 0 400 210" aria-hidden="true">
+      <defs>
+        <linearGradient id="cielo" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#1B1145"/><stop offset="100%" stop-color="#3A2A6B"/>
+        </linearGradient>
+        <linearGradient id="mar" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#22306E"/><stop offset="100%" stop-color="#0D1236"/>
+        </linearGradient>
+        <radialGradient id="fogonazo">
+          <stop offset="0%" stop-color="#FFE9A8"/><stop offset="45%" stop-color="#FF9B3C" stop-opacity=".75"/>
+          <stop offset="100%" stop-color="#FF6B3C" stop-opacity="0"/>
+        </radialGradient>
+      </defs>
+
+      <rect width="400" height="210" fill="url(#cielo)"/>
+      <circle cx="330" cy="42" r="19" fill="#F7F0D8" opacity=".9"/>
+      <circle cx="322" cy="37" r="16" fill="#1B1145" opacity=".55"/>
+      <g fill="#FFF" class="destello">
+        <circle cx="40" cy="30" r="1.4"/><circle cx="95" cy="55" r="1"/><circle cx="150" cy="25" r="1.2"/>
+        <circle cx="215" cy="48" r="1"/><circle cx="270" cy="22" r="1.3"/><circle cx="370" cy="80" r="1"/>
+      </g>
+
+      <!-- barco hundiéndose -->
+      <g class="barco-hundido">
+        <circle cx="150" cy="118" r="52" fill="url(#fogonazo)"/>
+        <g transform="translate(150,132) rotate(-16)">
+          <path d="M-52 0 h104 l-14 15 h-76 z" fill="#2A2036"/>
+          <rect x="-34" y="-11" width="46" height="11" rx="2" fill="#3A2D4A"/>
+          <rect x="-6" y="-25" width="11" height="15" fill="#453757"/>
+          <rect x="-2" y="-38" width="2.5" height="14" fill="#453757"/>
+          <g class="llama">
+            <path d="M8 -12 q7 -13 13 -3 q5 -11 9 4 q3 12 -11 12 q-13 0 -11 -13z" fill="#FF8A3C"/>
+            <path d="M13 -9 q4 -8 8 -1 q3 -6 5 3 q2 8 -7 8 q-8 0 -6 -10z" fill="#FFDD6B"/>
+          </g>
+        </g>
+        <g fill="#5A4A70" opacity=".55">
+          <circle cx="132" cy="86" r="12"/><circle cx="152" cy="72" r="9"/><circle cx="118" cy="97" r="8"/>
+        </g>
+      </g>
+
+      <path class="ola" d="M-20 150 q30 -9 60 0 t60 0 t60 0 t60 0 t60 0 t60 0 v70 h-380z" fill="url(#mar)"/>
+      <path class="ola2" d="M-20 168 q34 -8 68 0 t68 0 t68 0 t68 0 t68 0 v52 h-400z" fill="#0B0F2E" opacity=".85"/>
+      <path class="ola" d="M-20 186 q30 -6 60 0 t60 0 t60 0 t60 0 t60 0 t60 0 v34 h-380z" fill="#070A22"/>
+    </svg>
+    <div class="cuerpo">
+      <h2 id="final-t"></h2>
+      <p class="sub" id="final-s"></p>
+      <div class="cifras" id="final-c"></div>
+      <button class="accion" id="b-revancha">⚓ Otra batalla</button>
+      <button class="accion fantasma" id="b-cerrar">Ver el tablero</button>
+    </div>
+  </div>
+</div>
 
 <script type="module">
 import { Lobby } from './lobby.js?v=3';
@@ -486,6 +596,29 @@ async function editarNombre(){
   if (nuevo && nuevo.trim()) await sala.cambiarNombre(nuevo);
 }
 
+let finalMostrado = false;
+
+function mostrarFinal(e, rival){
+  const gane = e.ganador === miRol;
+  const mios = (e.disparos && e.disparos[miRol]) || {};
+  const tiros = Object.keys(mios).length;
+  const dianas = Object.values(mios).filter(v => v === 'tocado').length;
+  const punteria = tiros ? Math.round(dianas*100/tiros) : 0;
+
+  $('final').className = gane ? 'gane' : 'perdio';
+  $('final-t').textContent = gane ? '¡' + sala.nombre(miRol) + ' ha ganado!'
+                                  : sala.nombre(e.ganador) + ' ha ganado';
+  $('final-s').textContent = gane
+    ? '¡Felicitaciones! Destruiste la flota completa de ' + sala.nombre(rival) + '.'
+    : 'Tu flota fue hundida. La revancha se sirve fría.';
+  $('final-c').innerHTML =
+    '<div class="cifra"><b>' + tiros + '</b><span>Disparos</span></div>' +
+    '<div class="cifra"><b>' + dianas + '</b><span>Impactos</span></div>' +
+    '<div class="cifra"><b>' + punteria + '%</b><span>Puntería</span></div>';
+  $('final').hidden = false;
+  if (gane) sonido.victoria(); else sonido.derrota();
+}
+
 function pintar(s){
   if (!s || !s.estado) return;
   const e = s.estado, rival = miRol === 'A' ? 'B' : 'A';
@@ -527,6 +660,7 @@ function pintar(s){
 
   // Mar enemigo: solo mis clavijas
   const miTurno = e.fase === 'combate' && e.turno === miRol && !e.pendiente && sala.completa;
+  $('malla-rival').classList.toggle('activo', miTurno);
   celdasRival.forEach((cel,i) => {
     const r = mios['c'+i];
     let cls = r === 'tocado' ? 'tocado' : r === 'agua' ? 'agua' : '';
@@ -563,12 +697,15 @@ function pintar(s){
 
   if (e.fase === 'fin'){
     $('b-otra').hidden = false;
+    if (!finalMostrado){ finalMostrado = true; setTimeout(() => mostrarFinal(e, rival), 600); }
     banner(e.ganador === miRol ? '🏆 ¡Ganaste!' : 'Perdiste esta',
            e.ganador === miRol ? 'Hundiste la flota de ' + sala.nombre(rival)
                                : sala.nombre(e.ganador) + ' hundió tu flota',
            e.ganador === miRol ? 'gane' : '');
   } else {
     $('b-otra').hidden = true;
+    finalMostrado = false;
+    $('final').hidden = true;
     if (!sala.completa) banner('Esperando rival', 'Comparte el código para empezar', '');
     else if (e.pendiente) banner(e.pendiente.de === miRol ? 'Disparo en camino…' : 'Te están disparando…', eco, '');
     else if (e.turno === miRol){
@@ -585,6 +722,9 @@ function pintar(s){
 }
 
 /* ── Botones ───────────────────────────────────────────── */
+$('b-cerrar').addEventListener('click', () => { $('final').hidden = true; });
+$('b-revancha').addEventListener('click', () => { $('final').hidden = true; $('b-otra').click(); });
+
 $('b-son').textContent = sonido.activo ? '🔊' : '🔇';
 $('b-son').addEventListener('click', () => {
   $('b-son').textContent = sonido.alternar() ? '🔊' : '🔇';
