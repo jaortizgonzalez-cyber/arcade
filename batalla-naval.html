@@ -404,11 +404,17 @@ new Lobby({
   estadoInicial,
   alEntrar: async s => {
     sala = s; miRol = s.rol;
-    colocarAlAzar();                       // arranca con una propuesta; se puede cambiar
-    const guardado = await s.leerSecreto(); // por si volvemos tras recargar la página
-    if (guardado && guardado.barcos) misBarcos = guardado.barcos;
-    pintarColocacion();
+    colocarAlAzar();          // propuesta inicial; se puede cambiar
+    pintarColocacion();       // dibujamos ya, antes de cualquier espera
     s.alCambiar(pintar);
+    try{
+      const guardado = await s.leerSecreto();   // por si volvemos tras recargar
+      if (guardado && guardado.barcos){
+        misBarcos = guardado.barcos;
+        pintarColocacion();
+        if (s.ultimo) pintar(s.ultimo);
+      }
+    } catch(e){ console.warn('No se pudo recuperar la flota guardada', e); }
   }
 });
 </script>

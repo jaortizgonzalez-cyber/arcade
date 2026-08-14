@@ -146,8 +146,13 @@ export class Sala {
     await this.fb.set(this.nodo(`secretos/${this.codigo}/${this.rol}`), { uid:this.uid, ...datos });
   }
   async leerSecreto(){
-    const s = await this.fb.get(this.nodo(`secretos/${this.codigo}/${this.rol}`));
-    return s.exists() ? s.val() : null;
+    // Si el nodo todavía no existe, la regla de propiedad compara contra null
+    // y Firebase responde "permission denied". No es un fallo: simplemente
+    // aún no hemos guardado nada.
+    try{
+      const s = await this.fb.get(this.nodo(`secretos/${this.codigo}/${this.rol}`));
+      return s.exists() ? s.val() : null;
+    } catch(e){ return null; }
   }
 
   /* ── Salida ────────────────────────────────────────────── */
