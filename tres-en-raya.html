@@ -308,18 +308,31 @@ async function unirse(codigo){
     // lo interpretaría como "no existe" y abortaría sin consultar nada.
     const previo = await fb.get(fb.ref(db,'salas/'+codigo));
     if (!previo.exists()){ $('aviso-sala').textContent = 'Esa sala no existe. Revisa el código.'; return; }
+
+    // Un puesto está disponible si nadie lo ocupa, si ya es mío, o si
+    // quien lo tenía se desconectó (cada navegador recibe un uid distinto,
+    // así que una pestaña vieja puede dejar la sala trancada).
+    const libre = (j, m) => !j[m] || j[m].uid === uid || j[m].online !== true;
     const jp = previo.val().jugadores || {};
-    if (jp.X && jp.O && jp.X.uid !== uid && jp.O.uid !== uid){
-      $('aviso-sala').textContent = 'Esa sala ya está llena.'; return;
+    if (!libre(jp,'X') && !libre(jp,'O')){
+      $('aviso-sala').textContent = 'La sala está llena: ' +
+        (jp.X.nombre || 'alguien') + ' y ' + (jp.O.nombre || 'alguien') + ' están dentro.';
+      return;
     }
 
-    const r = await fb.runTransaction(fb.ref(db,'salas/'+codigo), s => {
-      if (!s) return;                                     // no existe
+    const r = await fb.runTransaction(fb.ref(db,'salas/'+codigo), actual => {
+      // `actual` puede llegar null: get() no deja el nodo sincronizado y la
+      // primera corrida es local. Si abortáramos aquí, la transacción moriría
+      // sin consultar al servidor. Por eso caemos al valor ya leído; si el
+      // servidor tiene algo distinto, Firebase vuelve a correr esto con el dato real.
+      const s = actual || previo.val();
+      if (!s) return;
       const j = s.jugadores || {};
-      if (j.X && j.X.uid === uid){ j.X.online = true; s.jugadores = j; return s; }
-      if (j.O && j.O.uid === uid){ j.O.online = true; s.jugadores = j; return s; }
-      if (!j.X){ j.X = { uid, nombre: miNombre(), online:true }; s.jugadores = j; return s; }
-      if (!j.O){ j.O = { uid, nombre: miNombre(), online:true }; s.jugadores = j; return s; }
+      const tomar = m => { j[m] = { uid, nombre: miNombre(), online:true }; s.jugadores = j; return s; };
+      if (j.X && j.X.uid === uid) return tomar('X');       // reconexión
+      if (j.O && j.O.uid === uid) return tomar('O');
+      if (libre(j,'X')) return tomar('X');
+      if (libre(j,'O')) return tomar('O');
       return;                                             // llena
     });
     if (!r.committed){ $('aviso-sala').textContent = 'No se pudo entrar, inténtalo otra vez.'; return; }
