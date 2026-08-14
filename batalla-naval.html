@@ -47,7 +47,7 @@
   /* Clavijas: blanca = agua, roja = tocado (como el juego de mesa) */
   .clavija{width:46%;height:46%;border-radius:50%;box-shadow:inset 0 -1px 2px rgba(0,0,0,.45)}
   .agua .clavija{background:#E8E2F5}
-  .tocado .clavija{background:var(--rojo)}
+  .tocado .clavija{background:var(--rojo);box-shadow:0 0 0 2px rgba(0,0,0,.35)}
   .celda.hundido{background:#7A2733;border-color:#A33}
   .celda.ultimo{outline:2px solid var(--ambar);outline-offset:1px;z-index:2;
                 animation:pulso 1s ease-out 3}
@@ -98,6 +98,10 @@
   .barco-chip.roto .casillas i{background:var(--rojo)}
   .barco-chip .casillas{display:flex;gap:2px}
   .barco-chip .casillas i{width:6px;height:6px;border-radius:2px;background:#7B59AB}
+  .barco-chip .silueta{display:flex;width:26px}
+  .barco-chip .silueta svg{width:100%;height:auto;fill:currentColor}
+  .barco-chip .tic{font-size:10px;opacity:.85}
+  .barco-chip.roto .silueta{opacity:.6}
 
   .fila-botones{display:flex;gap:8px;margin-top:10px}
   .fila-botones .accion{font-size:14px;padding:13px}
@@ -110,12 +114,13 @@
 
   /* En pantallas anchas los dos mares caben lado a lado: sin scroll */
   @media (min-width:900px){
-    main{max-width:940px}
-    #zona-combate{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start}
-    #zona-colocar{display:grid;grid-template-columns:1fr 300px;gap:24px;align-items:start}
-    #zona-colocar .tabla{grid-row:span 5}
+    main{max-width:960px}
+    #zona-combate:not([hidden]),
+    #zona-colocar:not([hidden]){display:grid;grid-template-columns:1fr 1fr;
+                                gap:26px;align-items:start}
     .mini{max-width:none}
     .col > :first-child{margin-top:0}
+    .col-ctrl{display:flex;flex-direction:column;justify-content:center;min-height:100%}
   }
 </style>
 </head>
@@ -146,19 +151,23 @@
 
     <!-- COLOCACIÓN -->
     <div id="zona-colocar" hidden>
-      <div class="seccion">
-        <h2>Coloca tu flota</h2>
-        <span id="orientacion">Horizontal</span>
+      <div class="col">
+        <div class="seccion">
+          <h2>Coloca tu flota</h2>
+          <span id="orientacion">Horizontal</span>
+        </div>
+        <div class="tabla" id="malla-propia-col"></div>
       </div>
-      <div class="tabla" id="malla-propia-col"></div>
-      <p class="ayuda" style="margin-top:8px">Toca un barco de la lista y luego el mar.<br>
-         Para mover uno ya puesto, tócalo en la lista otra vez.</p>
-      <div class="flota" id="flota-chips"></div>
-      <div class="fila-botones">
-        <button class="accion fantasma" id="b-rotar">⟳ Rotar</button>
-        <button class="accion fantasma" id="b-azar">🎲 Al azar</button>
+      <div class="col col-ctrl">
+        <p class="ayuda">Elige un barco y toca el mar para ubicarlo.<br>
+           Para moverlo, tócalo otra vez en la lista.</p>
+        <div class="flota" id="flota-chips"></div>
+        <div class="fila-botones">
+          <button class="accion fantasma" id="b-rotar">⟳ Rotar</button>
+          <button class="accion fantasma" id="b-azar">🎲 Al azar</button>
+        </div>
+        <button class="accion" id="b-listo" style="margin-top:8px" disabled>Listo, ¡a zarpar!</button>
       </div>
-      <button class="accion" id="b-listo" style="margin-top:8px" disabled>Listo, ¡a zarpar!</button>
     </div>
 
     <!-- COMBATE -->
@@ -204,11 +213,16 @@ const sonido = new Sonido();
 
 /* ── Flota clásica: 17 casillas ────────────────────────── */
 const FLOTA = [
-  {id:'portaaviones', n:'Portaaviones', l:5},
-  {id:'acorazado',    n:'Acorazado',    l:4},
-  {id:'submarino',    n:'Submarino',    l:3},
-  {id:'crucero',      n:'Crucero',      l:3},
-  {id:'destructor',   n:'Destructor',   l:2}
+  {id:'portaaviones', n:'Portaaviones', l:5, c:'#7FA6FF',
+   svg:'<svg viewBox="0 0 30 12"><path d="M1 6h28l-3 5H4z"/><rect x="3" y="3" width="24" height="3" rx="1"/><rect x="20" y="0" width="3" height="4"/></svg>'},
+  {id:'acorazado',    n:'Acorazado',    l:4, c:'#FF9E5E',
+   svg:'<svg viewBox="0 0 26 12"><path d="M1 6h24l-3 5H4z"/><rect x="6" y="3" width="4" height="3"/><rect x="15" y="3" width="4" height="3"/><rect x="11" y="0" width="2" height="6"/></svg>'},
+  {id:'submarino',    n:'Submarino',    l:3, c:'#5FE0C0',
+   svg:'<svg viewBox="0 0 22 12"><rect x="1" y="6" width="20" height="5" rx="2.5"/><path d="M8 2h5v4H8z"/><rect x="10" y="0" width="1.6" height="3"/></svg>'},
+  {id:'crucero',      n:'Crucero',      l:3, c:'#C58CF0',
+   svg:'<svg viewBox="0 0 22 12"><path d="M1 6h20l-3 5H4z"/><rect x="7" y="2" width="7" height="4"/><rect x="16" y="3" width="2.5" height="3"/></svg>'},
+  {id:'destructor',   n:'Destructor',   l:2, c:'#F2D65C',
+   svg:'<svg viewBox="0 0 16 12"><path d="M1 6h14l-3 5H4z"/><rect x="5" y="2" width="5" height="4"/><rect x="7" y="0" width="1.6" height="3"/></svg>'}
 ];
 const barcoPorId = id => FLOTA.find(b => b.id === id);
 const LETRAS = 'ABCDEFGHIJ';
@@ -284,9 +298,18 @@ function construir(cont, alTocar, alPasar){
   return celdas;
 }
 
-function marcar(cel, clases, clavija){
+function marcar(cel, clases, clavija, color){
   cel.className = 'celda' + (clases ? ' ' + clases : '');
+  cel.style.background = color || '';
+  cel.style.borderColor = color ? 'rgba(255,255,255,.25)' : '';
   cel.firstElementChild.hidden = !clavija;
+}
+
+/** Mapa casilla → barco, para pintar cada nave de su color. */
+function mapaBarcos(){
+  const m = {};
+  for (const [id, cs] of Object.entries(misBarcos)) cs.forEach(c => m[c] = id);
+  return m;
 }
 
 /* ── Colocación ────────────────────────────────────────── */
@@ -303,21 +326,27 @@ function tocarColocacion(i, soloVista){
 }
 
 function pintarColocacion(previa){
-  const puestas = new Set();
-  Object.values(misBarcos).forEach(cs => cs.forEach(c => puestas.add(c)));
+  const mapa = mapaBarcos();
   const valida = previa && cabe(previa, sel);
+  const colSel = barcoPorId(sel).c;
   celdasCol.forEach((cel,i) => {
-    let cls = puestas.has(i) ? 'barco' : '';
-    if (previa && previa.includes(i)) cls = valida ? 'previa' : 'mala';
-    marcar(cel, cls, false);
+    if (previa && previa.includes(i)){
+      marcar(cel, valida ? 'previa' : 'mala', false, valida ? colSel + '99' : '');
+    } else {
+      const id = mapa[i];
+      marcar(cel, id ? 'barco' : '', false, id ? barcoPorId(id).c : '');
+    }
   });
 
   $('flota-chips').innerHTML = '';
   FLOTA.forEach(x => {
     const chip = document.createElement('button');
     chip.className = 'barco-chip' + (x.id === sel ? ' sel' : '') + (misBarcos[x.id] ? ' puesto' : '');
-    chip.innerHTML = (misBarcos[x.id] ? '✓ ' : '') + '<span>' + x.n + '</span>' +
-                     '<span class="casillas">' + '<i></i>'.repeat(x.l) + '</span>';
+    chip.innerHTML = '<span class="silueta" style="color:' + x.c + '">' + x.svg + '</span>' +
+                     '<span>' + x.n + '</span>' +
+                     '<span class="casillas">' +
+                     ('<i style="background:' + x.c + '"></i>').repeat(x.l) + '</span>' +
+                     (misBarcos[x.id] ? '<span class="tic">✓</span>' : '');
     chip.addEventListener('click', () => {
       if (misBarcos[x.id]) delete misBarcos[x.id];
       sel = x.id; pintarColocacion();
@@ -441,8 +470,12 @@ function listaBarcos(cont, hundidos){
   FLOTA.forEach(x => {
     const chip = document.createElement('span');
     chip.className = 'barco-chip' + (hundidos[x.id] ? ' roto' : '');
-    chip.innerHTML = (hundidos[x.id] ? '💥 ' : '') + '<span>' + x.n + '</span>' +
-                     '<span class="casillas">' + '<i></i>'.repeat(x.l) + '</span>';
+    const col = hundidos[x.id] ? 'var(--rojo)' : x.c;
+    chip.innerHTML = '<span class="silueta" style="color:' + col + '">' + x.svg + '</span>' +
+                     '<span>' + x.n + '</span>' +
+                     '<span class="casillas">' +
+                     ('<i style="background:' + col + '"></i>').repeat(x.l) + '</span>' +
+                     (hundidos[x.id] ? '<span class="tic">💥</span>' : '');
     cont.appendChild(chip);
   });
 }
@@ -503,18 +536,17 @@ function pintar(s){
   });
 
   // Mi mar: mis barcos y las clavijas del rival
-  const puestas = new Set();
-  Object.values(misBarcos).forEach(cs => cs.forEach(c => puestas.add(c)));
-  const hundidas = new Set();
-  Object.keys(hundíEl).forEach(id => (misBarcos[id] || []).forEach(c => hundidas.add(c)));
+  const mapa = mapaBarcos();
   celdasPropia.forEach((cel,i) => {
     const r = suyos['c'+i];
+    const id = mapa[i];
     let cls = '';
-    if (puestas.has(i)) cls = hundidas.has(i) ? 'hundido' : 'barco';
-    if (r === 'tocado') cls += ' tocado';
-    else if (r === 'agua') cls += ' agua';
+    if (r === 'tocado') cls = 'tocado';
+    else if (r === 'agua') cls = 'agua';
     if (t && t.de === rival && t.celda === i) cls += ' ultimo';
-    marcar(cel, cls, !!r);
+    // El barco conserva su color y la clavija se clava encima, como en el tablero real.
+    const color = id ? (hundíEl[id] ? '#6E2430' : barcoPorId(id).c) : '';
+    marcar(cel, cls, !!r, color);
   });
 
   listaBarcos($('flota-rival'), hundíYo);

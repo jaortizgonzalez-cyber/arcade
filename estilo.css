@@ -66,3 +66,6 @@ input.codigo-in{font-family:var(--display);font-weight:800;font-size:26px;
              letter-spacing:.1em;text-transform:uppercase}
 .centro-info b{display:block;font-family:var(--display);font-size:19px;
                color:var(--tinta);letter-spacing:0}
+
+/* El atributo hidden debe ganarle a cualquier display de un @media */
+[hidden]{display:none !important}
