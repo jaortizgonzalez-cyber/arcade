@@ -6,6 +6,14 @@
         ".write": "auth != null",
         ".validate": "$codigo.length == 4"
       }
+    },
+    "secretos": {
+      "$codigo": {
+        "$rol": {
+          ".read": "auth != null && data.child('uid').val() === auth.uid",
+          ".write": "auth != null && newData.child('uid').val() === auth.uid && (!data.exists() || data.child('uid').val() === auth.uid)"
+        }
+      }
     }
   }
 }

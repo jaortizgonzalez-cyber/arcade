@@ -8,6 +8,7 @@ los demás, en un solo dispositivo.
 1. En [console.firebase.google.com](https://console.firebase.google.com) crea un proyecto.
 2. **Realtime Database** → *Crear base de datos* → región `us-central1` → empezar en **modo bloqueado**.
 3. Pestaña **Reglas** → pega el contenido de `reglas-firebase.json` → *Publicar*.
+   (Si ya lo habías hecho, vuelve a pegarlas: ahora incluyen el nodo `secretos`.)
 4. **Authentication** → *Comenzar* → método **Anónimo** → activar.
 5. ⚙ **Configuración del proyecto** → *Tus apps* → icono web `</>` → registra la app y copia el objeto `firebaseConfig`.
 6. Pega ese objeto en **`config.js`**, reemplazando los `PEGA_TU_...`.
@@ -48,10 +49,40 @@ En un par de minutos queda en `https://TU-USUARIO.github.io/sala-de-juegos/`.
 | Archivo | Qué es |
 |---|---|
 | `index.html` | Catálogo |
-| `tres-en-raya.html` | Juego en línea (y local) |
+| `batalla-naval.html` | Batalla naval en línea |
+| `tres-en-raya.html` | Tres en raya en línea (y local) |
+| `sala.js` | Clase `Sala`: Firebase, salas, presencia, transacciones |
+| `lobby.js` | Clase `Lobby`: pantallas de crear/entrar, compartidas |
 | `tanques-combate.html` | Combat de Atari, dos jugadores |
 | `ahorcado.html` | Palabra secreta |
 | `tetris.html` | Tetris |
 | `arkanoid.html` | Arkanoid |
 | `config.js` | Credenciales de Firebase |
 | `estilo.css` | Estilos comunes |
+
+## Cómo agregar un juego nuevo
+
+Los juegos no hablan con Firebase: hablan con `Sala`. Un juego nuevo solo necesita
+su propio HTML con un `<div id="lobby">`, una sección `<section data-juego hidden>`
+y esto al final:
+
+```js
+new Lobby({
+  juego: 'miJuego',
+  titulo: 'Mi <em>juego</em>',
+  estadoInicial: () => ({ ...lo que guardes en la sala... }),
+  alEntrar: s => { sala = s; s.alCambiar(pintar); }
+});
+```
+
+Para cambiar algo: `sala.actualizar(s => { ...modificas s.estado... })`, que corre
+dentro de una transacción. Para datos que el rival no debe ver (como las flotas):
+`sala.guardarSecreto({...})` y `sala.leerSecreto()`.
+
+### Sobre las flotas ocultas
+
+En batalla naval nadie recibe la posición de los barcos enemigos. Cada flota vive en
+`secretos/{sala}/{rol}`, y las reglas solo dejan leerla a su dueño. Cuando disparas,
+tu cliente solo anuncia la casilla; **el cliente del defensor** compara contra su
+propia flota y publica el resultado. Ni abriendo las herramientas de desarrollo se
+puede espiar el tablero contrario.

@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Batalla naval</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="estilo.css">
+<style>
+  main{max-width:440px;margin:0 auto}
+  [data-juego]{display:flex;flex-direction:column;gap:12px}
+
+  #msg{text-align:center;font-size:14px;color:var(--tenue);min-height:22px;line-height:1.4}
+  #msg strong{font-family:var(--display);font-weight:800;color:var(--tinta);font-size:17px}
+  #msg .ok{color:var(--menta)} #msg .mal{color:var(--rojo)}
+
+  /* Cuadrículas */
+  .malla{display:grid;grid-template-columns:repeat(10,1fr);gap:2px;aspect-ratio:1}
+  .celda{background:#2C1B42;border:1px solid #3E2A5A;border-radius:3px;padding:0;
+         display:grid;place-items:center;font-size:11px;line-height:1;cursor:pointer}
+  .celda:disabled{cursor:default}
+  .celda.barco{background:#5A4080;border-color:#6E4F9B}
+  .celda.previa{background:#4A3570;border-color:var(--ambar)}
+  .celda.mala{background:#5A2B3C;border-color:var(--rojo)}
+  .celda.agua{background:#221538}
+  .celda.agua::after{content:'';width:5px;height:5px;border-radius:50%;background:#4A3570}
+  .celda.tocado{background:var(--rojo);border-color:var(--rojo)}
+  .celda.tocado::after{content:'✕';color:#241634;font-weight:800;font-size:10px}
+  .celda.hundido{background:#8E2E2E;border-color:#B03A3A}
+  .rival .celda:not(:disabled):hover{background:#3E2A5A}
+
+  .rotulo{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--tenue);
+          display:flex;justify-content:space-between;align-items:baseline}
+  .mini{max-width:150px;margin:0 auto}
+
+  /* Flota */
+  .flota{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+  .barco-chip{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;
+              padding:8px 10px;border-radius:11px;border:2px solid var(--borde);
+              background:var(--panel);color:var(--tinta);cursor:pointer}
+  .barco-chip.sel{border-color:var(--ambar);background:#3F2A5C}
+  .barco-chip.puesto{color:var(--tenue)}
+  .barco-chip.roto{color:var(--rojo);border-color:var(--rojo);text-decoration:line-through;opacity:.65}
+  .barco-chip .casillas{display:flex;gap:2px}
+  .barco-chip .casillas i{width:7px;height:7px;border-radius:2px;background:#6E4F9B}
+  .barco-chip.puesto .casillas i{background:var(--menta)}
+  .barco-chip.roto .casillas i{background:var(--rojo)}
+
+  .fila-botones{display:flex;gap:8px}
+  .fila-botones .accion{font-size:14px;padding:13px}
+</style>
+</head>
+<body>
+<main>
+  <div id="lobby"></div>
+
+  <section data-juego hidden>
+    <div class="marcador">
+      <div class="jugador" data-rol="A" id="tj-A">
+        <div class="nom" id="nom-A">—</div>
+        <div class="puntos" id="pt-A">0</div>
+        <div class="yo" id="yo-A">&nbsp;</div>
+      </div>
+      <div class="centro-info">Flota<b>5</b></div>
+      <div class="jugador" data-rol="B" id="tj-B">
+        <div class="nom" id="nom-B">—</div>
+        <div class="puntos" id="pt-B">0</div>
+        <div class="yo" id="yo-B">&nbsp;</div>
+      </div>
+    </div>
+
+    <p id="msg"></p>
+
+    <!-- COLOCACIÓN -->
+    <div id="zona-colocar" hidden>
+      <div class="rotulo"><span>Tu mar</span><span id="orientacion">Horizontal</span></div>
+      <div class="malla" id="malla-propia-col"></div>
+      <div class="flota" id="flota-chips" style="margin-top:12px"></div>
+      <div class="fila-botones" style="margin-top:12px">
+        <button class="accion fantasma" id="b-rotar">Rotar</button>
+        <button class="accion fantasma" id="b-azar">Al azar</button>
+      </div>
+      <button class="accion" id="b-listo" style="margin-top:8px" disabled>Listo, ¡a zarpar!</button>
+    </div>
+
+    <!-- COMBATE -->
+    <div id="zona-combate" hidden>
+      <div class="rotulo"><span>Mar enemigo</span><span id="restantes-rival"></span></div>
+      <div class="malla rival" id="malla-rival"></div>
+      <div class="flota" id="flota-rival" style="margin:10px 0"></div>
+      <div class="rotulo"><span>Tu mar</span><span id="restantes-propio"></span></div>
+      <div class="mini"><div class="malla" id="malla-propia"></div></div>
+      <button class="accion" id="b-otra" style="margin-top:12px" hidden>Otra ronda</button>
+    </div>
+  </section>
+</main>
+
+<script type="module">
+import { Lobby } from './lobby.js';
+
+/* ── Flota clásica: 17 casillas ────────────────────────── */
+const FLOTA = [
+  {id:'portaaviones', n:'Portaaviones', l:5},
+  {id:'acorazado',    n:'Acorazado',    l:4},
+  {id:'submarino',    n:'Submarino',    l:3},
+  {id:'crucero',      n:'Crucero',      l:3},
+  {id:'destructor',   n:'Destructor',   l:2}
+];
+const barcoPorId = id => FLOTA.find(b => b.id === id);
+const coord = i => 'ABCDEFGHIJ'[Math.floor(i/10)] + (i%10 + 1);
+const $ = id => document.getElementById(id);
+
+/* ── Estado local ──────────────────────────────────────── */
+let sala = null, miRol = null;
+let misBarcos = {};                 // id -> [celdas]
+let sel = FLOTA[0].id, horizontal = true, resolviendo = false;
+
+const estadoInicial = () => ({
+  fase:'colocando', listos:{A:false,B:false}, turno:'A',
+  pendiente:null, disparos:{}, hundidos:{}, ganador:'', marcador:{A:0,B:0}
+});
+
+/* ── Geometría ─────────────────────────────────────────── */
+function celdasDesde(ancla, largo, horiz){
+  const f = Math.floor(ancla/10), c = ancla%10;
+  if (horiz && c + largo > 10) return null;
+  if (!horiz && f + largo > 10) return null;
+  return Array.from({length:largo}, (_,k) => horiz ? ancla + k : ancla + k*10);
+}
+function ocupadas(excepto){
+  const s = new Set();
+  for (const [id, cs] of Object.entries(misBarcos)) if (id !== excepto) cs.forEach(c => s.add(c));
+  return s;
+}
+function cabe(celdas, excepto){
+  if (!celdas) return false;
+  const oc = ocupadas(excepto);
+  return celdas.every(c => !oc.has(c));
+}
+function colocarAlAzar(){
+  misBarcos = {};
+  for (const b of FLOTA){
+    for (let intento = 0; intento < 500; intento++){
+      const h = Math.random() < .5;
+      const cs = celdasDesde(Math.floor(Math.random()*100), b.l, h);
+      if (cabe(cs, b.id)){ misBarcos[b.id] = cs; break; }
+    }
+  }
+}
+
+/* ── Construcción de mallas ────────────────────────────── */
+function construir(cont, alTocar){
+  cont.innerHTML = '';
+  for (let i = 0; i < 100; i++){
+    const b = document.createElement('button');
+    b.className = 'celda';
+    b.setAttribute('aria-label', coord(i));
+    if (alTocar){
+      b.addEventListener('click', () => alTocar(i));
+      b.addEventListener('pointerenter', () => alTocar(i, true));
+    } else b.disabled = true;
+    cont.appendChild(b);
+  }
+}
+
+/* ── Colocación ────────────────────────────────────────── */
+function tocarColocacion(i, soloVista){
+  const b = barcoPorId(sel);
+  if (!b) return;
+  const cs = celdasDesde(i, b.l, horizontal);
+  if (soloVista){ pintarColocacion(cs); return; }
+  if (!cabe(cs, sel)) return;
+  misBarcos[sel] = cs;
+  const falta = FLOTA.find(x => !misBarcos[x.id]);
+  sel = falta ? falta.id : sel;
+  pintarColocacion();
+}
+
+function pintarColocacion(previa){
+  const malla = $('malla-propia-col');
+  const puestas = new Set();
+  Object.values(misBarcos).forEach(cs => cs.forEach(c => puestas.add(c)));
+  const b = barcoPorId(sel);
+  const valida = previa && cabe(previa, sel);
+  [...malla.children].forEach((cel,i) => {
+    cel.className = 'celda' + (puestas.has(i) ? ' barco' : '');
+    if (previa && previa.includes(i)) cel.classList.add(valida ? 'previa' : 'mala');
+  });
+
+  $('flota-chips').innerHTML = '';
+  FLOTA.forEach(x => {
+    const chip = document.createElement('button');
+    chip.className = 'barco-chip' + (x.id === sel ? ' sel' : '') + (misBarcos[x.id] ? ' puesto' : '');
+    chip.innerHTML = '<span>' + x.n + '</span><span class="casillas">' + '<i></i>'.repeat(x.l) + '</span>';
+    chip.addEventListener('click', () => {
+      if (misBarcos[x.id]) delete misBarcos[x.id];
+      sel = x.id; pintarColocacion();
+    });
+    $('flota-chips').appendChild(chip);
+  });
+
+  $('orientacion').textContent = horizontal ? 'Horizontal' : 'Vertical';
+  $('b-listo').disabled = FLOTA.some(x => !misBarcos[x.id]);
+  $('msg').innerHTML = FLOTA.some(x => !misBarcos[x.id])
+    ? 'Coloca tu flota: toca el barco y luego el mar. Toca uno puesto para moverlo.'
+    : 'Flota completa. Cuando estés listo, zarpa.';
+}
+
+/* ── Combate ───────────────────────────────────────────── */
+async function disparar(i){
+  const e = sala.ultimo.estado;
+  if (e.fase !== 'combate' || e.turno !== miRol || e.pendiente) return;
+  if ((e.disparos && e.disparos[miRol] || {})['c'+i]) return;
+  await sala.actualizar(s => {
+    const x = s.estado;
+    if (x.fase !== 'combate' || x.turno !== miRol || x.pendiente) return false;
+    x.pendiente = { de: miRol, celda: i };
+  });
+}
+
+// El defensor resuelve su propio disparo recibido: así el atacante nunca
+// necesita —ni recibe— la posición de la flota enemiga.
+async function resolver(p){
+  if (resolviendo) return;
+  resolviendo = true;
+  try{
+    const e = sala.ultimo.estado;
+    const previos = (e.disparos && e.disparos[p.de]) || {};
+    const celda = p.celda;
+    let tocadoId = null;
+    for (const [id, cs] of Object.entries(misBarcos)) if (cs.includes(celda)) tocadoId = id;
+
+    let hundido = null;
+    if (tocadoId){
+      const cs = misBarcos[tocadoId];
+      const tocadas = cs.filter(c => c === celda || previos['c'+c] === 'tocado');
+      if (tocadas.length === cs.length) hundido = tocadoId;
+    }
+
+    await sala.actualizar(s => {
+      const x = s.estado;
+      if (!x.pendiente || x.pendiente.celda !== celda || x.pendiente.de !== p.de) return false;
+      x.disparos = x.disparos || {};
+      x.disparos[p.de] = x.disparos[p.de] || {};
+      x.disparos[p.de]['c'+celda] = tocadoId ? 'tocado' : 'agua';
+      if (hundido){
+        x.hundidos = x.hundidos || {};
+        x.hundidos[p.de] = x.hundidos[p.de] || {};
+        x.hundidos[p.de][hundido] = true;
+      }
+      x.pendiente = null;
+      x.ultimoTiro = { de:p.de, celda, res: tocadoId ? 'tocado' : 'agua', hundido: hundido || '' };
+      if (hundido && Object.keys(x.hundidos[p.de]).length === FLOTA.length){
+        x.fase = 'fin'; x.ganador = p.de;
+        x.marcador = x.marcador || {A:0,B:0};
+        x.marcador[p.de] = (x.marcador[p.de] || 0) + 1;
+      } else {
+        x.turno = p.de === 'A' ? 'B' : 'A';
+      }
+    });
+  } finally { resolviendo = false; }
+}
+
+/* ── Pintado general ───────────────────────────────────── */
+function pintar(s){
+  if (!s || !s.estado) return;
+  const e = s.estado, rival = miRol === 'A' ? 'B' : 'A';
+
+  ['A','B'].forEach(r => {
+    $('nom-'+r).textContent = sala.nombre(r) + (r === miRol ? '' : '');
+    $('pt-'+r).textContent = (e.marcador && e.marcador[r]) || 0;
+    $('tj-'+r).classList.toggle('activo', e.fase === 'combate' && e.turno === r);
+    const on = sala.enLinea(r);
+    $('yo-'+r).innerHTML = '<span class="punto-luz' + (on ? ' on' : '') + '"></span>' +
+                           (r === miRol ? 'Tú' : (on ? 'En línea' : 'Ausente'));
+  });
+
+  $('zona-colocar').hidden = e.fase !== 'colocando';
+  $('zona-combate').hidden = e.fase === 'colocando';
+
+  if (e.fase === 'colocando'){
+    const listo = e.listos && e.listos[miRol];
+    $('b-listo').hidden = false;
+    if (listo){
+      $('msg').innerHTML = sala.completa
+        ? 'Flota desplegada. Esperando a <strong>' + sala.nombre(rival) + '</strong>…'
+        : 'Flota desplegada. Esperando a que entre tu rival…';
+      [...$('malla-propia-col').children].forEach(c => c.disabled = true);
+      $('b-rotar').disabled = $('b-azar').disabled = $('b-listo').disabled = true;
+    }
+    return;
+  }
+
+  // Mallas de combate
+  const mios  = (e.disparos && e.disparos[miRol]) || {};     // lo que yo he disparado
+  const suyos = (e.disparos && e.disparos[rival]) || {};     // lo que me han disparado
+  const hundíMios  = (e.hundidos && e.hundidos[miRol]) || {};
+  const hundíSuyos = (e.hundidos && e.hundidos[rival]) || {};
+
+  const miTurno = e.fase === 'combate' && e.turno === miRol && !e.pendiente;
+  [...$('malla-rival').children].forEach((cel,i) => {
+    const r = mios['c'+i];
+    cel.className = 'celda' + (r === 'tocado' ? ' tocado' : r === 'agua' ? ' agua' : '');
+    cel.disabled = !miTurno || !!r;
+  });
+
+  const puestas = new Set();
+  Object.values(misBarcos).forEach(cs => cs.forEach(c => puestas.add(c)));
+  const celdasHundidas = new Set();
+  Object.keys(hundíSuyos).forEach(id => (misBarcos[id] || []).forEach(c => celdasHundidas.add(c)));
+  [...$('malla-propia').children].forEach((cel,i) => {
+    const r = suyos['c'+i];
+    let cls = 'celda';
+    if (puestas.has(i)) cls += celdasHundidas.has(i) ? ' hundido' : ' barco';
+    if (r === 'tocado') cls += ' tocado';
+    else if (r === 'agua') cls += ' agua';
+    cel.className = cls;
+  });
+
+  // Listas de flota
+  const lista = (cont, hundidos, propia) => {
+    cont.innerHTML = '';
+    FLOTA.forEach(x => {
+      const chip = document.createElement('span');
+      chip.className = 'barco-chip' + (hundidos[x.id] ? ' roto' : '');
+      chip.innerHTML = '<span>' + x.n + '</span><span class="casillas">' + '<i></i>'.repeat(x.l) + '</span>';
+      cont.appendChild(chip);
+    });
+  };
+  lista($('flota-rival'), hundíMios);
+  $('restantes-rival').textContent = (FLOTA.length - Object.keys(hundíMios).length) + ' a flote';
+  $('restantes-propio').textContent = (FLOTA.length - Object.keys(hundíSuyos).length) + ' a flote';
+
+  // Mensajes
+  const t = e.ultimoTiro;
+  let eco = '';
+  if (t){
+    const quien = t.de === miRol ? 'Tú' : sala.nombre(t.de);
+    if (t.hundido) eco = quien + ' hundió el <strong>' + barcoPorId(t.hundido).n + '</strong> en ' + coord(t.celda) + '. ';
+    else eco = quien + ' disparó a ' + coord(t.celda) + ': ' +
+               (t.res === 'tocado' ? '<span class="mal">¡tocado!</span>' : '<span class="ok">agua</span>') + '. ';
+  }
+
+  if (e.fase === 'fin'){
+    $('msg').innerHTML = eco + (e.ganador === miRol
+      ? '<strong>¡Ganaste!</strong> Flota enemiga hundida.'
+      : '<strong>' + sala.nombre(e.ganador) + '</strong> hundió tu flota.');
+    $('b-otra').hidden = false;
+  } else {
+    $('b-otra').hidden = true;
+    if (!sala.completa) $('msg').innerHTML = 'Esperando a que entre tu rival…';
+    else if (e.pendiente) $('msg').innerHTML = eco + (e.pendiente.de === miRol
+      ? 'Disparo en camino a ' + coord(e.pendiente.celda) + '…'
+      : 'Te están disparando…');
+    else $('msg').innerHTML = eco + (e.turno === miRol
+      ? '<strong>Tu turno</strong>: elige dónde disparar.'
+      : 'Turno de <strong>' + sala.nombre(rival) + '</strong>.');
+  }
+
+  // Como defensor, resolver el disparo que me acaba de llegar
+  if (e.pendiente && e.pendiente.de !== miRol && Object.keys(misBarcos).length) resolver(e.pendiente);
+}
+
+/* ── Botones ───────────────────────────────────────────── */
+$('b-rotar').addEventListener('click', () => { horizontal = !horizontal; pintarColocacion(); });
+$('b-azar').addEventListener('click', () => { colocarAlAzar(); pintarColocacion(); });
+
+$('b-listo').addEventListener('click', async () => {
+  $('b-listo').disabled = true;
+  await sala.guardarSecreto({ barcos: misBarcos });
+  await sala.actualizar(s => {
+    const e = s.estado;
+    e.listos = e.listos || {};
+    e.listos[miRol] = true;
+    if (e.listos.A && e.listos.B) e.fase = 'combate';
+  });
+});
+
+$('b-otra').addEventListener('click', async () => {
+  misBarcos = {}; sel = FLOTA[0].id;
+  await sala.actualizar(s => {
+    const e = s.estado;
+    if (e.fase !== 'fin') return false;
+    e.fase = 'colocando'; e.listos = {A:false,B:false};
+    e.disparos = {}; e.hundidos = {}; e.pendiente = null;
+    e.ganador = ''; e.ultimoTiro = null;
+    e.turno = e.turno === 'A' ? 'B' : 'A';
+  });
+  $('b-rotar').disabled = $('b-azar').disabled = false;
+  pintarColocacion();
+});
+
+/* ── Arranque ──────────────────────────────────────────── */
+construir($('malla-propia-col'), tocarColocacion);
+construir($('malla-rival'), disparar);
+construir($('malla-propia'), null);
+
+new Lobby({
+  juego: 'batallanaval',
+  titulo: 'Batalla <em>naval</em>',
+  lema: 'Cada uno esconde su flota. Solo se revela lo que el otro acierta.',
+  estadoInicial,
+  alEntrar: async s => {
+    sala = s; miRol = s.rol;
+    colocarAlAzar();                       // arranca con una propuesta; se puede cambiar
+    const guardado = await s.leerSecreto(); // por si volvemos tras recargar la página
+    if (guardado && guardado.barcos) misBarcos = guardado.barcos;
+    pintarColocacion();
+    s.alCambiar(pintar);
+  }
+});
+</script>
+</body>
+</html>
