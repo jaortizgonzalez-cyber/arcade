@@ -34,7 +34,7 @@ export class Sala {
       import(CDN + 'firebase-app.js'),
       import(CDN + 'firebase-auth.js'),
       import(CDN + 'firebase-database.js'),
-      import('./config.js')
+      import('./config.js?v=3')
     ]);
     const instancia = app.initializeApp(cfg.firebaseConfig);
     const cred = await auth.signInAnonymously(auth.getAuth(instancia));
@@ -134,6 +134,14 @@ export class Sala {
       return fn(s) === false ? undefined : s;
     });
     return r.committed;
+  }
+
+  async cambiarNombre(nuevo){
+    nuevo = (nuevo || '').trim().slice(0,12);
+    if (!nuevo || !this.codigo) return false;
+    localStorage.setItem('nombreJugador', nuevo);
+    await this.fb.set(this.nodo(`salas/${this.codigo}/jugadores/${this.rol}/nombre`), nuevo);
+    return true;
   }
 
   jugador(rol){ return (this.ultimo && this.ultimo.jugadores && this.ultimo.jugadores[rol]) || null; }

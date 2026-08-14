@@ -102,6 +102,21 @@
   .fila-botones{display:flex;gap:8px;margin-top:10px}
   .fila-botones .accion{font-size:14px;padding:13px}
   .ayuda{font-size:12px;color:var(--tenue);text-align:center;line-height:1.45}
+
+  .editar-nom{background:none;border:none;color:inherit;font:inherit;
+              text-transform:uppercase;letter-spacing:.1em;cursor:pointer;
+              opacity:.8;padding:2px}
+  .editar-nom:hover{opacity:1;text-decoration:underline}
+
+  /* En pantallas anchas los dos mares caben lado a lado: sin scroll */
+  @media (min-width:900px){
+    main{max-width:940px}
+    #zona-combate{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start}
+    #zona-colocar{display:grid;grid-template-columns:1fr 300px;gap:24px;align-items:start}
+    #zona-colocar .tabla{grid-row:span 5}
+    .mini{max-width:none}
+    .col > :first-child{margin-top:0}
+  }
 </style>
 </head>
 <body>
@@ -148,6 +163,7 @@
 
     <!-- COMBATE -->
     <div id="zona-combate" hidden>
+      <div class="col">
       <div class="seccion">
         <h2>🎯 Mar enemigo</h2>
         <span id="restantes-rival"></span>
@@ -158,7 +174,9 @@
         <span><i class="r"></i>tocado</span>
       </div>
       <div class="flota" id="flota-rival"></div>
+      </div>
 
+      <div class="col">
       <div class="seccion" style="margin-top:14px">
         <h2>⚓ Tu flota</h2>
         <span id="restantes-propio"></span>
@@ -173,6 +191,7 @@
       <div class="seccion" style="margin-top:14px"><h2>📻 Bitácora</h2><span>últimos disparos</span></div>
       <ul id="bitacora"></ul>
       <button class="accion" id="b-otra" style="margin-top:14px" hidden>Otra batalla</button>
+      </div>
     </div>
   </section>
 </main>
@@ -229,7 +248,7 @@ function colocarAlAzar(){
 }
 
 /* ── Cuadrículas con coordenadas ───────────────────────── */
-function construir(cont, alTocar){
+function construir(cont, alTocar, alPasar){
   cont.innerHTML = '';
   const esquina = document.createElement('div');
   esquina.className = 'eje';
@@ -252,7 +271,11 @@ function construir(cont, alTocar){
       b.innerHTML = '<span class="clavija" hidden></span>';
       if (alTocar){
         b.addEventListener('click', () => alTocar(i));
-        b.addEventListener('pointerenter', () => alTocar(i, true));
+        // La vista previa al pasar el cursor solo existe en la colocación.
+        // En el mar enemigo sería un disparo real con solo rozar la casilla.
+        if (alPasar) b.addEventListener('pointerenter', ev => {
+          if (ev.pointerType !== 'touch') alPasar(i);
+        });
       } else b.disabled = true;
       cont.appendChild(b);
       celdas[i] = b;
@@ -371,7 +394,7 @@ let tiroVisto = 0, tempToast = null, turnoVisto = null;
 
 function avisar(t, rival){
   const mio = t.de === miRol;
-  const quien = mio ? 'Tú' : sala.nombre(t.de);
+  const quien = sala.nombre(t.de);
   const barco = t.hundido ? barcoPorId(t.hundido).n : '';
   let titulo, sub;
   if (barco) titulo = (mio ? '💥 ¡Hundiste el ' : '💥 Te hundieron el ') + barco + '!';
@@ -398,7 +421,7 @@ function pintarBitacora(log){
   (log || []).slice().reverse().forEach(t => {
     const li = document.createElement('li');
     li.className = t.de === miRol ? 'yo' : 'el';
-    const quien = t.de === miRol ? 'Tú' : sala.nombre(t.de);
+    const quien = sala.nombre(t.de);
     const res = t.hundido ? '<span class="r">hundió el ' + barcoPorId(t.hundido).n + '</span>'
               : t.res === 'tocado' ? '<span class="r">tocado</span>' : 'agua';
     li.innerHTML = '<span>' + quien + ' → <b>' + coord(t.celda) + '</b></span><span>' + res + '</span>';
@@ -424,6 +447,12 @@ function listaBarcos(cont, hundidos){
   });
 }
 
+async function editarNombre(){
+  const actual = sala.nombre(miRol);
+  const nuevo = prompt('¿Cómo te llamas?', actual === 'Jugador 1' || actual === 'Jugador 2' ? '' : actual);
+  if (nuevo && nuevo.trim()) await sala.cambiarNombre(nuevo);
+}
+
 function pintar(s){
   if (!s || !s.estado) return;
   const e = s.estado, rival = miRol === 'A' ? 'B' : 'A';
@@ -432,9 +461,14 @@ function pintar(s){
     $('nom-'+r).textContent = sala.nombre(r);
     $('pt-'+r).textContent = (e.marcador && e.marcador[r]) || 0;
     $('tj-'+r).classList.toggle('activo', e.fase === 'combate' && e.turno === r);
-    const on = sala.enLinea(r);
-    $('yo-'+r).innerHTML = '<span class="punto-luz' + (on ? ' on' : '') + '"></span>' +
-                           (r === miRol ? 'Tú' : (on ? 'En línea' : 'Ausente'));
+    if (r === miRol){
+      $('yo-'+r).innerHTML = '<button class="editar-nom">Tú · cambiar nombre ✏️</button>';
+      $('yo-'+r).firstElementChild.addEventListener('click', editarNombre);
+    } else {
+      const on = sala.enLinea(r);
+      $('yo-'+r).innerHTML = '<span class="punto-luz' + (on ? ' on' : '') + '"></span>' +
+                             (on ? 'En línea' : 'Ausente');
+    }
   });
   $('pt-tot').textContent = ((e.marcador && e.marcador.A) || 0) + ((e.marcador && e.marcador.B) || 0);
 
@@ -491,8 +525,7 @@ function pintar(s){
   // Banner
   let eco = '';
   if (t){
-    const quien = t.de === miRol ? 'Tu disparo a ' : sala.nombre(t.de) + ' disparó a ';
-    eco = quien + coord(t.celda) + ': ' + (t.res === 'tocado' ? '¡tocado!' : 'agua') +
+    eco = sala.nombre(t.de) + ' disparó a ' + coord(t.celda) + ': ' + (t.res === 'tocado' ? '¡tocado!' : 'agua') +
           (t.hundido ? ' — ' + barcoPorId(t.hundido).n + ' hundido' : '');
   }
 
@@ -555,7 +588,9 @@ $('b-otra').addEventListener('click', async () => {
 });
 
 /* ── Arranque ──────────────────────────────────────────── */
-const celdasCol    = construir($('malla-propia-col'), tocarColocacion);
+const celdasCol    = construir($('malla-propia-col'),
+                                i => tocarColocacion(i),
+                                i => tocarColocacion(i, true));
 const celdasRival  = construir($('malla-rival'), disparar);
 const celdasPropia = construir($('malla-propia'), null);
 

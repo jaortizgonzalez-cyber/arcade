@@ -3,8 +3,8 @@
 //  Las inyecta cualquier juego para no repetir el mismo HTML.
 // ─────────────────────────────────────────────────────────────
 
-import { Sala } from './sala.js';
-import { configurado } from './config.js';
+import { Sala } from './sala.js?v=3';
+import { configurado } from './config.js?v=3';
 
 const HTML = `
 <section class="pantalla activa" data-p="menu">
@@ -92,6 +92,10 @@ export class Lobby {
       } catch(e){}
     });
 
+    this.$('[data-in="nombre"]').addEventListener('input', () => {
+      this.$('[data-aviso="sala"]').textContent = '';
+    });
+
     const codigo = (location.hash || '').replace('#','').toUpperCase();
     if (configurado && codigo.length === 4){
       this.$('[data-in="nombre"]').value = localStorage.getItem('nombreJugador') || '';
@@ -102,14 +106,22 @@ export class Lobby {
 
   _nombre(){
     const n = this.$('[data-in="nombre"]').value.trim();
-    if (n) localStorage.setItem('nombreJugador', n);
-    return n || 'Jugador';
+    if (!n) return null;                       // obligatorio: sin nombre no se entra
+    localStorage.setItem('nombreJugador', n);
+    return n;
+  }
+
+  _pedirNombre(){
+    this.$('[data-aviso="sala"]').textContent = 'Escribe tu nombre para que tu pareja sepa quién eres.';
+    this.$('[data-in="nombre"]').focus();
   }
 
   async _crear(){
     this.$('[data-aviso="sala"]').textContent = '';
+    const nombre = this._nombre();
+    if (!nombre) return this._pedirNombre();
     try{
-      const codigo = await this.sala.crear(this._nombre(), this.op.estadoInicial());
+      const codigo = await this.sala.crear(nombre, this.op.estadoInicial());
       location.hash = codigo;
       this.$('[data-out="codigo"]').textContent = codigo;
       this._arrancar(true);
@@ -118,8 +130,10 @@ export class Lobby {
 
   async _unir(){
     this.$('[data-aviso="sala"]').textContent = '';
+    const nombre = this._nombre();
+    if (!nombre) return this._pedirNombre();
     try{
-      await this.sala.entrar(this.$('[data-in="codigo"]').value, this._nombre());
+      await this.sala.entrar(this.$('[data-in="codigo"]').value, nombre);
       location.hash = this.sala.codigo;
       this._arrancar(false);
     } catch(e){ this.$('[data-aviso="sala"]').textContent = e.message; }
