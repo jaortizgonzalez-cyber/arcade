@@ -31,6 +31,7 @@ export class Sonido {
     this.activo = !this.activo;
     localStorage.setItem(this.clave, this.activo ? 'si' : 'no');
     if (this.activo) this._abrir();
+    if (!this.activo){ this.patinar(false); if (this.motor) this.motorEstado(0,false,true); }
     return this.activo;
   }
 
@@ -91,6 +92,95 @@ export class Sonido {
     if (!this._listo()) return;
     this._ruido(0.3, 'bandpass', 2400, 500, 0.35);
     this._tono(0.22, 700, 180, 0.18);
+  }
+
+  /* ── Motor continuo ─────────────────────────────────────
+     Un motor no es un "efecto" que se dispara: es una fuente que
+     suena siempre y a la que se le cambia el tono y el timbre. */
+  motorEncender(){
+    if (!this._listo() || this.motor) return;
+    const c = this.ctx, t = c.currentTime;
+
+    const salida = c.createGain();
+    salida.gain.value = 0;
+    salida.connect(c.destination);
+
+    const filtro = c.createBiquadFilter();
+    filtro.type = 'lowpass';
+    filtro.frequency.value = 700;
+    filtro.Q.value = 3;
+    filtro.connect(salida);
+
+    // Cuerpo del motor: diente de sierra con un sub por debajo
+    const osc = c.createOscillator();  osc.type = 'sawtooth'; osc.frequency.value = 60;
+    const sub = c.createOscillator();  sub.type = 'square';   sub.frequency.value = 30;
+    const gOsc = c.createGain(); gOsc.gain.value = 0.5;
+    const gSub = c.createGain(); gSub.gain.value = 0.28;
+    osc.connect(gOsc).connect(filtro);
+    sub.connect(gSub).connect(filtro);
+
+    // Aspereza: ruido filtrado que sube con las revoluciones
+    const rasp = c.createBufferSource();
+    rasp.buffer = this.ruido; rasp.loop = true;
+    const bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 900; bp.Q.value = 1.2;
+    const gRasp = c.createGain(); gRasp.gain.value = 0.10;
+    rasp.connect(bp).connect(gRasp).connect(filtro);
+
+    osc.start(t); sub.start(t); rasp.start(t);
+    this.motor = { salida, filtro, osc, sub, bp, vol:0 };
+  }
+
+  /**
+   * @param {number} rpm 0..1 revoluciones
+   * @param {boolean} gas si está acelerando
+   * @param {boolean} suelo si toca el suelo (en el aire el motor se embala)
+   */
+  motorEstado(rpm, gas, suelo){
+    const m = this.motor;
+    if (!m || !this.ctx) return;
+    const t = this.ctx.currentTime, s = 0.06;
+    const r = Math.max(0, Math.min(1, rpm));
+    // Sin carga (en el aire) el motor sube de vueltas aunque no avance
+    const f = 48 + r*165 + (!suelo && gas ? 55 : 0);
+    m.osc.frequency.setTargetAtTime(f, t, s);
+    m.sub.frequency.setTargetAtTime(f/2, t, s);
+    m.filtro.frequency.setTargetAtTime(420 + f*(gas ? 9 : 5), t, s);
+    m.bp.frequency.setTargetAtTime(700 + f*7, t, s);
+    const vol = this.activo ? (0.055 + r*0.075 + (gas ? 0.045 : 0)) : 0;
+    m.salida.gain.setTargetAtTime(vol, t, 0.05);
+  }
+
+  motorApagar(){
+    const m = this.motor;
+    if (!m || !this.ctx) return;
+    const t = this.ctx.currentTime;
+    m.salida.gain.setTargetAtTime(0, t, 0.12);
+    setTimeout(() => {
+      try { m.osc.stop(); m.sub.stop(); } catch(e){}
+      this.motor = null;
+    }, 500);
+  }
+
+  /** Chirrido de frenada, sostenido mientras dure. */
+  patinar(encendido){
+    if (encendido && !this.derrape){
+      if (!this._listo()) return;
+      const c = this.ctx, t = c.currentTime;
+      const src = c.createBufferSource(); src.buffer = this.ruido; src.loop = true;
+      const bp = c.createBiquadFilter(); bp.type = 'bandpass';
+      bp.frequency.value = 2300; bp.Q.value = 7;
+      const g = c.createGain(); g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(0.14, t + 0.06);
+      src.connect(bp).connect(g).connect(c.destination);
+      src.start(t);
+      this.derrape = { src, g };
+    } else if (!encendido && this.derrape){
+      const { src, g } = this.derrape;
+      const t = this.ctx.currentTime;
+      g.gain.setTargetAtTime(0, t, 0.05);
+      setTimeout(() => { try { src.stop(); } catch(e){} }, 300);
+      this.derrape = null;
+    }
   }
 
   /** Fanfarria de victoria: arpegio ascendente sobre un retumbo. */

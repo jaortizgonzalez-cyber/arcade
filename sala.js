@@ -144,6 +144,13 @@ export class Sala {
     return true;
   }
 
+  /** Escritura directa, sin transacción: para datos de alta frecuencia
+   *  como la posición en una carrera, donde el último valor es el bueno. */
+  escribir(subruta, valor){
+    if (!this.codigo) return Promise.resolve();
+    return this.fb.set(this.nodo(`salas/${this.codigo}/${subruta}`), valor);
+  }
+
   jugador(rol){ return (this.ultimo && this.ultimo.jugadores && this.ultimo.jugadores[rol]) || null; }
   nombre(rol){ const j = this.jugador(rol); return (j && j.nombre) || (rol === 'A' ? 'Jugador 1' : 'Jugador 2'); }
   enLinea(rol){ const j = this.jugador(rol); return !!(j && j.online); }
