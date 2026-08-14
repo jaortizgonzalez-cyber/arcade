@@ -10,6 +10,9 @@
 <link rel="stylesheet" href="estilo.css">
 <style>
   body{overflow-x:hidden}
+  #fallo{position:fixed;left:0;right:0;bottom:0;z-index:200;background:#5A1E28;
+         color:#FFE3E3;font-size:12px;padding:10px 14px;font-family:ui-monospace,monospace;
+         border-top:2px solid var(--rojo)}
   main{max-width:900px;margin:0 auto}
   [data-juego]{display:flex;flex-direction:column;gap:10px}
 
@@ -153,6 +156,8 @@
         <div id="cuenta" class="oculto">3</div>
       </div>
 
+      <button class="accion" id="b-abandono" hidden style="margin-top:8px">
+        🏁 Tu rival no llega — cerrar la carrera</button>
       <div class="progreso" id="barra">
         <span class="meta">🏁</span>
         <div class="ficha A" id="fi-A">A</div>
@@ -163,8 +168,9 @@
         <button class="freno" id="b-freno">◀ FRENO / MORRO ABAJO</button>
         <button id="b-gas">ACELERAR / CABALLITO ▶</button>
       </div>
-      <p class="pista-ayuda">En el aire, acelerar levanta el morro y frenar lo baja.
-         Aterriza plano o te caes. · Teclado: ← →</p>
+      <p class="pista-ayuda">En el aire, acelerar levanta el morro y frenar lo baja. Aterriza plano o te caes.<br>
+         <b>En PC:</b> mantén pulsada <b>→</b> o <b>W</b> para acelerar, <b>←</b> o <b>S</b> para frenar.
+         También sirve dejar el clic sostenido sobre la mitad derecha o izquierda de la pista.</p>
     </div>
   </section>
 </main>
@@ -264,8 +270,19 @@
   </div>
 </div>
 
+<div id="fallo" hidden></div>
 <script type="module">
 import { Lobby } from './lobby.js?v=3';
+
+// Un error silencioso en un juego de canvas se ve como "no funciona".
+// Mejor que se vea el motivo.
+function mostrarFallo(msg){
+  const d = document.getElementById('fallo');
+  d.hidden = false;
+  d.textContent = '⚠ ' + msg;
+}
+addEventListener('error', e => mostrarFallo(e.message + '  ·  ' + (e.filename||'').split('/').pop() + ':' + e.lineno));
+addEventListener('unhandledrejection', e => mostrarFallo('Promesa: ' + (e.reason && e.reason.message || e.reason)));
 import { Sonido } from './sonido.js?v=3';
 
 const sonido = new Sonido();
@@ -405,7 +422,7 @@ function pasoFisica(m, dt, gas, freno){
 let sala = null, miRol = null, rival = null;
 let moto = null, fantasma = null, objetivo = null;
 let corriendo = false, t0 = 0, tiempo = 0, ultimoEnvio = 0, cuentaHasta = 0;
-let finalMostrado = false, distanciaSel = 2000;
+let finalMostrado = false, distanciaSel = 2000, esperaDesde = 0;
 const teclas = {};
 
 /* ── Dibujo ────────────────────────────────────────────── */
@@ -417,27 +434,102 @@ function aPantalla(x, y, camX){
   return [ (x - camX)*esc + W*0.32, H*0.72 - y*esc ];
 }
 
+function rueda(x, y, r){
+  cx.save();
+  cx.translate(x, y);
+  // Taches del neumático
+  cx.strokeStyle = '#0F0B22'; cx.lineWidth = 3.2;
+  for (let i = 0; i < 12; i++){
+    const a = i*Math.PI/6;
+    cx.beginPath();
+    cx.moveTo(Math.cos(a)*(r-1.4), Math.sin(a)*(r-1.4));
+    cx.lineTo(Math.cos(a)*(r+1.6), Math.sin(a)*(r+1.6));
+    cx.stroke();
+  }
+  cx.beginPath(); cx.arc(0,0,r,0,7);
+  cx.strokeStyle = '#181230'; cx.lineWidth = 3.6; cx.stroke();
+  // Llanta y radios
+  cx.beginPath(); cx.arc(0,0,r-3.4,0,7);
+  cx.strokeStyle = '#B9B0CC'; cx.lineWidth = 1.3; cx.stroke();
+  cx.strokeStyle = 'rgba(185,176,204,.7)'; cx.lineWidth = 0.8;
+  for (let i = 0; i < 8; i++){
+    const a = i*Math.PI/4;
+    cx.beginPath(); cx.moveTo(0,0);
+    cx.lineTo(Math.cos(a)*(r-3.4), Math.sin(a)*(r-3.4)); cx.stroke();
+  }
+  cx.beginPath(); cx.arc(0,0,2,0,7); cx.fillStyle = '#8E84A6'; cx.fill();
+  cx.restore();
+}
+
 function dibujarMoto(m, camX, color, alfa, etiqueta){
   const [px, py] = aPantalla(m.x, m.y, camX);
-  if (px < -120 || px > W + 120) return;
+  if (px < -160 || px > W + 160) return;
   cx.save();
   cx.globalAlpha = alfa;
   cx.translate(px, py);
   cx.rotate(-m.ang);
   if (m.caido > 0) cx.rotate(Math.PI*0.42);
-  const e = esc*0.085;
+  const e = esc*0.075;
   cx.scale(e, e);
+  cx.lineJoin = 'round'; cx.lineCap = 'round';
 
-  cx.lineWidth = 4; cx.strokeStyle = '#14102A'; cx.lineCap = 'round';
-  cx.beginPath(); cx.arc(-13, -9, 9, 0, 7); cx.stroke();     // rueda trasera
-  cx.beginPath(); cx.arc(14, -9, 9, 0, 7); cx.stroke();      // delantera
-  cx.strokeStyle = color; cx.lineWidth = 3.5;
-  cx.beginPath(); cx.moveTo(-13,-9); cx.lineTo(0,-17); cx.lineTo(14,-9); cx.stroke();
-  cx.beginPath(); cx.moveTo(-2,-18); cx.lineTo(3,-26); cx.lineTo(9,-24); cx.stroke();
+  const RUE = 10;
+  const XT = -17, XD = 18, YR = -RUE;      // ejes trasero y delantero
+
+  // Basculante
+  cx.strokeStyle = '#7A6E92'; cx.lineWidth = 3.2;
+  cx.beginPath(); cx.moveTo(XT, YR); cx.lineTo(-3, YR-3); cx.stroke();
+  // Amortiguador trasero
+  cx.strokeStyle = '#D8CFE8'; cx.lineWidth = 2.4;
+  cx.beginPath(); cx.moveTo(-6, YR-4); cx.lineTo(-2, YR-14); cx.stroke();
+  // Horquilla delantera
+  cx.strokeStyle = '#D8CFE8'; cx.lineWidth = 3;
+  cx.beginPath(); cx.moveTo(XD, YR); cx.lineTo(11, YR-17); cx.stroke();
+
+  // Chasis, tanque y asiento
+  cx.fillStyle = color;
+  cx.beginPath();
+  cx.moveTo(-13, YR-8); cx.lineTo(-1, YR-13); cx.lineTo(9, YR-13);
+  cx.lineTo(12, YR-8); cx.lineTo(0, YR-4); cx.closePath(); cx.fill();
+  // Guardabarros trasero levantado
+  cx.beginPath();
+  cx.moveTo(-13, YR-9); cx.lineTo(-22, YR-12); cx.lineTo(-22, YR-9);
+  cx.lineTo(-13, YR-6); cx.closePath(); cx.fill();
+  // Guardabarros delantero
+  cx.beginPath();
+  cx.moveTo(13, YR-9); cx.lineTo(24, YR-6); cx.lineTo(24, YR-3);
+  cx.lineTo(13, YR-6); cx.closePath(); cx.fill();
+  // Placa portanúmero
   cx.fillStyle = '#F3ECFF';
-  cx.beginPath(); cx.arc(0,-30,5,0,7); cx.fill();            // casco
-  cx.strokeStyle = '#F3ECFF'; cx.lineWidth = 4;
-  cx.beginPath(); cx.moveTo(-6,-24); cx.lineTo(1,-27); cx.lineTo(8,-24); cx.stroke();
+  cx.beginPath(); cx.moveTo(11, YR-13); cx.lineTo(17, YR-17);
+  cx.lineTo(19, YR-13); cx.lineTo(13, YR-10); cx.closePath(); cx.fill();
+  // Escape
+  cx.strokeStyle = '#9A8FB5'; cx.lineWidth = 2.6;
+  cx.beginPath(); cx.moveTo(-2, YR-5); cx.lineTo(-14, YR-3); cx.stroke();
+  // Manillar
+  cx.strokeStyle = '#2A2140'; cx.lineWidth = 2.2;
+  cx.beginPath(); cx.moveTo(11, YR-17); cx.lineTo(14, YR-21); cx.stroke();
+  // Pedal
+  cx.beginPath(); cx.moveTo(-2, YR-3); cx.lineTo(-6, YR-2); cx.stroke();
+
+  // Piloto: rodillas dobladas, torso adelante, codo alto
+  cx.strokeStyle = '#3E5FA8'; cx.lineWidth = 4.2;
+  cx.beginPath(); cx.moveTo(-4, YR-11); cx.lineTo(-6, YR-19); cx.lineTo(2, YR-22); cx.stroke();  // pierna
+  cx.strokeStyle = '#E85D4A'; cx.lineWidth = 5.2;
+  cx.beginPath(); cx.moveTo(1, YR-21); cx.lineTo(7, YR-28); cx.stroke();                          // torso
+  cx.strokeStyle = '#E85D4A'; cx.lineWidth = 3.4;
+  cx.beginPath(); cx.moveTo(6, YR-27); cx.lineTo(9, YR-24); cx.lineTo(14, YR-21); cx.stroke();    // brazo al manillar
+  // Casco con visera
+  cx.fillStyle = '#F3ECFF';
+  cx.beginPath(); cx.arc(9, YR-31, 4.6, 0, 7); cx.fill();
+  cx.fillStyle = color;
+  cx.beginPath(); cx.moveTo(12, YR-33); cx.lineTo(17, YR-34);
+  cx.lineTo(16, YR-31); cx.lineTo(12, YR-31); cx.closePath(); cx.fill();
+  cx.fillStyle = '#2A2140';
+  cx.beginPath(); cx.arc(11, YR-30.5, 2, -0.6, 1.1); cx.fill();
+
+  rueda(XT, YR, RUE);
+  rueda(XD, YR, RUE);
   cx.restore();
 
   if (etiqueta){
@@ -445,11 +537,33 @@ function dibujarMoto(m, camX, color, alfa, etiqueta){
     cx.fillStyle = color;
     cx.font = '700 15px "DM Sans", sans-serif';
     cx.textAlign = 'center';
-    cx.fillText(etiqueta, px, py - esc*3.4);
+    cx.fillText(etiqueta, px, py - esc*3.6);
     cx.globalAlpha = 1;
   }
 }
 
+/* Polvo levantado por la rueda trasera */
+const polvo = [];
+function soltarPolvo(m){
+  if (!m.suelo || Math.abs(m.vx) < 6 || m.caido > 0) return;
+  if (Math.random() > 0.55) return;
+  polvo.push({ x: m.x - 1.2, y: m.y + 0.15, r: 0.25, v: 0.9 + Math.random()*0.7,
+               dx: -0.6 - Math.random()*1.2, vida: 1 });
+}
+function pintarPolvo(dt, camX){
+  for (let i = polvo.length - 1; i >= 0; i--){
+    const p = polvo[i];
+    p.vida -= dt*1.5; p.r += dt*2.2; p.x += p.dx*dt; p.y += p.v*dt*0.35;
+    if (p.vida <= 0){ polvo.splice(i,1); continue; }
+    const [px, py] = aPantalla(p.x, p.y, camX);
+    cx.globalAlpha = p.vida*0.34;
+    cx.fillStyle = '#C4A87E';
+    cx.beginPath(); cx.arc(px, py, p.r*esc, 0, 7); cx.fill();
+  }
+  cx.globalAlpha = 1;
+}
+
+let dtPolvo = 0.016;
 function dibujar(){
   const camX = moto ? moto.x : 0;
 
@@ -499,7 +613,8 @@ function dibujar(){
     cx.textAlign = 'left'; cx.fillText(txt, px+2, py-esc*4.5-8);
   }
 
-  if (fantasma) dibujarMoto(fantasma, camX, '#6FE7C4', 0.62, sala.nombre(rival));
+  pintarPolvo(dtPolvo, camX);
+  if (fantasma) dibujarMoto(fantasma, camX, '#6FE7C4', 0.62, sala ? sala.nombre(rival) : '');
   if (moto)     dibujarMoto(moto, camX, '#FFC94A', 1, null);
 }
 
@@ -507,6 +622,10 @@ function dibujar(){
 let ultimo = performance.now();
 function bucle(ahora){
   requestAnimationFrame(bucle);
+  try { cuadro(ahora); } catch(e){ mostrarFallo('bucle: ' + e.message); }
+}
+
+function cuadro(ahora){
   const dt = Math.min(0.05, (ahora - ultimo)/1000);
   ultimo = ahora;
   if (!pista || !moto) return;
@@ -541,6 +660,9 @@ function bucle(ahora){
     if (moto.x >= pista.largo){ moto.terminado = true; terminar(); }
   } else if (moto.terminado){
     pasoFisica(moto, dt, false, true);
+    // Ya cruzó: frena hasta detenerse, pero no se devuelve por la cuesta
+    if (moto.vx < 0){ moto.vx = 0; }
+    if (moto.x < pista.largo){ moto.x = pista.largo; moto.y = altura(moto.x); }
   }
 
   // Interpolación suave del rival
@@ -565,8 +687,10 @@ function bucle(ahora){
     });
   }
 
+  dtPolvo = dt;
+  if (corriendo) soltarPolvo(moto);
   dibujar();
-  hud(e);
+  if (miRol) hud(e);
 }
 
 function hud(e){
@@ -581,7 +705,11 @@ function hud(e){
 
   const av = $('hud-aviso');
   if (moto.caido > 0){ av.hidden = false; av.innerHTML = '<b>¡Te caíste!</b>'; }
-  else if (moto.terminado){ av.hidden = false; av.innerHTML = '<b>¡Llegaste!</b>'; }
+  else if (moto.terminado){
+    av.hidden = false;
+    av.innerHTML = '<b>¡Llegaste! ' + tiempo.toFixed(2) + 's</b>' +
+                   (sala ? '<br>esperando a ' + sala.nombre(rival) : '');
+  }
   else if (!moto.suelo && moto.aire > 0.5){ av.hidden = false; av.innerHTML = '<b>' + moto.aire.toFixed(1) + 's en el aire</b>'; }
   else av.hidden = true;
 }
@@ -596,7 +724,7 @@ function arrancar(e){
   pista = crearPista(e.semilla, e.largo);
   moto = nuevaMoto();
   fantasma = null; objetivo = null;
-  tiempo = 0; corriendo = false; finalMostrado = false;
+  tiempo = 0; corriendo = false; finalMostrado = false; esperaDesde = 0;
   $('final').hidden = true;
   $('zona-prep').hidden = true;
   $('zona-carrera').hidden = false;
@@ -633,11 +761,15 @@ function mostrarFinal(e){
   $('final-r').textContent = gane ? '🏆 Campeón de la jornada' : 'Segundo lugar';
   $('final-t').textContent = gane ? '¡' + campeon + ' es el campeón!'
                                   : campeon + ' cruzó primero';
-  $('final-s').innerHTML = gane
-    ? 'Domaste los ' + dist + ' metros y le sacaste <b>' + dif.toFixed(2) +
-      ' s</b> a ' + sala.nombre(rival) + '. La bandera a cuadros es tuya.'
-    : 'Te ganó por <b>' + dif.toFixed(2) + ' s</b> en ' + dist +
-      ' metros. Menos caídas la próxima y esto cambia.';
+  const abandono = dif > 900;
+  $('final-s').innerHTML = abandono
+    ? (gane ? sala.nombre(rival) + ' no llegó a la meta. Ganaste los ' + dist + ' metros.'
+            : 'No cruzaste la meta a tiempo. ' + campeon + ' se lleva la jornada.')
+    : gane
+      ? 'Domaste los ' + dist + ' metros y le sacaste <b>' + dif.toFixed(2) +
+        ' s</b> a ' + sala.nombre(rival) + '. La bandera a cuadros es tuya.'
+      : 'Te ganó por <b>' + dif.toFixed(2) + ' s</b> en ' + dist +
+        ' metros. Menos caídas la próxima y esto cambia.';
   $('final-c').innerHTML =
     '<div class="cifra"><b>' + mio.toFixed(2) + 's</b><span>Tu tiempo</span></div>' +
     '<div class="cifra"><b>' + moto.caidas + '</b><span>Caídas</span></div>' +
@@ -688,6 +820,13 @@ function pintar(s){
   if (e.fase === 'corriendo' && $('zona-carrera').hidden) arrancar(e);
 
   // Cuando ambos llegan, A decide el resultado
+  // Si yo llegué y el rival no, tras 15 s ofrezco cerrar la carrera
+  const yoLlegue = e.meta && e.meta[miRol] != null;
+  const elLlego  = e.meta && e.meta[rival] != null;
+  $('b-abandono').hidden = !(yoLlegue && !elLlego && (Date.now() - esperaDesde) > 15000);
+  if (yoLlegue && !elLlego && !esperaDesde) esperaDesde = Date.now();
+  if (!yoLlegue) esperaDesde = 0;
+
   const mA = e.meta && e.meta.A, mB = e.meta && e.meta.B;
   if (mA != null && mB != null && !e.ganador && miRol === 'A'){
     sala.actualizar(x => {
@@ -726,7 +865,7 @@ function pintarDistancias(e){
 function mando(id, prop){
   const b = $(id);
   const on  = ev => { ev.preventDefault(); teclas[prop] = true;  b.classList.add('on'); };
-  const off = ev => { ev.preventDefault(); teclas[prop] = false; b.classList.remove('on'); };
+  const off = ev => { teclas[prop] = false; b.classList.remove('on'); };
   b.addEventListener('pointerdown', on);
   ['pointerup','pointercancel','pointerleave'].forEach(ev => b.addEventListener(ev, off));
 }
@@ -737,14 +876,32 @@ $('b-son').addEventListener('click', () => {
 
 mando('b-gas','gas');
 mando('b-freno','freno');
-addEventListener('keydown', e => {
-  if (e.key === 'ArrowRight' || e.key === 'ArrowUp'){ e.preventDefault(); teclas.gas = true; }
-  if (e.key === 'ArrowLeft'  || e.key === 'ArrowDown'){ e.preventDefault(); teclas.freno = true; }
+const TECLA_GAS   = ['ArrowRight','ArrowUp','d','D','w','W',' '];
+const TECLA_FRENO = ['ArrowLeft','ArrowDown','a','A','s','S'];
+function tecla(e, valor){
+  if (TECLA_GAS.includes(e.key)){ e.preventDefault(); teclas.gas = valor; pintarMandos(); }
+  if (TECLA_FRENO.includes(e.key)){ e.preventDefault(); teclas.freno = valor; pintarMandos(); }
+}
+addEventListener('keydown', e => tecla(e, true));
+addEventListener('keyup',   e => tecla(e, false));
+addEventListener('blur', () => { teclas.gas = teclas.freno = false; pintarMandos(); });
+
+function pintarMandos(){
+  $('b-gas').classList.toggle('on', !!teclas.gas);
+  $('b-freno').classList.toggle('on', !!teclas.freno);
+}
+
+// En PC la mitad derecha del lienzo acelera y la izquierda frena, sin soltar.
+cv.addEventListener('pointerdown', ev => {
+  ev.preventDefault();
+  cv.setPointerCapture(ev.pointerId);
+  const r = cv.getBoundingClientRect();
+  const derecha = (ev.clientX - r.left) > r.width/2;
+  teclas[derecha ? 'gas' : 'freno'] = true;
+  pintarMandos();
 });
-addEventListener('keyup', e => {
-  if (e.key === 'ArrowRight' || e.key === 'ArrowUp') teclas.gas = false;
-  if (e.key === 'ArrowLeft'  || e.key === 'ArrowDown') teclas.freno = false;
-});
+['pointerup','pointercancel'].forEach(ev =>
+  cv.addEventListener(ev, () => { teclas.gas = teclas.freno = false; pintarMandos(); }));
 
 $('b-listo').addEventListener('click', () => sala.actualizar(s => {
   const e = s.estado;
@@ -752,6 +909,15 @@ $('b-listo').addEventListener('click', () => sala.actualizar(s => {
   e.listos = e.listos || {};
   e.listos[miRol] = true;
   if (e.listos.A && e.listos.B){ e.fase = 'corriendo'; e.pos = {}; e.meta = {}; }
+}));
+
+$('b-abandono').addEventListener('click', () => sala.actualizar(s => {
+  const e = s.estado;
+  if (e.ganador || !e.meta || e.meta[miRol] == null) return false;
+  e.meta[rival] = e.meta[miRol] + 999;      // no llegó: pierde por abandono
+  e.ganador = miRol; e.fase = 'fin';
+  e.marcador = e.marcador || {A:0,B:0};
+  e.marcador[miRol] = (e.marcador[miRol] || 0) + 1;
 }));
 
 $('b-cerrar').addEventListener('click', () => { $('final').hidden = true; });
