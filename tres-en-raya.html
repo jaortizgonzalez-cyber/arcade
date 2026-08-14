@@ -302,6 +302,17 @@ async function unirse(codigo){
   if (codigo.length !== 4){ $('aviso-sala').textContent = 'El código tiene 4 caracteres.'; return; }
   try{
     await iniciarFirebase();
+
+    // Importante: leemos del servidor primero. Si fuéramos directo a la
+    // transacción, el callback correría con la caché local vacía (null),
+    // lo interpretaría como "no existe" y abortaría sin consultar nada.
+    const previo = await fb.get(fb.ref(db,'salas/'+codigo));
+    if (!previo.exists()){ $('aviso-sala').textContent = 'Esa sala no existe. Revisa el código.'; return; }
+    const jp = previo.val().jugadores || {};
+    if (jp.X && jp.O && jp.X.uid !== uid && jp.O.uid !== uid){
+      $('aviso-sala').textContent = 'Esa sala ya está llena.'; return;
+    }
+
     const r = await fb.runTransaction(fb.ref(db,'salas/'+codigo), s => {
       if (!s) return;                                     // no existe
       const j = s.jugadores || {};
@@ -311,7 +322,7 @@ async function unirse(codigo){
       if (!j.O){ j.O = { uid, nombre: miNombre(), online:true }; s.jugadores = j; return s; }
       return;                                             // llena
     });
-    if (!r.committed){ $('aviso-sala').textContent = 'Esa sala no existe o ya está llena.'; return; }
+    if (!r.committed){ $('aviso-sala').textContent = 'No se pudo entrar, inténtalo otra vez.'; return; }
     const s = r.snapshot.val();
     entrar(codigo, (s.jugadores.X && s.jugadores.X.uid === uid) ? 'X' : 'O');
     ir('p-juego');
@@ -355,7 +366,7 @@ async function jugar(i){
     return;
   }
   await fb.runTransaction(salaRef, s => {
-    if (!s) return s;
+    if (!s) return;                       // abortar, nunca devolver null: borraría la sala
     s.jugadores = s.jugadores || {};
     if (!s.jugadores.O) return s;
     return aplicarJugada(s, i, miMarca) || s;
@@ -365,7 +376,8 @@ async function jugar(i){
 $('b-nueva').addEventListener('click', async () => {
   if (modo === 'local'){ pintar(reiniciarPartida(local)); return; }
   await fb.runTransaction(salaRef, s => {
-    if (!s || !s.partida.ganador) return s;
+    if (!s) return;                       // abortar, no devolver null
+    if (!s.partida || !s.partida.ganador) return s;
     return reiniciarPartida(s);
   });
 });
