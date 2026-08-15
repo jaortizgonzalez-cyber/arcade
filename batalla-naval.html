@@ -316,8 +316,8 @@
 </div>
 
 <script type="module">
-import { Lobby } from './lobby.js?v=3';
-import { Sonido } from './sonido.js?v=3';
+import { Lobby } from './lobby.js?v=4';
+import { Sonido } from './sonido.js?v=4';
 
 const sonido = new Sonido();
 
@@ -620,7 +620,11 @@ function mostrarFinal(e, rival){
 }
 
 function pintar(s){
-  if (!s || !s.estado) return;
+  if (!s || !s.estado){
+    if (typeof mostrarFallo === 'function' && s && !s.estado)
+      mostrarFallo('Sala creada con una versión anterior. Recarga (Ctrl+Shift+R) y crea otra.');
+    return;
+  }
   const e = s.estado, rival = miRol === 'A' ? 'B' : 'A';
 
   ['A','B'].forEach(r => {

@@ -49,10 +49,12 @@ En un par de minutos queda en `https://TU-USUARIO.github.io/sala-de-juegos/`.
 | Archivo | Qué es |
 |---|---|
 | `index.html` | Catálogo |
+| `motocross.html` | Carrera de motocross en línea |
 | `batalla-naval.html` | Batalla naval en línea |
 | `tres-en-raya.html` | Tres en raya en línea (y local) |
 | `sala.js` | Clase `Sala`: Firebase, salas, presencia, transacciones |
 | `lobby.js` | Clase `Lobby`: pantallas de crear/entrar, compartidas |
+| `sonido.js` | Clase `Sonido`: efectos sintetizados, sin archivos |
 | `tanques-combate.html` | Combat de Atari, dos jugadores |
 | `ahorcado.html` | Palabra secreta |
 | `tetris.html` | Tetris |
@@ -86,3 +88,16 @@ En batalla naval nadie recibe la posición de los barcos enemigos. Cada flota vi
 tu cliente solo anuncia la casilla; **el cliente del defensor** compara contra su
 propia flota y publica el resultado. Ni abriendo las herramientas de desarrollo se
 puede espiar el tablero contrario.
+
+### Sobre la carrera de motocross
+
+Dos detalles de diseño que la hacen jugable pese a la latencia de la red:
+
+- **Nadie comparte física.** Cada celular simula su propia moto y publica su
+  posición diez veces por segundo; el otro la dibuja interpolando entre paquetes.
+  Como las motos no chocan entre sí, un retraso de 300 ms no rompe nada.
+- **La pista no se transmite.** Se genera con una semilla numérica guardada en la
+  sala, así que ambos calculan exactamente el mismo terreno sin descargar nada.
+
+El ganador se decide por tiempo propio medido en cada dispositivo, no por reloj
+compartido: así un desfase de relojes entre los dos celulares no afecta el resultado.

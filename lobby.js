@@ -3,8 +3,8 @@
 //  Las inyecta cualquier juego para no repetir el mismo HTML.
 // ─────────────────────────────────────────────────────────────
 
-import { Sala } from './sala.js?v=3';
-import { configurado } from './config.js?v=3';
+import { Sala } from './sala.js?v=4';
+import { configurado } from './config.js?v=4';
 
 const HTML = `
 <section class="pantalla activa" data-p="menu">

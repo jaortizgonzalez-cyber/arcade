@@ -183,6 +183,31 @@ export class Sonido {
     }
   }
 
+  /** Cañonazo: chasquido seco sobre un golpe grave. */
+  canon(){
+    if (!this._listo()) return;
+    this._ruido(0.05, 'highpass', 4000, 2000, 0.35);
+    this._ruido(0.45, 'lowpass', 1800, 70, 0.5);
+    this._tono(0.35, 190, 45, 0.45);
+  }
+
+  /** Rebote metálico contra un muro. */
+  rebote(){
+    if (!this._listo()) return;
+    const f = 1500 + Math.random()*900;
+    this._tono(0.16, f, f*0.55, 0.13, 'triangle');
+    this._ruido(0.10, 'bandpass', f*1.4, f*0.8, 0.14);
+  }
+
+  /** Tanque destruido: estallido con réplica y metralla. */
+  estallido(){
+    if (!this._listo()) return;
+    this._ruido(0.9, 'lowpass', 2600, 55, 0.65);
+    this._tono(0.7, 140, 30, 0.55);
+    this._ruido(0.5, 'highpass', 2500, 5200, 0.16, 0.05);
+    this._ruido(0.6, 'lowpass', 800, 50, 0.35, 0.16);
+  }
+
   /** Fanfarria de victoria: arpegio ascendente sobre un retumbo. */
   victoria(){
     if (!this._listo()) return;

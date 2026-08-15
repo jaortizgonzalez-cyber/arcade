@@ -6,65 +6,53 @@
 <title>Combate de tanques</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,800&family=DM+Sans:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="estilo.css">
 <style>
-  :root{
-    --fondo:#241634;--panel:#31204A;--borde:#48305F;
-    --ambar:#FFC94A;--menta:#6FE7C4;--tinta:#F3ECFF;--tenue:#A794C4;
-  }
-  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
   html,body{height:100%;overflow:hidden;overscroll-behavior:none}
-  body{
-    background:radial-gradient(120% 80% at 50% -10%, #3A2352 0%, transparent 60%), var(--fondo);
-    color:var(--tinta);font-family:'DM Sans',system-ui,sans-serif;
-    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
-    padding:8px calc(8px + env(safe-area-inset-left)) calc(8px + env(safe-area-inset-bottom));
-    touch-action:none;user-select:none;
-  }
-  .tanteo{
-    display:flex;align-items:center;gap:16px;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--tenue);
-  }
-  .tanteo b{font-family:'Bricolage Grotesque',sans-serif;font-size:24px;letter-spacing:0;margin-left:6px}
-  .p1 b{color:var(--ambar)} .p2 b{color:var(--menta)}
-  .tanteo .vs{font-size:11px;opacity:.5}
+  body{display:flex;flex-direction:column;align-items:center;justify-content:center;
+       gap:8px;padding:8px calc(8px + env(safe-area-inset-left)) calc(8px + env(safe-area-inset-bottom));
+       touch-action:none;user-select:none}
+
+  .tanteo{display:flex;align-items:center;gap:14px;width:100%;max-width:640px;
+          justify-content:center;font-size:10px;letter-spacing:.11em;
+          text-transform:uppercase;color:var(--tenue)}
+  .tanteo b{font-family:var(--display);font-size:23px;letter-spacing:0;margin-left:7px}
+  .eq1{color:var(--ambar)} .eq2{color:var(--menta)}
+  .tanteo .vs{opacity:.55;font-size:10px}
+  #b-son{background:none;border:none;font-size:16px;padding:4px;cursor:pointer;opacity:.7}
 
   .mesa{display:flex;align-items:center;gap:8px;width:100%;flex:1;min-height:0;justify-content:center}
   .marco{position:relative;flex:1;min-width:0;max-height:100%;display:flex;justify-content:center}
-  canvas{
-    max-width:100%;max-height:100%;aspect-ratio:8/5;
-    background:#1B0F28;border:2px solid var(--borde);border-radius:12px;
-  }
-  #capa{
-    position:absolute;inset:0;display:grid;place-content:center;text-align:center;gap:8px;padding:16px;
-    background:rgba(36,22,52,.9);border-radius:12px;
-  }
+  canvas{max-width:100%;max-height:100%;aspect-ratio:19/11;border-radius:14px;
+         border:2px solid var(--borde);background:#171029}
+
+  #capa{position:absolute;inset:0;display:grid;place-content:center;text-align:center;gap:8px;
+        padding:20px;background:rgba(23,16,41,.9);border-radius:14px}
   #capa.oculta{display:none}
-  #titulo{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:clamp(20px,5vw,28px)}
-  #sub{font-size:13px;color:var(--tenue);max-width:260px}
-  #btn{margin-top:4px;font-family:inherit;font-weight:700;font-size:15px;padding:12px 26px;
+  #titulo{font-family:var(--display);font-weight:800;font-size:clamp(21px,5vw,30px);line-height:1.1}
+  #sub{font-size:13px;color:var(--tenue);max-width:290px;line-height:1.5}
+  #btn{margin-top:6px;font-family:inherit;font-weight:700;font-size:15px;padding:12px 26px;
        border-radius:13px;border:none;background:var(--ambar);color:#241634;cursor:pointer}
 
-  .mandos{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;width:104px;flex:none}
-  .mandos button{
-    font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:18px;
-    aspect-ratio:1;border-radius:12px;border:2px solid var(--borde);
-    background:var(--panel);color:var(--tinta);cursor:pointer;
-  }
+  .mandos{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;width:112px;flex:none}
+  .mandos button{font-family:var(--display);font-weight:800;font-size:17px;aspect-ratio:1;
+                 border-radius:13px;border:2px solid var(--borde);background:var(--panel);
+                 color:var(--tinta);cursor:pointer;touch-action:none}
   .mandos button:active,.mandos button.on{background:#3F2A5C}
-  .mandos .fuego{font-size:11px;letter-spacing:.05em}
-  .m1 .fuego{color:var(--ambar);border-color:var(--ambar)}
-  .m2 .fuego{color:var(--menta);border-color:var(--menta)}
-
-  .pie{font-size:11px;color:var(--tenue);text-align:center}
-  @media (orientation:portrait){ .pie::before{content:'Gira el teléfono para más espacio · '} }
+  .mandos .fuego{font-size:10px;letter-spacing:.05em}
+  .m1 .fuego{color:var(--ambar);border-color:#6B5320}
+  .m2 .fuego{color:var(--menta);border-color:#2C6B5C}
+  .pie{font-size:10px;color:var(--tenue);text-align:center}
 </style>
 </head>
 <body>
 
 <div class="tanteo">
-  <span class="p1">Ámbar<b id="s1">0</b></span>
+  <span class="eq1">Ámbar<b id="s1">0</b></span>
   <span class="vs">primero a 5</span>
-  <span class="p2">Menta<b id="s2">0</b></span>
+  <span class="eq2">Menta<b id="s2">0</b></span>
+  <button id="b-son" aria-label="Activar o silenciar sonido">🔊</button>
 </div>
 
 <div class="mesa">
@@ -76,10 +64,11 @@
   </div>
 
   <div class="marco">
-    <canvas id="lienzo" width="480" height="300"></canvas>
+    <canvas id="lienzo" width="760" height="440"></canvas>
     <div id="capa">
       <div id="titulo">Combate</div>
-      <p id="sub">Dos tanques, un laberinto. Las balas rebotan: se puede acertar de rebote.</p>
+      <p id="sub">Dos tanques en el laberinto. Los proyectiles rebotan en los muros:
+         los mejores tiros son de rebote.</p>
       <button id="btn">Jugar</button>
     </div>
   </div>
@@ -92,175 +81,324 @@
   </div>
 </div>
 
-<p class="pie">Teclado: jugador 1 = A D W + S · jugador 2 = ← → ↑ + Enter</p>
+<p class="pie">Jugador 1: A D W · S dispara &nbsp;|&nbsp; Jugador 2: ← → ↑ · Enter dispara</p>
 
-<script>
-const W = 480, H = 300, META = 5;
-const ctx = document.getElementById('lienzo').getContext('2d');
-const COLOR = ['#FFC94A', '#6FE7C4'];
+<script type="module">
+import { Sonido } from './sonido.js?v=4';
+const sonido = new Sonido();
+const $ = id => document.getElementById(id);
 
-const MUROS = [
-  {x:0,y:0,w:W,h:10},{x:0,y:H-10,w:W,h:10},{x:0,y:0,w:10,h:H},{x:W-10,y:0,w:10,h:H},
-  {x:100,y:40,w:12,h:90},   {x:368,y:170,w:12,h:90},
-  {x:150,y:150,w:100,h:12}, {x:230,y:138,w:100,h:12},
-  {x:60,y:200,w:90,h:12},   {x:330,y:88,w:90,h:12},
-  {x:200,y:40,w:12,h:60},   {x:268,y:200,w:12,h:60},
-  {x:150,y:240,w:80,h:12},  {x:250,y:48,w:80,h:12}
+/* ── Laberinto ─────────────────────────────────────────────
+   Simétrico por rotación de 180°: lo que tiene un tanque al
+   lado, el otro lo tiene igual. Ninguna ventaja de salida. */
+const MAPA = [
+  '###################',
+  '#.................#',
+  '#.###.#..#.####...#',
+  '#.....#..##.......#',
+  '#.##.###..#######.#',
+  '#.................#',
+  '#.#######..###.##.#',
+  '#.......##..#.....#',
+  '#...####.#..#.###.#',
+  '#.................#',
+  '###################'
 ];
+const FIL = MAPA.length, COL = MAPA[0].length, T = 40;
+const W = COL*T, H = FIL*T, META = 5;
 
-const INICIO = [{x:38,y:150,a:0}, {x:442,y:150,a:Math.PI}];
-const tanques = [], balas = [];
-let marcador = [0,0], jugando = false, pausa = 0, chispas = [];
-const tecla = {};
+const muro = (f,c) => f<0 || c<0 || f>=FIL || c>=COL || MAPA[f][c] === '#';
+const muroEn = (x,y) => muro(Math.floor(y/T), Math.floor(x/T));
 
+const cv = $('lienzo'), cx = cv.getContext('2d');
+const COLORES = ['#FFC94A', '#6FE7C4'];
+const INICIO = [{x:1.5*T, y:5.5*T, a:0}, {x:(COL-1.5)*T, y:5.5*T, a:Math.PI}];
+
+let tanques = [], balas = [], chispas = [], humo = [], huellas = [];
+let marcador = [0,0], jugando = false, pausa = 0, sacudida = 0;
+const pulsado = {}, tecla = {};
+
+/* ── Estado ────────────────────────────────────────────── */
 function reset(){
-  tanques.length = 0; balas.length = 0; chispas.length = 0;
-  INICIO.forEach((p,i) => tanques.push({x:p.x, y:p.y, a:p.a, vivo:true, color:COLOR[i]}));
+  tanques = INICIO.map((p,i) => ({
+    x:p.x, y:p.y, a:p.a, vivo:true, color:COLORES[i],
+    rodado:0, retroceso:0, recarga:0
+  }));
+  balas = []; chispas = []; humo = [];
 }
 
 function reiniciar(){
   marcador = [0,0]; hud(); reset();
+  huellas = [];
   jugando = true; pausa = 0;
-  document.getElementById('capa').classList.add('oculta');
+  $('capa').classList.add('oculta');
+  sonido.motorEncender();
 }
 
 function hud(){
-  document.getElementById('s1').textContent = marcador[0];
-  document.getElementById('s2').textContent = marcador[1];
+  $('s1').textContent = marcador[0];
+  $('s2').textContent = marcador[1];
 }
 
 function capa(t, s, b){
-  document.getElementById('titulo').textContent = t;
-  document.getElementById('sub').textContent = s;
-  document.getElementById('btn').textContent = b;
-  document.getElementById('capa').classList.remove('oculta');
+  $('titulo').textContent = t; $('sub').textContent = s; $('btn').textContent = b;
+  $('capa').classList.remove('oculta');
 }
 
-// --- Controles
-const pulsado = {};
-function key(j, a){ return j + ':' + a; }
-
+/* ── Controles ─────────────────────────────────────────── */
+const clave = (j,a) => j + ':' + a;
 document.querySelectorAll('.mandos button').forEach(b => {
-  const k = key(b.dataset.j, b.dataset.a);
-  const on  = e => { e.preventDefault(); pulsado[k] = true;  b.classList.add('on'); };
-  const off = e => { e.preventDefault(); pulsado[k] = false; b.classList.remove('on'); };
+  const k = clave(b.dataset.j, b.dataset.a);
+  const on  = e => { e.preventDefault(); pulsado[k] = true; b.classList.add('on'); };
+  const off = () => { pulsado[k] = false; b.classList.remove('on'); };
   b.addEventListener('pointerdown', on);
   ['pointerup','pointercancel','pointerleave'].forEach(ev => b.addEventListener(ev, off));
 });
-
-const MAPA = {
+const TECLAS = {
   a:'0:izq', d:'0:der', w:'0:adel', s:'0:fuego',
   arrowleft:'1:izq', arrowright:'1:der', arrowup:'1:adel', enter:'1:fuego'
 };
-addEventListener('keydown', e => {
-  const k = MAPA[e.key.toLowerCase()];
-  if (k){ e.preventDefault(); tecla[k] = true; }
-});
-addEventListener('keyup', e => {
-  const k = MAPA[e.key.toLowerCase()];
-  if (k) tecla[k] = false;
-});
-const activo = (j, a) => pulsado[key(j,a)] || tecla[key(j,a)];
+addEventListener('keydown', e => { const k = TECLAS[e.key.toLowerCase()]; if (k){ e.preventDefault(); tecla[k] = true; } });
+addEventListener('keyup',   e => { const k = TECLAS[e.key.toLowerCase()]; if (k) tecla[k] = false; });
+addEventListener('blur', () => { for (const k in tecla) tecla[k] = false;
+                                 for (const k in pulsado) pulsado[k] = false; });
+const activo = (j,a) => pulsado[clave(j,a)] || tecla[clave(j,a)];
 
-document.getElementById('btn').addEventListener('click', reiniciar);
+$('btn').addEventListener('click', reiniciar);
+$('b-son').textContent = sonido.activo ? '🔊' : '🔇';
+$('b-son').addEventListener('click', () => { $('b-son').textContent = sonido.alternar() ? '🔊' : '🔇'; });
 
-// --- Física
-function chocaMuro(x, y, r){
-  return MUROS.some(m => x + r > m.x && x - r < m.x + m.w && y + r > m.y && y - r < m.y + m.h);
+/* ── Física ────────────────────────────────────────────── */
+function chocaTanque(x, y){
+  const r = 11;
+  for (const [dx,dy] of [[-r,-r],[r,-r],[-r,r],[r,r],[0,-r],[0,r],[-r,0],[r,0]])
+    if (muroEn(x+dx, y+dy)) return true;
+  return false;
 }
 
 function disparar(i){
-  if (balas.some(b => b.de === i)) return;   // una bala a la vez, como en el original
   const t = tanques[i];
-  balas.push({
-    x: t.x + Math.cos(t.a)*12, y: t.y + Math.sin(t.a)*12,
-    vx: Math.cos(t.a)*4.2, vy: Math.sin(t.a)*4.2,
-    de: i, rebotes: 0, vida: 300
-  });
+  if (!t.vivo || t.recarga > 0 || balas.some(b => b.de === i)) return;
+  t.recarga = 22; t.retroceso = 5;
+  const bx = t.x + Math.cos(t.a)*20, by = t.y + Math.sin(t.a)*20;
+  balas.push({ x:bx, y:by, vx:Math.cos(t.a)*4.6, vy:Math.sin(t.a)*4.6,
+               de:i, rebotes:0, vida:340, estela:[] });
+  for (let n = 0; n < 8; n++){
+    const d = t.a + (Math.random()-0.5)*0.7;
+    chispas.push({ x:bx, y:by, vx:Math.cos(d)*(1.5+Math.random()*2),
+                   vy:Math.sin(d)*(1.5+Math.random()*2), v:9, c:'#FFE9A8' });
+  }
+  humo.push({ x:bx, y:by, r:3, v:26 });
+  sacudida = Math.max(sacudida, 2.5);
+  sonido.canon();
+}
+
+function estallar(x, y, color){
+  for (let n = 0; n < 26; n++){
+    const a = Math.random()*Math.PI*2, s = 1 + Math.random()*3.4;
+    chispas.push({ x, y, vx:Math.cos(a)*s, vy:Math.sin(a)*s,
+                   v:20+Math.random()*14, c: n%3 ? color : '#FFE9A8' });
+  }
+  for (let n = 0; n < 9; n++)
+    humo.push({ x:x+(Math.random()-0.5)*12, y:y+(Math.random()-0.5)*12,
+                r:4+Math.random()*4, v:44+Math.random()*22 });
+  sacudida = 9;
+  sonido.estallido();
 }
 
 function paso(){
   if (pausa > 0){ pausa--; if (pausa === 0) reset(); return; }
 
-  tanques.forEach((t, i) => {
-    if (activo(i,'izq'))  t.a -= 0.055;
-    if (activo(i,'der'))  t.a += 0.055;
+  let algunoMueve = false;
+  tanques.forEach((t,i) => {
+    if (!t.vivo) return;
+    if (t.recarga > 0) t.recarga--;
+    if (t.retroceso > 0) t.retroceso -= 0.6;
+
+    t.a += ((activo(i,'izq') ? -1 : 0) + (activo(i,'der') ? 1 : 0))*0.052;
+
     if (activo(i,'adel')){
-      const nx = t.x + Math.cos(t.a)*1.5, ny = t.y + Math.sin(t.a)*1.5;
-      if (!chocaMuro(nx, t.y, 7)) t.x = nx;
-      if (!chocaMuro(t.x, ny, 7)) t.y = ny;
+      const nx = t.x + Math.cos(t.a)*1.55, ny = t.y + Math.sin(t.a)*1.55;
+      let movio = false;
+      if (!chocaTanque(nx, t.y)){ t.x = nx; movio = true; }
+      if (!chocaTanque(t.x, ny)){ t.y = ny; movio = true; }
+      if (movio){
+        t.rodado += 1.55; algunoMueve = true;
+        if (t.rodado % 7 < 1.6) huellas.push({ x:t.x, y:t.y, a:t.a, v:1 });
+      }
     }
     if (activo(i,'fuego')) disparar(i);
   });
 
+  sonido.motorEstado(algunoMueve ? 0.42 : 0.11, algunoMueve, true);
+
   for (let k = balas.length - 1; k >= 0; k--){
     const b = balas[k];
     b.vida--;
+    b.estela.push({x:b.x, y:b.y});
+    if (b.estela.length > 7) b.estela.shift();
 
-    if (chocaMuro(b.x + b.vx, b.y, 2)){ b.vx *= -1; b.rebotes++; }
-    if (chocaMuro(b.x, b.y + b.vy, 2)){ b.vy *= -1; b.rebotes++; }
+    let reboto = false;
+    if (muroEn(b.x + b.vx, b.y)){ b.vx *= -1; reboto = true; }
+    if (muroEn(b.x, b.y + b.vy)){ b.vy *= -1; reboto = true; }
+    if (reboto){
+      b.rebotes++;
+      sonido.rebote();
+      for (let n = 0; n < 4; n++)
+        chispas.push({ x:b.x, y:b.y, vx:(Math.random()-0.5)*3,
+                       vy:(Math.random()-0.5)*3, v:8, c:'#D8CFE8' });
+    }
     b.x += b.vx; b.y += b.vy;
 
     let fuera = b.vida <= 0 || b.rebotes > 4;
 
-    tanques.forEach((t, i) => {
-      if (fuera) return;
-      if (Math.hypot(b.x - t.x, b.y - t.y) < 9){
-        const anotador = (i === b.de) ? 1 - i : b.de;   // autogol cuenta para el rival
-        marcador[anotador]++;
-        hud();
-        for (let n = 0; n < 14; n++)
-          chispas.push({x:t.x, y:t.y, vx:(Math.random()-.5)*4, vy:(Math.random()-.5)*4, v:22, c:t.color});
-        t.vivo = false;
-        fuera = true;
-        pausa = 55;
-        if (marcador[anotador] >= META){
+    tanques.forEach((t,i) => {
+      if (fuera || !t.vivo) return;
+      if (Math.hypot(b.x - t.x, b.y - t.y) < 13){
+        const anota = (i === b.de) ? 1 - i : b.de;      // el autogol suma al rival
+        marcador[anota]++; hud();
+        estallar(t.x, t.y, t.color);
+        t.vivo = false; fuera = true; pausa = 62;
+        if (marcador[anota] >= META){
           jugando = false;
-          capa(anotador === 0 ? 'Gana Ámbar' : 'Gana Menta',
-               marcador[0] + ' — ' + marcador[1], 'Otra vez');
+          sonido.motorApagar();
+          setTimeout(() => sonido.victoria(), 400);
+          capa(anota === 0 ? '🏆 Gana Ámbar' : '🏆 Gana Menta',
+               'Marcador final ' + marcador[0] + ' — ' + marcador[1] +
+               '. Buena puntería con los rebotes.', 'Otra batalla');
         }
       }
     });
-
     if (fuera) balas.splice(k,1);
   }
 
-  chispas.forEach(c => { c.x += c.vx; c.y += c.vy; c.v--; });
+  chispas.forEach(c => { c.x += c.vx; c.y += c.vy; c.vx *= 0.95; c.vy *= 0.95; c.v--; });
   chispas = chispas.filter(c => c.v > 0);
+  humo.forEach(h => { h.r += 0.35; h.y -= 0.12; h.v--; });
+  humo = humo.filter(h => h.v > 0);
+  huellas.forEach(h => h.v -= 0.0035);
+  huellas = huellas.filter(h => h.v > 0);
+  if (huellas.length > 400) huellas.splice(0, huellas.length - 400);
+  if (sacudida > 0) sacudida *= 0.86;
 }
 
-// --- Dibujo
+/* ── Dibujo ────────────────────────────────────────────── */
+function dibujarMuros(){
+  for (let f = 0; f < FIL; f++)
+    for (let c = 0; c < COL; c++){
+      if (MAPA[f][c] !== '#') continue;
+      const x = c*T, y = f*T;
+      cx.fillStyle = '#4A3568';
+      cx.beginPath(); cx.roundRect(x+1, y+1, T-2, T-2, 4); cx.fill();
+      // Hiladas de bloques desfasadas, como un muro de concreto
+      cx.fillStyle = 'rgba(0,0,0,.22)';
+      cx.fillRect(x+2, y+T/2-1, T-4, 2);
+      cx.fillRect(x+T/2-1, y+2, 2, T/2-3);
+      cx.fillRect(x+T/4-1, y+T/2+1, 2, T/2-3);
+      cx.fillRect(x+3*T/4-1, y+T/2+1, 2, T/2-3);
+      cx.fillStyle = 'rgba(255,255,255,.10)'; cx.fillRect(x+2, y+2, T-4, 3);
+      cx.fillStyle = 'rgba(0,0,0,.28)';       cx.fillRect(x+2, y+T-5, T-4, 3);
+    }
+}
+
+function dibujarTanque(t){
+  cx.save();
+  cx.translate(t.x, t.y);
+  cx.rotate(t.a);
+
+  cx.fillStyle = 'rgba(0,0,0,.35)';
+  cx.beginPath(); cx.ellipse(2, 3, 16, 11, 0, 0, 7); cx.fill();
+
+  // Orugas con eslabones que avanzan según lo rodado
+  for (const lado of [-1, 1]){
+    cx.fillStyle = '#2A2140';
+    cx.beginPath(); cx.roundRect(-15, lado*7 - 4.5, 30, 9, 3); cx.fill();
+    cx.fillStyle = 'rgba(255,255,255,.13)';
+    for (let i = 0; i < 7; i++){
+      const px = -14 + ((i*4.6 + (t.rodado % 4.6)) % 28);
+      cx.fillRect(px, lado*7 - 4, 2, 8);
+    }
+  }
+
+  // Casco con volumen
+  const g = cx.createLinearGradient(0, -8, 0, 8);
+  g.addColorStop(0, t.color);
+  g.addColorStop(1, 'rgba(0,0,0,.45)');
+  cx.fillStyle = g;
+  cx.beginPath(); cx.roundRect(-13, -8, 26, 16, 3); cx.fill();
+  cx.strokeStyle = 'rgba(0,0,0,.5)'; cx.lineWidth = 1.5; cx.stroke();
+  cx.fillStyle = 'rgba(255,255,255,.16)';
+  cx.beginPath(); cx.moveTo(8,-8); cx.lineTo(13,-4); cx.lineTo(13,4); cx.lineTo(8,8);
+  cx.closePath(); cx.fill();
+
+  // Cañón con retroceso al disparar
+  const r = t.retroceso > 0 ? t.retroceso : 0;
+  cx.fillStyle = '#F3ECFF';
+  cx.fillRect(6 - r, -2.6, 17, 5.2);
+  cx.fillRect(20 - r, -3.6, 4, 7.2);                  // freno de boca
+  cx.fillStyle = t.color;
+  cx.beginPath(); cx.arc(-1, 0, 8.5, 0, 7); cx.fill();
+  cx.fillStyle = 'rgba(0,0,0,.35)';
+  cx.beginPath(); cx.arc(-1, 0, 8.5, 0.6, 2.6); cx.fill();
+  cx.fillStyle = 'rgba(255,255,255,.35)';
+  cx.beginPath(); cx.arc(-3, -2.5, 2.6, 0, 7); cx.fill();   // escotilla
+  cx.strokeStyle = 'rgba(243,236,255,.55)'; cx.lineWidth = 1;
+  cx.beginPath(); cx.moveTo(-7, -5); cx.lineTo(-13, -13); cx.stroke();  // antena
+  cx.restore();
+}
+
 function dibujar(){
-  ctx.clearRect(0,0,W,H);
+  cx.save();
+  if (sacudida > 0.2)
+    cx.translate((Math.random()-0.5)*sacudida, (Math.random()-0.5)*sacudida);
 
-  ctx.fillStyle = '#4A3168';
-  MUROS.forEach(m => { ctx.beginPath(); ctx.roundRect(m.x, m.y, m.w, m.h, 3); ctx.fill(); });
+  cx.fillStyle = '#1E1436';
+  cx.fillRect(-20, -20, W+40, H+40);
+  cx.strokeStyle = 'rgba(255,255,255,.028)'; cx.lineWidth = 1;
+  for (let x = T; x < W; x += T){ cx.beginPath(); cx.moveTo(x,0); cx.lineTo(x,H); cx.stroke(); }
+  for (let y = T; y < H; y += T){ cx.beginPath(); cx.moveTo(0,y); cx.lineTo(W,y); cx.stroke(); }
 
-  tanques.forEach(t => {
-    if (!t.vivo) return;
-    ctx.save();
-    ctx.translate(t.x, t.y);
-    ctx.rotate(t.a);
-    ctx.fillStyle = t.color;
-    ctx.beginPath(); ctx.roundRect(-9, -7, 18, 14, 3); ctx.fill();
-    ctx.fillStyle = 'rgba(0,0,0,.35)';
-    ctx.fillRect(-9, -7, 18, 3); ctx.fillRect(-9, 4, 18, 3);
-    ctx.fillStyle = t.color;
-    ctx.fillRect(4, -2.5, 12, 5);
-    ctx.restore();
-  });
+  // Huellas de oruga que se van borrando
+  cx.strokeStyle = '#2B1F45'; cx.lineWidth = 3.2; cx.lineCap = 'round';
+  for (const h of huellas){
+    cx.globalAlpha = h.v*0.55;
+    const nx = Math.cos(h.a+Math.PI/2)*7, ny = Math.sin(h.a+Math.PI/2)*7;
+    cx.beginPath();
+    cx.moveTo(h.x+nx-2, h.y+ny); cx.lineTo(h.x+nx+2, h.y+ny);
+    cx.moveTo(h.x-nx-2, h.y-ny); cx.lineTo(h.x-nx+2, h.y-ny);
+    cx.stroke();
+  }
+  cx.globalAlpha = 1;
 
-  balas.forEach(b => {
-    ctx.fillStyle = '#F3ECFF';
-    ctx.beginPath(); ctx.arc(b.x, b.y, 2.6, 0, Math.PI*2); ctx.fill();
-  });
+  dibujarMuros();
 
-  chispas.forEach(c => {
-    ctx.globalAlpha = c.v / 22;
-    ctx.fillStyle = c.c;
-    ctx.fillRect(c.x - 1.5, c.y - 1.5, 3, 3);
-  });
-  ctx.globalAlpha = 1;
+  for (const b of balas){
+    b.estela.forEach((p,i) => {
+      cx.globalAlpha = (i/b.estela.length)*0.5;
+      cx.fillStyle = '#FFE9A8';
+      cx.beginPath(); cx.arc(p.x, p.y, 1.6, 0, 7); cx.fill();
+    });
+    cx.globalAlpha = 1;
+    cx.fillStyle = 'rgba(255,201,74,.45)';
+    cx.beginPath(); cx.arc(b.x, b.y, 6.5, 0, 7); cx.fill();
+    cx.fillStyle = '#FFF6DC';
+    cx.beginPath(); cx.arc(b.x, b.y, 3.4, 0, 7); cx.fill();
+  }
+
+  tanques.forEach(t => { if (t.vivo) dibujarTanque(t); });
+
+  for (const h of humo){
+    cx.globalAlpha = Math.min(0.3, h.v/160);
+    cx.fillStyle = '#B9A8D8';
+    cx.beginPath(); cx.arc(h.x, h.y, h.r, 0, 7); cx.fill();
+  }
+  for (const c of chispas){
+    cx.globalAlpha = Math.min(1, c.v/16);
+    cx.fillStyle = c.c;
+    cx.fillRect(c.x-1.6, c.y-1.6, 3.2, 3.2);
+  }
+  cx.globalAlpha = 1;
+  cx.restore();
 }
 
 function bucle(){
@@ -269,9 +407,7 @@ function bucle(){
   dibujar();
 }
 
-reset();
-hud();
-bucle();
+reset(); hud(); bucle();
 </script>
 </body>
 </html>

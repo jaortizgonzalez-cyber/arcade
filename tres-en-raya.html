@@ -149,8 +149,8 @@
 </div>
 
 <script type="module">
-import { Lobby } from './lobby.js?v=3';
-import { Sonido } from './sonido.js?v=3';
+import { Lobby } from './lobby.js?v=4';
+import { Sonido } from './sonido.js?v=4';
 
 const sonido = new Sonido();
 
@@ -208,7 +208,7 @@ for (let i = 0; i < 9; i++){
 async function jugar(i){
   sonido.turno();
   if (local){ if (aplicarJugada(local, i, local.turno)) pintar(local); return; }
-  await sala.actualizar(s => aplicarJugada(s.estado, i, miRol));
+  await sala.actualizar(s => s.estado ? aplicarJugada(s.estado, i, miRol) : false);
 }
 
 $('b-nueva').addEventListener('click', async () => {
@@ -297,6 +297,7 @@ function nombre(rol){
 }
 
 function pintar(e){
+  if (!e){ $('estado').innerHTML = 'Sala incompatible: recarga con Ctrl+Shift+R y crea una nueva.'; return; }
   const linea = e.linea || '';
   [...tablero.children].forEach((b,i) => {
     const rol = e.tablero[i];

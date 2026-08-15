@@ -34,7 +34,7 @@ export class Sala {
       import(CDN + 'firebase-app.js'),
       import(CDN + 'firebase-auth.js'),
       import(CDN + 'firebase-database.js'),
-      import('./config.js?v=3')
+      import('./config.js?v=4')
     ]);
     const instancia = app.initializeApp(cfg.firebaseConfig);
     const cred = await auth.signInAnonymously(auth.getAuth(instancia));
@@ -77,6 +77,11 @@ export class Sala {
     if (!previo.exists()) throw new Error('Esa sala no existe. Revisa el código.');
     const base = previo.val();
     if (base.juego !== this.juego) throw new Error('Ese código es de otro juego.');
+    // Una sala creada por una versión anterior no tiene el nodo `estado`.
+    // Sin este aviso, el juego cargaría en blanco y sin explicación.
+    if (!base.estado) throw new Error(
+      'Esa sala se creó con una versión anterior del juego. ' +
+      'Recarguen la página en ambos dispositivos (Ctrl+Shift+R) y creen una sala nueva.');
 
     // Un puesto está libre si nadie lo ocupa, si ya es mío, o si quien lo
     // tenía se desconectó (cada navegador recibe un uid anónimo distinto,

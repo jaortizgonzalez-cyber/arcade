@@ -272,7 +272,7 @@
 
 <div id="fallo" hidden></div>
 <script type="module">
-import { Lobby } from './lobby.js?v=3';
+import { Lobby } from './lobby.js?v=4';
 
 // Un error silencioso en un juego de canvas se ve como "no funciona".
 // Mejor que se vea el motivo.
@@ -283,7 +283,7 @@ function mostrarFallo(msg){
 }
 addEventListener('error', e => mostrarFallo(e.message + '  ·  ' + (e.filename||'').split('/').pop() + ':' + e.lineno));
 addEventListener('unhandledrejection', e => mostrarFallo('Promesa: ' + (e.reason && e.reason.message || e.reason)));
-import { Sonido } from './sonido.js?v=3';
+import { Sonido } from './sonido.js?v=4';
 
 const sonido = new Sonido();
 const $ = id => document.getElementById(id);
@@ -782,7 +782,11 @@ function mostrarFinal(e){
 
 /* ── Sincronización con la sala ────────────────────────── */
 function pintar(s){
-  if (!s || !s.estado) return;
+  if (!s || !s.estado){
+    if (typeof mostrarFallo === 'function' && s && !s.estado)
+      mostrarFallo('Sala creada con una versión anterior. Recarga (Ctrl+Shift+R) y crea otra.');
+    return;
+  }
   const e = s.estado;
 
   ['A','B'].forEach(r => {
