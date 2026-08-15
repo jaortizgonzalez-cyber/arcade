@@ -10,29 +10,8 @@
 <link rel="stylesheet" href="estilo.css">
 <style>
   main{max-width:420px;margin:0 auto}
-  .pantalla{display:none;flex-direction:column;gap:14px}
-  .pantalla.activa{display:flex}
-  .volver{display:inline-block;font-size:13px;color:var(--tenue);text-decoration:none;margin-bottom:6px}
+  [data-juego]{display:flex;flex-direction:column;gap:14px}
 
-  /* Marcador */
-  .marcador{display:grid;grid-template-columns:1fr auto 1fr;gap:8px}
-  .jugador{background:var(--panel);border:2px solid transparent;border-radius:16px;
-           padding:10px 8px;text-align:center;transition:border-color .2s,transform .2s}
-  .jugador.activo{border-color:currentColor;transform:translateY(-2px)}
-  .jugador[data-m="X"]{color:var(--ambar)}
-  .jugador[data-m="O"]{color:var(--menta)}
-  .jugador .nom{font-family:var(--texto);font-weight:700;font-size:13px;color:var(--tinta);
-                white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .jugador .yo{font-size:10px;letter-spacing:.1em;text-transform:uppercase;opacity:.75}
-  .puntos{font-family:var(--display);font-weight:800;font-size:28px;line-height:1.15}
-  .punto-luz{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--rojo);
-             vertical-align:middle;margin-right:4px}
-  .punto-luz.on{background:var(--menta)}
-  .empates{align-self:center;text-align:center;font-size:10px;color:var(--tenue);
-           letter-spacing:.1em;text-transform:uppercase}
-  .empates b{display:block;font-family:var(--display);font-size:19px;color:var(--tinta);letter-spacing:0}
-
-  /* Tablero */
   #tablero{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;aspect-ratio:1}
   .casilla{background:var(--panel);border:2px solid var(--borde);border-radius:18px;
            display:grid;place-items:center;cursor:pointer;padding:14%;
@@ -49,105 +28,174 @@
   @keyframes trazo{to{stroke-dashoffset:0}}
   .marca-X{color:var(--ambar)} .marca-O{color:var(--menta)}
 
+  .tablero-caja{position:relative}
+  #raya{position:absolute;inset:0;pointer-events:none;overflow:visible}
+  #raya line{stroke-width:12;stroke-linecap:round;fill:none;
+             stroke-dasharray:var(--largo);stroke-dashoffset:var(--largo);
+             animation:trazar .45s .15s ease-out forwards;
+             filter:drop-shadow(0 0 10px currentColor)}
+  @keyframes trazar{to{stroke-dashoffset:0}}
+
+  .fila-sup{display:flex;justify-content:flex-end;margin-bottom:-6px}
+  #b-son{background:none;border:none;font-size:18px;padding:6px;cursor:pointer;opacity:.75}
+  #b-son:hover{opacity:1}
+
+  /* Pantalla de vencedor */
+  #final{position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:18px;
+         background:rgba(16,8,28,.85);backdrop-filter:blur(6px);animation:aparecer .35s ease-out}
+  @keyframes aparecer{from{opacity:0}to{opacity:1}}
+  .tarjeta-final{position:relative;width:100%;max-width:380px;background:var(--panel);
+                 border:2px solid var(--borde);border-radius:24px;overflow:hidden;
+                 box-shadow:0 24px 70px rgba(0,0,0,.6);text-align:center;
+                 animation:subir .45s cubic-bezier(.2,1.3,.4,1)}
+  @keyframes subir{from{transform:translateY(28px) scale(.92);opacity:0}to{transform:none;opacity:1}}
+  .tarjeta-final .cuerpo{padding:20px}
+  .rotulo{font-family:var(--display);font-weight:800;letter-spacing:.22em;font-size:11px;
+          text-transform:uppercase;color:var(--ambar)}
+  .perdio .rotulo{color:#9FB4E8} .empate .rotulo{color:var(--tenue)}
+  .tarjeta-final h2{font-family:var(--display);font-weight:800;font-size:29px;
+                    line-height:1.1;margin-top:4px}
+  .gane h2{color:var(--ambar)} .perdio h2{color:#9FB4E8}
+  .tarjeta-final .sub{font-size:14px;color:var(--tenue);margin-top:6px;line-height:1.5}
+  .cifras{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:18px 0}
+  .cifra{background:rgba(0,0,0,.25);border-radius:13px;padding:10px 4px}
+  .cifra b{display:block;font-family:var(--display);font-weight:800;font-size:20px}
+  .cifra span{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--tenue)}
+  .escena{display:block;width:100%;background:#191046}
+  .brillo{transform-origin:190px 74px;animation:girar 26s linear infinite}
+  @keyframes girar{to{transform:rotate(360deg)}}
+  .flota-x{animation:latir 2s ease-in-out infinite}
+  @keyframes latir{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+  .confeti{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+  .confeti i{position:absolute;top:-12px;width:7px;height:11px;border-radius:1px;
+             animation:caer linear infinite}
+  @keyframes caer{0%{transform:translateY(0) rotate(0)}
+                  100%{transform:translateY(320px) rotate(720deg);opacity:0}}
+
   #estado{text-align:center;font-size:15px;color:var(--tenue);min-height:24px}
   #estado strong{font-family:var(--display);font-weight:800;color:var(--tinta);font-size:18px}
-  .acciones{display:flex;gap:10px}
-
-  /* Sala */
-  .codigo{font-family:var(--display);font-weight:800;font-size:44px;letter-spacing:.22em;
-          text-align:center;color:var(--ambar);background:var(--panel);border:2px dashed var(--borde);
-          border-radius:18px;padding:20px 10px 20px 22px}
-  input.codigo-in{font-family:var(--display);font-weight:800;font-size:26px;letter-spacing:.2em;
-                  text-align:center;text-transform:uppercase}
-  .aviso{font-size:13px;color:var(--rojo);text-align:center;min-height:18px}
-  .cargando{text-align:center;font-size:14px;color:var(--tenue)}
-  .puntitos::after{content:'';animation:pts 1.2s steps(4,end) infinite}
-  @keyframes pts{0%{content:''}25%{content:'.'}50%{content:'..'}75%{content:'...'}}
 </style>
 </head>
 <body>
 <main>
+  <div id="lobby"></div>
 
-  <!-- MENÚ -->
-  <section class="pantalla activa" id="p-menu">
-    <a class="volver" href="index.html">← Sala de juegos</a>
-    <h1>Tres en <em>raya</em></h1>
-    <p class="nota">¿Cómo quieren jugar?</p>
-    <button class="accion" id="b-online">En línea · dos celulares</button>
-    <button class="accion fantasma" id="b-local">Aquí mismo · un teléfono</button>
-    <p class="aviso" id="aviso-config"></p>
-  </section>
-
-  <!-- SALA -->
-  <section class="pantalla" id="p-sala">
-    <a class="volver" href="#" id="b-atras">← Atrás</a>
-    <h1>Sala <em>compartida</em></h1>
-    <input class="campo" id="mi-nombre" placeholder="Tu nombre" maxlength="12" autocomplete="off">
-    <button class="accion" id="b-crear">Crear sala nueva</button>
-    <p class="nota">o entra a la de tu pareja</p>
-    <input class="campo codigo-in" id="codigo-in" placeholder="CÓDIGO" maxlength="4" autocomplete="off" autocapitalize="characters" spellcheck="false">
-    <button class="accion menta" id="b-unir">Entrar</button>
-    <p class="aviso" id="aviso-sala"></p>
-  </section>
-
-  <!-- ESPERA -->
-  <section class="pantalla" id="p-espera">
-    <h1>Sala <em>lista</em></h1>
-    <p class="nota">Pásale este código o mándale el enlace.</p>
-    <div class="codigo" id="codigo-out">----</div>
-    <button class="accion" id="b-compartir">Compartir enlace</button>
-    <p class="cargando puntitos" id="txt-espera">Esperando a que entre</p>
-    <button class="accion fantasma" id="b-cancelar">Cancelar</button>
-  </section>
-
-  <!-- JUEGO -->
-  <section class="pantalla" id="p-juego">
-    <a class="volver" href="#" id="b-salir">← Salir</a>
+  <section data-juego hidden>
     <div class="marcador">
-      <div class="jugador" data-m="X" id="tj-X">
-        <div class="nom" id="nom-X">Jugador X</div>
-        <div class="puntos" id="pt-X">0</div>
-        <div class="yo" id="yo-X">&nbsp;</div>
+      <div class="jugador" data-rol="A" id="tj-A">
+        <div class="nom" id="nom-A">—</div>
+        <div class="puntos" id="pt-A">0</div>
+        <div class="yo" id="yo-A">&nbsp;</div>
       </div>
-      <div class="empates">Empates<b id="pt-E">0</b></div>
-      <div class="jugador" data-m="O" id="tj-O">
-        <div class="nom" id="nom-O">Jugador O</div>
-        <div class="puntos" id="pt-O">0</div>
-        <div class="yo" id="yo-O">&nbsp;</div>
+      <div class="centro-info">Empates<b id="pt-E">0</b></div>
+      <div class="jugador" data-rol="B" id="tj-B">
+        <div class="nom" id="nom-B">—</div>
+        <div class="puntos" id="pt-B">0</div>
+        <div class="yo" id="yo-B">&nbsp;</div>
       </div>
     </div>
-    <div id="tablero"></div>
+    <div class="fila-sup"><button id="b-son" aria-label="Activar o silenciar sonido">🔊</button></div>
+    <div class="tablero-caja">
+      <div id="tablero"></div>
+      <svg id="raya" viewBox="0 0 100 100"><line id="raya-l" x1="0" y1="0" x2="0" y2="0"/></svg>
+    </div>
     <p id="estado"></p>
-    <div class="acciones">
-      <button class="accion" id="b-nueva">Nueva partida</button>
-    </div>
+    <button class="accion" id="b-nueva">Nueva partida</button>
   </section>
-
 </main>
 
-<script type="module">
-import { firebaseConfig, configurado } from './config.js';
+<div id="final" hidden>
+  <div class="tarjeta-final">
+    <svg class="escena" viewBox="0 0 380 150" aria-hidden="true">
+      <defs>
+        <linearGradient id="fondo" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#241660"/><stop offset="100%" stop-color="#5B3A86"/>
+        </linearGradient>
+      </defs>
+      <rect width="380" height="150" fill="url(#fondo)"/>
+      <g class="brillo" opacity=".14" fill="#FFD98A">
+        <path d="M190 74 L120 -30 L165 -34z"/><path d="M190 74 L215 -34 L255 -22z"/>
+        <path d="M190 74 L300 4 L318 44z"/><path d="M190 74 L70 30 L78 -6z"/>
+        <path d="M190 74 L320 96 L306 58z"/><path d="M190 74 L58 104 L66 68z"/>
+      </g>
+      <!-- tablero con la raya ganadora -->
+      <g transform="translate(190,75)">
+        <g stroke="#7B62B8" stroke-width="4" stroke-linecap="round">
+          <line x1="-16" y1="-46" x2="-16" y2="46"/><line x1="16" y1="-46" x2="16" y2="46"/>
+          <line x1="-46" y1="-16" x2="46" y2="-16"/><line x1="-46" y1="16" x2="46" y2="16"/>
+        </g>
+        <g class="flota-x" stroke="#FFC94A" stroke-width="7" stroke-linecap="round" fill="none">
+          <path d="M-40 -40 L-24 -24 M-24 -40 L-40 -24"/>
+          <path d="M-8 -8 L8 8 M8 -8 L-8 8"/>
+          <path d="M24 24 L40 40 M40 24 L24 40"/>
+        </g>
+        <g stroke="#6FE7C4" stroke-width="6" fill="none" opacity=".8">
+          <circle cx="32" cy="-32" r="9"/><circle cx="-32" cy="32" r="9"/>
+        </g>
+        <line x1="-48" y1="-48" x2="48" y2="48" stroke="#FF7B7B" stroke-width="7"
+              stroke-linecap="round" opacity=".9"/>
+      </g>
+    </svg>
+    <div class="confeti" id="confeti"></div>
+    <div class="cuerpo">
+      <div class="rotulo" id="final-r"></div>
+      <h2 id="final-t"></h2>
+      <p class="sub" id="final-s"></p>
+      <div class="cifras" id="final-c"></div>
+      <button class="accion" id="b-revancha">Otra partida</button>
+      <button class="accion fantasma" id="b-cerrar" style="margin-top:8px">Ver el tablero</button>
+    </div>
+  </div>
+</div>
 
-/* ── Utilidades de tablero ─────────────────────────────── */
+<script type="module">
+import { Lobby } from './lobby.js?v=3';
+import { Sonido } from './sonido.js?v=3';
+
+const sonido = new Sonido();
+
 const SVG = {
   X:'<svg viewBox="0 0 100 100" style="--largo:100"><line x1="8" y1="8" x2="92" y2="92"/><line x1="92" y1="8" x2="8" y2="92"/></svg>',
   O:'<svg viewBox="0 0 100 100" style="--largo:245"><circle cx="50" cy="50" r="39"/></svg>'
 };
 const LINEAS = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
-const buscarLinea = (t,m) => LINEAS.find(l => l.every(p => t[p] === m));
 const VACIO = '---------';
-
+const MARCA = { A:'X', B:'O' };
 const $ = id => document.getElementById(id);
-const ir = id => document.querySelectorAll('.pantalla').forEach(p => p.classList.toggle('activa', p.id === id));
 
-/* ── Estado ────────────────────────────────────────────── */
-let modo = null;         // 'local' | 'online'
-let miMarca = null;      // 'X' | 'O'  (en local: el del turno)
-let sala = null;         // código
-let salaRef = null, quitarEscucha = null;
-let vista = null;        // último estado pintado
+let sala = null, miRol = null, local = null, previo = null;
+let vistaLinea = '', vistaGanador = '', finalMostrado = false;
 
-/* ── Tablero: construcción ─────────────────────────────── */
+const estadoInicial = () => ({
+  tablero:VACIO, turno:'A', ganador:'', linea:'', inicia:'A', marcador:{A:0,B:0,E:0}
+});
+
+/* ── Reglas ────────────────────────────────────────────── */
+function aplicarJugada(e, i, rol){
+  if (e.ganador || e.turno !== rol || e.tablero[i] !== '-') return false;
+  const t = e.tablero.split('');
+  t[i] = rol;
+  e.tablero = t.join('');
+  e.marcador = e.marcador || {A:0,B:0,E:0};
+  const linea = LINEAS.find(l => l.every(p => t[p] === rol));
+  if (linea){
+    e.ganador = rol; e.linea = linea.join('');
+    e.marcador[rol] = (e.marcador[rol] || 0) + 1;
+  } else if (!t.includes('-')){
+    e.ganador = 'empate';
+    e.marcador.E = (e.marcador.E || 0) + 1;
+  } else {
+    e.turno = rol === 'A' ? 'B' : 'A';
+  }
+  return true;
+}
+
+function reiniciar(e){
+  const inicia = e.inicia === 'A' ? 'B' : 'A';
+  Object.assign(e, { tablero:VACIO, turno:inicia, ganador:'', linea:'', inicia });
+}
+
+/* ── Tablero ───────────────────────────────────────────── */
 const tablero = $('tablero');
 for (let i = 0; i < 9; i++){
   const b = document.createElement('button');
@@ -157,277 +205,159 @@ for (let i = 0; i < 9; i++){
   tablero.appendChild(b);
 }
 
-/* ── Pintado ───────────────────────────────────────────── */
-function pintar(s){
-  const previo = vista;
-  vista = s;
-  const t = s.partida.tablero, gan = s.partida.ganador, linea = s.partida.linea || '';
-
-  [...tablero.children].forEach((b,i) => {
-    const m = t[i];
-    const cambio = !previo || previo.partida.tablero[i] !== m;
-    if (cambio){
-      b.className = 'casilla';
-      b.innerHTML = m === '-' ? '' : SVG[m];
-      if (m !== '-') b.classList.add('marca-' + m);
-    }
-    if (linea.includes(String(i))) b.classList.add('gana');
-    const mio = modo === 'local' ? true : s.partida.turno === miMarca;
-    b.disabled = !!gan || m !== '-' || !mio || (modo === 'online' && !s.jugadores.O);
-  });
-
-  const nom = m => (s.jugadores[m] && s.jugadores[m].nombre) || (m === 'X' ? 'Jugador X' : 'Jugador O');
-  ['X','O'].forEach(m => {
-    $('nom-'+m).textContent = nom(m);
-    $('pt-'+m).textContent = (s.marcador && s.marcador[m]) || 0;
-    $('tj-'+m).classList.toggle('activo', !gan && s.partida.turno === m);
-    if (modo === 'online'){
-      const on = s.jugadores[m] && s.jugadores[m].online;
-      $('yo-'+m).innerHTML = '<span class="punto-luz' + (on ? ' on' : '') + '"></span>' +
-                             (m === miMarca ? 'Tú' : (on ? 'En línea' : 'Ausente'));
-    } else {
-      $('yo-'+m).innerHTML = '&nbsp;';
-    }
-  });
-  $('pt-E').textContent = (s.marcador && s.marcador.E) || 0;
-
-  let msg;
-  if (gan === 'empate') msg = 'Empate, otra vez';
-  else if (gan) msg = '<strong>' + nom(gan) + '</strong> gana';
-  else if (modo === 'online' && !s.jugadores.O) msg = 'Esperando a tu pareja…';
-  else if (modo === 'online') msg = s.partida.turno === miMarca
-        ? 'Es <strong>tu turno</strong>'
-        : 'Turno de <strong>' + nom(s.partida.turno) + '</strong>';
-  else msg = 'Turno de <strong>' + nom(s.partida.turno) + '</strong>';
-  $('estado').innerHTML = msg;
-
-  $('b-nueva').disabled = modo === 'online' && !gan;
-}
-
-/* ── Lógica de jugada (compartida) ─────────────────────── */
-function aplicarJugada(s, i, marca){
-  const p = s.partida;
-  if (p.ganador || p.turno !== marca || p.tablero[i] !== '-') return null;
-  const t = p.tablero.split('');
-  t[i] = marca;
-  p.tablero = t.join('');
-  s.marcador = s.marcador || {X:0,O:0,E:0};
-  const linea = buscarLinea(t, marca);
-  if (linea){
-    p.ganador = marca; p.linea = linea.join('');
-    s.marcador[marca] = (s.marcador[marca] || 0) + 1;
-  } else if (!t.includes('-')){
-    p.ganador = 'empate';
-    s.marcador.E = (s.marcador.E || 0) + 1;
-  } else {
-    p.turno = marca === 'X' ? 'O' : 'X';
-  }
-  return s;
-}
-
-function reiniciarPartida(s){
-  const inicia = s.partida.inicia === 'X' ? 'O' : 'X';
-  s.partida = { tablero:VACIO, turno:inicia, ganador:'', linea:'', inicia };
-  return s;
-}
-
-const salaVacia = (nombre) => ({
-  juego:'tresenraya', creada: Date.now(),
-  jugadores:{},
-  partida:{ tablero:VACIO, turno:'X', ganador:'', linea:'', inicia:'X' },
-  marcador:{X:0,O:0,E:0}
-});
-
-/* ── MODO LOCAL ────────────────────────────────────────── */
-let local = null;
-function jugarLocal(){
-  modo = 'local';
-  local = salaVacia();
-  local.jugadores = { X:{nombre:'Jugador 1'}, O:{nombre:'Jugador 2'} };
-  ir('p-juego');
-  pintar(local);
-}
-
-/* ── MODO EN LÍNEA ─────────────────────────────────────── */
-let db, uid, fb = {};
-
-async function iniciarFirebase(){
-  if (db) return;
-  const [{ initializeApp }, auth, rtdb] = await Promise.all([
-    import('https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js'),
-    import('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js'),
-    import('https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js')
-  ]);
-  const app = initializeApp(firebaseConfig);
-  const cred = await auth.signInAnonymously(auth.getAuth(app));
-  uid = cred.user.uid;
-  db = rtdb.getDatabase(app);
-  fb = rtdb;
-}
-
-const codigoNuevo = () => Array.from({length:4},
-  () => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random()*32)]).join('');
-
-function miNombre(){
-  const n = $('mi-nombre').value.trim();
-  if (n) localStorage.setItem('nombreJugador', n);
-  return n || 'Jugador';
-}
-
-async function crearSala(){
-  $('aviso-sala').textContent = '';
-  try{
-    await iniciarFirebase();
-    let codigo, hecho = false;
-    for (let intento = 0; intento < 5 && !hecho; intento++){
-      codigo = codigoNuevo();
-      const r = await fb.runTransaction(fb.ref(db,'salas/'+codigo), s => {
-        if (s) return;                       // ya existe: aborta y reintenta
-        const nueva = salaVacia();
-        nueva.jugadores = { X:{ uid, nombre: miNombre(), online:true } };
-        return nueva;
-      });
-      hecho = r.committed;
-    }
-    if (!hecho) throw new Error('No se pudo crear la sala');
-    entrar(codigo, 'X');
-    $('codigo-out').textContent = codigo;
-    ir('p-espera');
-  } catch(e){ $('aviso-sala').textContent = 'No se pudo crear la sala. ' + e.message; }
-}
-
-async function unirse(codigo){
-  $('aviso-sala').textContent = '';
-  codigo = (codigo || '').toUpperCase().trim();
-  if (codigo.length !== 4){ $('aviso-sala').textContent = 'El código tiene 4 caracteres.'; return; }
-  try{
-    await iniciarFirebase();
-
-    // Importante: leemos del servidor primero. Si fuéramos directo a la
-    // transacción, el callback correría con la caché local vacía (null),
-    // lo interpretaría como "no existe" y abortaría sin consultar nada.
-    const previo = await fb.get(fb.ref(db,'salas/'+codigo));
-    if (!previo.exists()){ $('aviso-sala').textContent = 'Esa sala no existe. Revisa el código.'; return; }
-
-    // Un puesto está disponible si nadie lo ocupa, si ya es mío, o si
-    // quien lo tenía se desconectó (cada navegador recibe un uid distinto,
-    // así que una pestaña vieja puede dejar la sala trancada).
-    const libre = (j, m) => !j[m] || j[m].uid === uid || j[m].online !== true;
-    const jp = previo.val().jugadores || {};
-    if (!libre(jp,'X') && !libre(jp,'O')){
-      $('aviso-sala').textContent = 'La sala está llena: ' +
-        (jp.X.nombre || 'alguien') + ' y ' + (jp.O.nombre || 'alguien') + ' están dentro.';
-      return;
-    }
-
-    const r = await fb.runTransaction(fb.ref(db,'salas/'+codigo), actual => {
-      // `actual` puede llegar null: get() no deja el nodo sincronizado y la
-      // primera corrida es local. Si abortáramos aquí, la transacción moriría
-      // sin consultar al servidor. Por eso caemos al valor ya leído; si el
-      // servidor tiene algo distinto, Firebase vuelve a correr esto con el dato real.
-      const s = actual || previo.val();
-      if (!s) return;
-      const j = s.jugadores || {};
-      const tomar = m => { j[m] = { uid, nombre: miNombre(), online:true }; s.jugadores = j; return s; };
-      if (j.X && j.X.uid === uid) return tomar('X');       // reconexión
-      if (j.O && j.O.uid === uid) return tomar('O');
-      if (libre(j,'X')) return tomar('X');
-      if (libre(j,'O')) return tomar('O');
-      return;                                             // llena
-    });
-    if (!r.committed){ $('aviso-sala').textContent = 'No se pudo entrar, inténtalo otra vez.'; return; }
-    const s = r.snapshot.val();
-    entrar(codigo, (s.jugadores.X && s.jugadores.X.uid === uid) ? 'X' : 'O');
-    ir('p-juego');
-  } catch(e){ $('aviso-sala').textContent = 'No se pudo entrar. ' + e.message; }
-}
-
-function entrar(codigo, marca){
-  modo = 'online'; sala = codigo; miMarca = marca;
-  salaRef = fb.ref(db, 'salas/' + codigo);
-  location.hash = codigo;
-  sessionStorage.setItem('sala', codigo);
-
-  const luz = fb.ref(db, 'salas/' + codigo + '/jugadores/' + marca + '/online');
-  fb.set(luz, true);
-  fb.onDisconnect(luz).set(false);
-
-  quitarEscucha = fb.onValue(salaRef, snap => {
-    const s = snap.val();
-    if (!s){ salir('La sala se cerró.'); return; }
-    s.jugadores = s.jugadores || {};
-    if (s.jugadores.O && $('p-espera').classList.contains('activa')) ir('p-juego');
-    pintar(s);
-  });
-}
-
-function salir(msg){
-  if (quitarEscucha) quitarEscucha();
-  if (salaRef && miMarca) fb.set(fb.ref(db,'salas/'+sala+'/jugadores/'+miMarca+'/online'), false);
-  quitarEscucha = null; salaRef = null; sala = null; miMarca = null; vista = null; modo = null;
-  history.replaceState(null,'',location.pathname);
-  sessionStorage.removeItem('sala');
-  $('aviso-sala').textContent = msg || '';
-  ir(msg ? 'p-sala' : 'p-menu');
-}
-
-/* ── Acciones ──────────────────────────────────────────── */
 async function jugar(i){
-  if (modo === 'local'){
-    const s = aplicarJugada(local, i, local.partida.turno);
-    if (s) pintar(s);
-    return;
-  }
-  await fb.runTransaction(salaRef, s => {
-    if (!s) return;                       // abortar, nunca devolver null: borraría la sala
-    s.jugadores = s.jugadores || {};
-    if (!s.jugadores.O) return s;
-    return aplicarJugada(s, i, miMarca) || s;
-  });
+  sonido.turno();
+  if (local){ if (aplicarJugada(local, i, local.turno)) pintar(local); return; }
+  await sala.actualizar(s => aplicarJugada(s.estado, i, miRol));
 }
 
 $('b-nueva').addEventListener('click', async () => {
-  if (modo === 'local'){ pintar(reiniciarPartida(local)); return; }
-  await fb.runTransaction(salaRef, s => {
-    if (!s) return;                       // abortar, no devolver null
-    if (!s.partida || !s.partida.ganador) return s;
-    return reiniciarPartida(s);
-  });
+  if (local){ reiniciar(local); pintar(local); return; }
+  await sala.actualizar(s => { if (!s.estado.ganador) return false; reiniciar(s.estado); });
 });
 
-$('b-online').addEventListener('click', () => {
-  $('mi-nombre').value = localStorage.getItem('nombreJugador') || '';
-  ir('p-sala');
-});
-$('b-local').addEventListener('click', jugarLocal);
-$('b-atras').addEventListener('click', e => { e.preventDefault(); ir('p-menu'); });
-$('b-crear').addEventListener('click', crearSala);
-$('b-unir').addEventListener('click', () => unirse($('codigo-in').value));
-$('codigo-in').addEventListener('keydown', e => { if (e.key === 'Enter') unirse($('codigo-in').value); });
-$('b-cancelar').addEventListener('click', () => salir());
-$('b-salir').addEventListener('click', e => { e.preventDefault(); salir(); });
+/* ── Raya ganadora ─────────────────────────────────────── */
+function dibujarRaya(linea, ganador){
+  const svg = $('raya'), l = $('raya-l');
+  if (!linea){ svg.style.display = 'none'; return; }
+  const idx = linea.split('').map(Number);
+  const caja = tablero.getBoundingClientRect();
+  // Si aún no hay maquetación (la sección acaba de mostrarse), reintentamos
+  if (!caja.width){ requestAnimationFrame(() => dibujarRaya(linea, ganador)); return; }
+  const centro = i => {
+    const r = tablero.children[i].getBoundingClientRect();
+    return [r.left + r.width/2 - caja.left, r.top + r.height/2 - caja.top];
+  };
+  const [x1, y1] = centro(idx[0]);
+  const [x2, y2] = centro(idx[2]);
+  // Alargamos un poco por fuera de los centros, como un trazo hecho a mano
+  const dx = x2 - x1, dy = y2 - y1, n = Math.hypot(dx, dy) || 1, ext = 0.16;
+  svg.setAttribute('viewBox', `0 0 ${caja.width} ${caja.height}`);
+  l.setAttribute('x1', x1 - dx*ext); l.setAttribute('y1', y1 - dy*ext);
+  l.setAttribute('x2', x2 + dx*ext); l.setAttribute('y2', y2 + dy*ext);
+  l.style.setProperty('--largo', n*(1 + 2*ext));
+  const color = ganador === 'A' ? '#FFC94A' : '#6FE7C4';
+  l.style.stroke = color;
+  l.style.color = color;                    // para el resplandor del drop-shadow
+  svg.style.display = 'block';
+}
+addEventListener('resize', () => { if (vistaLinea) dibujarRaya(vistaLinea, vistaGanador); });
 
-$('b-compartir').addEventListener('click', async () => {
-  const url = location.origin + location.pathname + '#' + $('codigo-out').textContent;
-  const texto = 'Entra a jugar tres en raya: ' + url;
-  try{
-    if (navigator.share) await navigator.share({ title:'Tres en raya', text:texto, url });
-    else { await navigator.clipboard.writeText(url); $('b-compartir').textContent = '¡Enlace copiado!'; }
-  } catch(e){}
-});
-
-/* ── Arranque ──────────────────────────────────────────── */
-if (!configurado){
-  $('b-online').disabled = true;
-  $('aviso-config').textContent = 'El modo en línea necesita la configuración de Firebase en config.js';
-} else {
-  const codigo = (location.hash || '').replace('#','').toUpperCase();
-  if (codigo.length === 4){
-    $('mi-nombre').value = localStorage.getItem('nombreJugador') || '';
-    $('codigo-in').value = codigo;
-    ir('p-sala');
+/* ── Pantalla de vencedor ──────────────────────────────── */
+function lanzarConfeti(){
+  const cont = $('confeti');
+  cont.innerHTML = '';
+  const cols = ['#FFC94A','#6FE7C4','#FF7B7B','#C58CF0','#7FA6FF'];
+  for (let i = 0; i < 36; i++){
+    const c = document.createElement('i');
+    c.style.left = Math.random()*100 + '%';
+    c.style.background = cols[i % cols.length];
+    c.style.animationDuration = (1.5 + Math.random()*1.5) + 's';
+    c.style.animationDelay = (Math.random()*1.6) + 's';
+    cont.appendChild(c);
   }
 }
+
+function mostrarFinal(e){
+  const empate = e.ganador === 'empate';
+  const gane = !local && e.ganador === miRol;
+  const m = e.marcador || {A:0,B:0,E:0};
+
+  $('final').className = empate ? 'empate' : (local ? 'gane' : (gane ? 'gane' : 'perdio'));
+  if (empate){
+    $('final-r').textContent = 'Tablas';
+    $('final-t').textContent = 'Nadie cede';
+    $('final-s').textContent = 'Tablero lleno y sin tres en raya. Se juega otra.';
+  } else if (local){
+    $('final-r').textContent = '🏆 Vencedor';
+    $('final-t').textContent = nombre(e.ganador) + ' gana';
+    $('final-s').innerHTML = 'Tres en raya con <b>' + MARCA[e.ganador] + '</b>.';
+  } else {
+    $('final-r').textContent = gane ? '🏆 Vencedor' : 'Esta vez no';
+    $('final-t').textContent = gane ? '¡Ganaste!' : nombre(e.ganador) + ' gana';
+    $('final-s').innerHTML = gane
+      ? 'Alineaste tres <b>' + MARCA[miRol] + '</b> y cerraste la partida.'
+      : nombre(e.ganador) + ' alineó tres <b>' + MARCA[e.ganador] + '</b>. Te toca empezar la próxima.';
+  }
+  $('final-c').innerHTML =
+    '<div class="cifra"><b>' + (m.A||0) + '</b><span>' + nombre('A') + '</span></div>' +
+    '<div class="cifra"><b>' + (m.E||0) + '</b><span>Empates</span></div>' +
+    '<div class="cifra"><b>' + (m.B||0) + '</b><span>' + nombre('B') + '</span></div>';
+
+  $('final').hidden = false;
+  if (empate){ $('confeti').innerHTML = ''; sonido.turno(); }
+  else if (local || gane){ lanzarConfeti(); sonido.victoria(); }
+  else { $('confeti').innerHTML = ''; sonido.derrota(); }
+}
+
+/* ── Pintado ───────────────────────────────────────────── */
+function nombre(rol){
+  if (local) return rol === 'A' ? 'Jugador 1' : 'Jugador 2';
+  return sala.nombre(rol);
+}
+
+function pintar(e){
+  const linea = e.linea || '';
+  [...tablero.children].forEach((b,i) => {
+    const rol = e.tablero[i];
+    if (!previo || previo[i] !== rol){
+      b.className = 'casilla';
+      b.innerHTML = rol === '-' ? '' : SVG[MARCA[rol]];
+      if (rol !== '-') b.classList.add('marca-' + MARCA[rol]);
+    }
+    if (linea.includes(String(i))) b.classList.add('gana');
+    const mio = local ? true : (e.turno === miRol && sala.completa);
+    b.disabled = !!e.ganador || rol !== '-' || !mio;
+  });
+  previo = e.tablero;
+
+  vistaLinea = e.linea || '';
+  vistaGanador = e.ganador;
+  dibujarRaya(vistaLinea, vistaGanador);
+
+  if (e.ganador && !finalMostrado){
+    finalMostrado = true;
+    setTimeout(() => mostrarFinal(e), e.linea ? 750 : 350);
+  }
+  if (!e.ganador){ finalMostrado = false; $('final').hidden = true; }
+
+  ['A','B'].forEach(r => {
+    $('nom-'+r).textContent = nombre(r) + ' · ' + MARCA[r];
+    $('pt-'+r).textContent = (e.marcador && e.marcador[r]) || 0;
+    $('tj-'+r).classList.toggle('activo', !e.ganador && e.turno === r);
+    if (local){ $('yo-'+r).innerHTML = '&nbsp;'; return; }
+    const on = sala.enLinea(r);
+    $('yo-'+r).innerHTML = '<span class="punto-luz' + (on ? ' on' : '') + '"></span>' +
+                           (r === miRol ? 'Tú' : (on ? 'En línea' : 'Ausente'));
+  });
+  $('pt-E').textContent = (e.marcador && e.marcador.E) || 0;
+
+  let msg;
+  if (e.ganador === 'empate') msg = 'Empate, otra vez';
+  else if (e.ganador) msg = '<strong>' + nombre(e.ganador) + '</strong> gana';
+  else if (!local && !sala.completa) msg = 'Esperando a tu pareja…';
+  else if (!local && e.turno === miRol) msg = 'Es <strong>tu turno</strong>';
+  else msg = 'Turno de <strong>' + nombre(e.turno) + '</strong>';
+  $('estado').innerHTML = msg;
+
+  $('b-nueva').disabled = !local && !e.ganador;
+}
+
+$('b-son').textContent = sonido.activo ? '🔊' : '🔇';
+$('b-son').addEventListener('click', () => {
+  $('b-son').textContent = sonido.alternar() ? '🔊' : '🔇';
+});
+$('b-cerrar').addEventListener('click', () => { $('final').hidden = true; });
+$('b-revancha').addEventListener('click', () => { $('final').hidden = true; $('b-nueva').click(); });
+
+/* ── Arranque ──────────────────────────────────────────── */
+new Lobby({
+  juego: 'tresenraya',
+  titulo: 'Tres en <em>raya</em>',
+  estadoInicial,
+  alEntrar: s => { sala = s; miRol = s.rol; previo = null; s.alCambiar(x => pintar(x.estado)); },
+  alLocal: () => { local = estadoInicial(); previo = null; finalMostrado = false; pintar(local); }
+});
 </script>
 </body>
 </html>
