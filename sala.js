@@ -22,11 +22,26 @@ export class Sala {
     this.ultimo = null;    // último valor conocido de la sala
     this._quitar = null;
     this._oyentes = [];
+    this._avisos = [];
+    this._previos = null;
   }
 
   get rival(){ return this.rol === 'A' ? 'B' : 'A'; }   // solo para juegos de dos
   get activa(){ return !!this.codigo; }
   get roles(){ return ROLES.slice(0, this.max); }
+  /** Avisa cuando alguien entra o se va: cb(rol, 'entra'|'sale'). */
+  alJugador(cb){ this._avisos.push(cb); }
+
+  _detectarCambios(){
+    const ahora = new Set(this.presentes());
+    if (this._previos === null){ this._previos = ahora; return; }  // el primer vistazo no anuncia
+    for (const r of ahora)
+      if (!this._previos.has(r) && r !== this.rol) this._avisos.forEach(f => f(r, 'entra'));
+    for (const r of this._previos)
+      if (!ahora.has(r) && r !== this.rol) this._avisos.forEach(f => f(r, 'sale'));
+    this._previos = ahora;
+  }
+
   /** Puestos ocupados, en orden. */
   ocupados(){ return this.roles.filter(r => this.jugador(r)); }
   /** Puestos con alguien conectado ahora mismo. */
@@ -131,6 +146,7 @@ export class Sala {
     this.fb.onDisconnect(luz).set(false);
     this._quitar = this.fb.onValue(this.nodo('salas/' + codigo), snap => {
       this.ultimo = snap.val();
+      this._detectarCambios();
       this._oyentes.forEach(cb => cb(this.ultimo));
     });
   }

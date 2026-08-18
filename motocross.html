@@ -48,13 +48,21 @@
   #cuenta.oculto{display:none}
 
   /* Barra de progreso de la carrera */
-  .progreso{position:relative;height:26px;background:var(--panel);border-radius:13px;
-            border:2px solid var(--borde);margin-top:2px}
-  .progreso .meta{position:absolute;right:6px;top:50%;transform:translateY(-50%);
-                  font-size:11px;color:var(--tenue)}
+  .progreso{position:relative;height:40px;background:var(--panel);border-radius:14px;
+            border:2px solid var(--borde);margin-top:2px;overflow:hidden}
+  .progreso .meta{position:absolute;right:7px;top:50%;transform:translateY(-50%);
+                  font-size:13px;color:var(--tenue)}
+  .progreso::before{content:'';position:absolute;left:5%;right:5%;top:50%;height:3px;
+                    transform:translateY(-50%);background:#1B1233;border-radius:2px}
   .ficha{position:absolute;top:50%;transform:translate(-50%,-50%);
-         width:20px;height:20px;border-radius:50%;display:grid;place-items:center;
-         font-size:10px;font-weight:800;color:#241634;will-change:left}
+         width:19px;height:19px;border-radius:50%;display:grid;place-items:center;
+         font-family:var(--display);font-size:10px;font-weight:800;color:#241634;
+         will-change:left;box-shadow:0 0 0 2px rgba(36,22,52,.9)}
+  .ficha .mts{position:absolute;top:-15px;left:50%;transform:translateX(-50%);
+              font-family:var(--texto);font-size:9px;font-weight:700;
+              color:inherit;white-space:nowrap;
+              text-shadow:0 1px 3px rgba(0,0,0,.9)}
+  .ficha:nth-child(even) .mts{top:auto;bottom:-15px}
   .parrilla{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
   .corredor{display:flex;align-items:center;gap:7px;background:var(--panel);
             border:2px solid var(--borde);border-radius:12px;padding:7px 11px;
@@ -1043,6 +1051,7 @@ function cuadro(ahora){
 }
 
 function hud(e){
+  if (pista && sala) pintarFichas(e);
   $('hud-tiempo').textContent = tiempo.toFixed(1);
   $('hud-vel').textContent = Math.max(0, Math.round(moto.vx*3.6));
   const delante = Object.entries(objetivos)
@@ -1220,24 +1229,39 @@ function pintarParrilla(e){
   }
 }
 
+function distanciaDe(r){
+  if (r === miRol) return moto ? moto.x : 0;
+  // La posición ya interpolada, no el último paquete de red: si usáramos
+  // el paquete, la ficha se quedaría quieta y luego pegaría un salto.
+  if (fantasmas[r]) return fantasmas[r].x;
+  if (objetivos[r]) return objetivos[r].x;
+  return 0;
+}
+
 function pintarFichas(e){
   const barra = $('barra');
   const lista = corredores();
+  const largo = (pista && pista.largo) || 1;
+
+  // Quitar fichas de quien ya no está en la parrilla
+  [...barra.querySelectorAll('.ficha')].forEach(f => {
+    if (!lista.includes(f.id.replace('fi-',''))) f.remove();
+  });
+
   for (const r of lista){
     let f = document.getElementById('fi-'+r);
     if (!f){
       f = document.createElement('div');
       f.className = 'ficha'; f.id = 'fi-'+r;
       f.style.background = COLORES_J[r] || '#F3ECFF';
+      f.innerHTML = '<span class="ini"></span><span class="mts"></span>';
       barra.appendChild(f);
     }
-    f.textContent = (sala.nombre(r)[0] || r).toUpperCase();
-    // Usamos la posición ya suavizada, no el último paquete de red:
-    // si no, la ficha se queda quieta y luego pega un salto.
-    const x = r === miRol ? (moto ? moto.x : 0)
-                          : ((fantasmas[r] && fantasmas[r].x) || (objetivos[r] && objetivos[r].x) || 0);
-    const p = Math.max(0, Math.min(1, x/(pista ? pista.largo : 1)));
-    f.style.left = (6 + p*88) + '%';
+    const x = Math.max(0, Math.min(largo, distanciaDe(r)));
+    f.querySelector('.ini').textContent = (sala.nombre(r)[0] || r).toUpperCase();
+    f.querySelector('.mts').textContent = Math.round(x) + ' m';
+    f.style.left = (5 + (x/largo)*90) + '%';
+    f.style.zIndex = r === miRol ? 3 : 2;
   }
 }
 
@@ -1445,6 +1469,7 @@ new Lobby({
   alEntrar: s => {
     sala = s; miRol = s.rol; rival = s.rival;
     s.alCambiar(pintar);
+    s.alJugador((r, q) => aviso(s.nombre(r) + (q === 'entra' ? ' se unió' : ' salió')));
   }
 });
 

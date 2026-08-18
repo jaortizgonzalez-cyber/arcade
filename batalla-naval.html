@@ -930,6 +930,13 @@ new Lobby({
   titulo: 'Batalla <em>naval</em>',
   lema: 'Cada uno esconde su flota. Solo se revela lo que el otro acierta.',
   estadoInicial,
+  textoSolo: '🤖 Un jugador · contra el robot',
+  tituloNivel: 'Nivel del <em>rival</em>',
+  niveles: [
+    { n:1, t:'Grumete',   d:'Dispara al azar y ni persigue cuando acierta.' },
+    { n:2, t:'Capitán',   d:'Persigue las casillas contiguas al impacto.' },
+    { n:3, t:'Almirante', d:'Busca en retícula y deduce el eje de tus barcos.' }
+  ],
   nombreRobot: n => ['Grumete','Capitán','Almirante'][n-1],
   alSolo: async (s, nivel) => {
     sala = s; miRol = s.rol;
@@ -942,6 +949,13 @@ new Lobby({
     colocarAlAzar();
     pintarColocacion();
     s.alCambiar(pintar);
+    s.alJugador((r, q) => {
+      $('toast-t').textContent = q === 'entra' ? '👋 ' + s.nombre(r) + ' se unió'
+                                               : s.nombre(r) + ' salió';
+      $('toast-s').textContent = q === 'entra' ? 'Ya pueden desplegar la flota' : '';
+      $('toast').className = 'ver';
+      setTimeout(() => { $('toast').className = ''; }, 3000);
+    });
     try{
       const guardado = await s.leerSecreto();
       if (guardado && guardado.barcos){

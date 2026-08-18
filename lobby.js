@@ -12,21 +12,16 @@ const HTML = `
   <h1 data-titulo></h1>
   <p class="nota" data-lema></p>
   <button class="accion" data-b="online" id="b-online-txt">En línea · dos celulares</button>
-  <button class="accion menta" data-b="solo" hidden>🤖 Solo · contra el robot</button>
+  <button class="accion menta" data-b="solo" hidden>Un jugador</button>
   <button class="accion fantasma" data-b="local" hidden>Aquí mismo · dos en un dispositivo</button>
   <p class="aviso" data-aviso="config"></p>
 </section>
 
 <section class="pantalla" data-p="nivel">
   <a class="volver" href="#" data-b="atras2">← Atrás</a>
-  <h1>Nivel del <em>robot</em></h1>
-  <p class="nota">¿Qué tan duro lo quieres?</p>
-  <button class="accion nivel" data-n="1">
-    <b>Principiante</b><span>Comete errores seguido. Para entrar en calor.</span></button>
-  <button class="accion nivel" data-n="2">
-    <b>Intermedio</b><span>Juega bien y castiga los descuidos.</span></button>
-  <button class="accion nivel" data-n="3">
-    <b>Experto</b><span>Sin concesiones. Ganarle cuesta.</span></button>
+  <h1 data-titulo-nivel></h1>
+  <p class="nota" data-lema-nivel></p>
+  <div data-niveles></div>
 </section>
 
 <section class="pantalla" data-p="acceso">
@@ -46,7 +41,8 @@ const HTML = `
   <p class="nota">Pásale este código o mándale el enlace.</p>
   <div class="codigo" data-out="codigo">----</div>
   <button class="accion" data-b="compartir">Compartir enlace</button>
-  <p class="cargando puntitos">Esperando a que entre</p>
+  <div class="lista-sala" data-out="dentro"></div>
+  <p class="cargando puntitos" data-out="espera">Esperando a que entre</p>
   <button class="accion menta" data-b="entrar-ya" hidden>Entrar ya (los demás pueden llegar después)</button>
   <button class="accion fantasma" data-b="cancelar">Cancelar</button>
 </section>`;
@@ -54,6 +50,12 @@ const HTML = `
 // Con más de dos puestos no tiene sentido bloquear al anfitrión hasta que
 // estén todos: puede entrar y los demás se suman sobre la marcha.
 const op_espera_manual = op => (op.maxJugadores || 2) > 2;
+
+const NIVELES_POR_DEFECTO = [
+  { n:1, t:'Principiante', d:'Comete errores seguido. Para entrar en calor.' },
+  { n:2, t:'Intermedio',   d:'Juega bien y castiga los descuidos.' },
+  { n:3, t:'Experto',      d:'Sin concesiones. Ganarle cuesta.' }
+];
 
 export class Lobby {
   /**
@@ -75,6 +77,22 @@ export class Lobby {
     this.caja.querySelectorAll('[data-p]').forEach(s => s.classList.toggle('activa', s.dataset.p === p));
     this.caja.hidden = false;
     document.querySelectorAll('[data-juego]').forEach(s => s.hidden = true);
+  }
+
+  /** Deja el código a la vista dentro del juego, para confirmar que
+   *  todos están en la misma sala. */
+  _chipCodigo(){
+    if (document.querySelector('.chip-sala')) return;
+    const ancla = document.querySelector('a.inicio');
+    if (!ancla) return;
+    const chip = document.createElement('span');
+    chip.className = 'chip-sala';
+    chip.textContent = 'Sala ' + this.sala.codigo;
+    chip.title = 'Toca para copiar el enlace';
+    chip.addEventListener('click', () => {
+      this.sala.compartir(this.op.juego).catch(()=>{});
+    });
+    ancla.insertAdjacentElement('afterend', chip);
   }
 
   verJuego(){
@@ -141,6 +159,20 @@ export class Lobby {
     }
   }
 
+  /** Quién está dentro, en vivo, mientras se espera. */
+  _listaSala(){
+    const caja = this.$('[data-out="dentro"]');
+    if (!caja) return;
+    const dentro = this.sala.ocupados ? this.sala.ocupados() : [];
+    caja.innerHTML = dentro.map(r =>
+      '<span class="quien-sala"><i></i>' + this.sala.nombre(r) +
+      (r === this.sala.rol ? ' (tú)' : '') + '</span>').join('');
+    const espera = this.$('[data-out="espera"]');
+    if (espera) espera.textContent = dentro.length < 2
+      ? 'Esperando a que entre alguien'
+      : dentro.length + ' dentro · pueden empezar cuando quieran';
+  }
+
   _nombre(){
     const n = this.$('[data-in="nombre"]').value.trim();
     if (!n) return null;                       // obligatorio: sin nombre no se entra
@@ -182,10 +214,14 @@ export class Lobby {
     if (recienCreada){
       this.ver('espera');
       if (op_espera_manual(this.op)) this.$('[data-b="entrar-ya"]').hidden = false;
-      this.sala.alCambiar(() => { if (this.sala.completa) this.verJuego(); });
+      this.sala.alCambiar(() => {
+        this._listaSala();
+        if (this.sala.completa && !op_espera_manual(this.op)) this.verJuego();
+      });
     } else {
       this.verJuego();
     }
+    this._chipCodigo();
     this.op.alEntrar(this.sala);
   }
 }

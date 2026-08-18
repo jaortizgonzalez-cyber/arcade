@@ -781,13 +781,23 @@ document.querySelector('a.inicio').addEventListener('click', () => {
 new Lobby({
   juego: 'furia',
   titulo: 'Furia <em>callejera</em>',
-  lema: 'Beat’em up: tú, o todos ustedes, contra la banda.',
+  lema: '¿Entras solo o llaman a la pandilla?',
   maxJugadores: MAX_J,
+  textoOnline: 'En línea · de 2 a 4 jugadores',
+  textoSolo: '🥊 Un jugador · tú contra la banda',
+  tituloNivel: '¿Qué tan <em>brava</em> la banda?',
+  lemaNivel: 'Elige a qué te enfrentas.',
+  niveles: [
+    { n:1, t:'Pandilla floja',  d:'Pegan poco y son pocos. Para calentar.' },
+    { n:2, t:'Pandilla',        d:'El reto justo. La mitad de las veces se pasa.' },
+    { n:3, t:'Pandilla brava',  d:'Más matones y pegan durísimo. Casi imposible solo.' }
+  ],
   estadoInicial,
   nombreRobot: n => NIVEL[n].nombre,
   alEntrar: s => {
     sala = s; miRol = s.rol; anfitrion = (miRol === 'A'); soloLocal = false;
     s.alCambiar(pintar);
+    s.alJugador((r, q) => aviso(s.nombre(r) + (q === 'entra' ? ' se unió' : ' salió')));
     capa('Furia callejera',
          'Golpea, patea y salta. Limpien las ' + ZONAS + ' zonas antes de quedarse sin vidas. ' +
          'Pueden sumarse hasta ' + MAX_J + '.', 'Empezar');

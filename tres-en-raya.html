@@ -422,8 +422,22 @@ new Lobby({
   juego: 'tresenraya',
   titulo: 'Tres en <em>raya</em>',
   estadoInicial,
+  textoSolo: '🤖 Un jugador · contra el robot',
+  tituloNivel: 'Nivel del <em>robot</em>',
+  niveles: [
+    { n:1, t:'Novato',  d:'Se despista a menudo. Se le puede ganar.' },
+    { n:2, t:'Robot',   d:'Castiga los descuidos, pero falla a veces.' },
+    { n:3, t:'Maestro', d:'Juego perfecto: lo máximo es empatarle.' }
+  ],
   nombreRobot: n => ['Novato','Robot','Maestro'][n-1],
-  alEntrar: s => { sala = s; miRol = s.rol; previo = null; s.alCambiar(x => pintar(x.estado)); },
+  alEntrar: s => {
+    sala = s; miRol = s.rol; previo = null;
+    s.alCambiar(x => pintar(x.estado));
+    s.alJugador((r, q) => {
+      $('estado').innerHTML = '<strong>' + s.nombre(r) + '</strong>' +
+                              (q === 'entra' ? ' se unió' : ' salió');
+    });
+  },
   alSolo: (s, nivel) => {
     sala = s; miRol = s.rol; previo = null; finalMostrado = false;
     s.alCambiar(x => pintar(x.estado));

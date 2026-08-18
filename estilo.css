@@ -104,3 +104,19 @@ a.inicio{
   transition:color .15s,border-color .15s;
 }
 a.inicio:hover{color:var(--tinta);border-color:var(--ambar)}
+
+[data-niveles]{display:flex;flex-direction:column;gap:10px}
+
+/* Quién está dentro de la sala mientras se espera */
+.lista-sala{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+.quien-sala{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;
+            background:var(--panel);border:2px solid var(--borde);border-radius:11px;
+            padding:6px 10px}
+.quien-sala i{width:8px;height:8px;border-radius:50%;background:var(--menta)}
+
+/* Código de sala visible dentro del juego */
+.chip-sala{display:inline-block;margin:0 0 8px 8px;padding:7px 12px;
+           font-family:var(--display);font-weight:800;font-size:12px;letter-spacing:.14em;
+           color:var(--ambar);background:var(--panel);
+           border:2px dashed var(--borde);border-radius:11px;cursor:pointer}
+.chip-sala:hover{border-color:var(--ambar)}

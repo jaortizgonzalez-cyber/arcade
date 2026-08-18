@@ -190,3 +190,37 @@ Curva de dificultad, medida por simulación con un jugador de destreza media:
 
 La partida dura entre 90 s y 2:30. "Pandilla brava" en solitario está pensada para
 ser casi imposible: es el reto de verdad.
+
+## Combate de tanques
+
+De uno a cuatro tanques, con bot para jugar solo. Cuatro campos simétricos por
+rotación de 180°, generados dibujando un cuadrante y rotándolo: la simetría queda
+garantizada por construcción. Un paso de reparación abre muros (siempre en pareja,
+para no romper la simetría) hasta que todas las celdas quedan conectadas — hizo
+falta en el mapa Arena, que salía con una bolsa cerrada.
+
+### Armas y premios
+
+| Arma | Cómo se consigue | Carácter |
+|---|---|---|
+| Cañón | siempre | Lento, rebota 4 veces, un tiro a la vez |
+| Metralleta | premio (40 balas) | Ráfaga rápida, 5 en vuelo, un solo rebote |
+| Láser | premio (6 cargas) | Instantáneo hasta el primer muro, no rebota |
+
+También caen escudo (absorbe un impacto) y turbo (70% más velocidad).
+
+### El bot
+
+Lo que separa los niveles no es solo la puntería: es la **predicción**. El nivel As
+apunta a donde va a estar el rival, no a donde está. Medido contra un rival errático
+(3 repeticiones × 4 mapas, 90 s cada una):
+
+| Nivel | Impactos en 90 s | Una partida a 7 dura |
+|---|---|---|
+| Recluta | 5.4 | ~116 s |
+| Veterano | 10.1 | ~62 s |
+| As | 11.8 | ~54 s |
+
+Nota metodológica: medir bot contra bot no servía — ambos saturan la cadencia de
+recarga y los tres niveles daban lo mismo. La diferencia solo aparece frente a un
+rival que se mueve de forma imprevisible.

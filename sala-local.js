@@ -38,6 +38,8 @@ export class SalaLocal {
   nombre(rol){ const j = this.jugador(rol); return (j && j.nombre) || rol; }
   enLinea(){ return true; }
 
+  alJugador(){}                      // en solitario nadie entra ni sale
+
   alCambiar(cb){ this._oyentes.push(cb); cb(this.ultimo); }
 
   /** Aplaza el aviso para que un oyente pueda modificar el estado

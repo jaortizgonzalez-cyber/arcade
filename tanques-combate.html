@@ -9,179 +9,260 @@
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="estilo.css">
 <style>
-  html,body{height:100%;overflow:hidden;overscroll-behavior:none}
-  body{display:flex;flex-direction:column;align-items:center;justify-content:center;
-       gap:8px;padding:8px calc(8px + env(safe-area-inset-left)) calc(8px + env(safe-area-inset-bottom));
-       touch-action:none;user-select:none}
-
-  .tanteo{display:flex;align-items:center;gap:14px;width:100%;max-width:640px;
-          justify-content:center;font-size:10px;letter-spacing:.11em;
-          text-transform:uppercase;color:var(--tenue)}
-  .tanteo b{font-family:var(--display);font-size:23px;letter-spacing:0;margin-left:7px}
-  .eq1{color:var(--ambar)} .eq2{color:var(--menta)}
-  .tanteo .vs{opacity:.55;font-size:10px}
-  #b-son{background:none;border:none;font-size:16px;padding:4px;cursor:pointer;opacity:.7}
-
-  .mesa{display:flex;align-items:center;gap:8px;width:100%;flex:1;min-height:0;justify-content:center}
-  .marco{position:relative;flex:1;min-width:0;max-height:100%;display:flex;justify-content:center}
-  canvas{max-width:100%;max-height:100%;aspect-ratio:19/11;border-radius:14px;
-         border:2px solid var(--borde);background:#171029}
-
-  #capa{position:absolute;inset:0;display:grid;place-content:center;text-align:center;gap:8px;
-        padding:20px;background:rgba(23,16,41,.9);border-radius:14px}
-  #capa.oculta{display:none}
-  #titulo{font-family:var(--display);font-weight:800;font-size:clamp(21px,5vw,30px);line-height:1.1}
-  #sub{font-size:13px;color:var(--tenue);max-width:290px;line-height:1.5}
-  #btn{margin-top:6px;font-family:inherit;font-weight:700;font-size:15px;padding:12px 26px;
-       border-radius:13px;border:none;background:var(--ambar);color:#241634;cursor:pointer}
-
-  .mandos{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;width:112px;flex:none}
-  .mandos button{font-family:var(--display);font-weight:800;font-size:17px;aspect-ratio:1;
-                 border-radius:13px;border:2px solid var(--borde);background:var(--panel);
-                 color:var(--tinta);cursor:pointer;touch-action:none}
-  .mandos button:active,.mandos button.on{background:#3F2A5C}
-  .mandos .fuego{font-size:10px;letter-spacing:.05em}
-  .m1 .fuego{color:var(--ambar);border-color:#6B5320}
-  .m2 .fuego{color:var(--menta);border-color:#2C6B5C}
-  .pie{font-size:10px;color:var(--tenue);text-align:center}
+  body{overflow-x:hidden}
+  main{max-width:900px;margin:0 auto}
+  [data-juego]{display:flex;flex-direction:column;gap:8px}
   a.inicio{flex:none;margin:0 0 6px}
+
+  .parrilla{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+  .tanque{display:flex;align-items:center;gap:7px;background:var(--panel);
+          border:2px solid var(--borde);border-radius:12px;padding:6px 10px}
+  .tanque.yo{border-color:currentColor}
+  .tanque.fuera{opacity:.42}
+  .tanque .pin{width:9px;height:9px;border-radius:50%;background:currentColor}
+  .tanque .nm{font-weight:700;font-size:12px;color:var(--tinta);max-width:82px;
+              overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .tanque .pt{font-family:var(--display);font-weight:800;font-size:17px}
+
+  .campo{position:relative;border-radius:14px;overflow:hidden;border:2px solid var(--borde)}
+  canvas{display:block;width:100%;aspect-ratio:19/11;background:#171029}
+  #b-son{position:absolute;right:8px;top:8px;background:rgba(20,12,36,.7);border:none;
+         border-radius:10px;padding:7px 9px;font-size:15px;cursor:pointer}
+  #capa{position:absolute;inset:0;display:grid;place-content:center;text-align:center;gap:8px;
+        padding:20px;background:rgba(23,16,41,.9)}
+  #capa.oculta{display:none}
+  #capa h2{font-family:var(--display);font-weight:800;font-size:clamp(20px,5vw,29px)}
+  #capa p{font-size:13px;color:var(--tenue);max-width:320px;line-height:1.5}
+  #capa button{margin-top:6px;font-family:inherit;font-weight:700;font-size:15px;
+               padding:12px 26px;border-radius:13px;border:none;background:var(--ambar);
+               color:#241634;cursor:pointer}
+
+  /* Selección de mapa */
+  .opciones{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+  .opcion{background:var(--panel);border:2px solid var(--borde);border-radius:13px;
+          padding:10px 4px;text-align:center;cursor:pointer;color:var(--tinta);font:inherit}
+  .opcion.sel{border-color:var(--ambar);background:#4A3A16}
+  .opcion b{display:block;font-family:var(--display);font-weight:800;font-size:15px}
+  .opcion span{font-size:9px;color:var(--tenue);letter-spacing:.06em;text-transform:uppercase}
+
+  /* Armas */
+  .armas{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
+  .arma{display:flex;align-items:center;gap:6px;background:var(--panel);
+        border:2px solid var(--borde);border-radius:11px;padding:7px 11px;
+        cursor:pointer;color:var(--tinta);font:inherit;font-size:12px;font-weight:700}
+  .arma.sel{border-color:currentColor;background:#3A2A5C}
+  .arma.vacia{opacity:.35}
+  .arma .mun{font-family:var(--display);font-weight:800;font-size:13px}
+
+  .mandos{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:center}
+  .cruz{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;width:150px}
+  .cruz button{aspect-ratio:1;border-radius:12px;border:2px solid var(--borde);
+               background:var(--panel);color:var(--tinta);font-size:17px;cursor:pointer}
+  .cruz .hueco{visibility:hidden;border:none;background:none}
+  .acciones2{display:grid;gap:6px}
+  .acciones2 button{padding:20px 0;border-radius:13px;border:2px solid var(--borde);
+                    background:var(--panel);color:var(--ambar);cursor:pointer;
+                    font-family:var(--display);font-weight:800;font-size:15px}
+  button.on{background:#3F2A5C}
+  .ayuda{font-size:11px;color:var(--tenue);text-align:center;line-height:1.5}
 </style>
 </head>
 <body>
 <a class="inicio" href="index.html">◀ Sala de juegos</a>
+<main>
+  <div id="lobby"></div>
 
-<div class="tanteo">
-  <span class="eq1">Ámbar<b id="s1">0</b></span>
-  <span class="vs">primero a 5</span>
-  <span class="eq2">Menta<b id="s2">0</b></span>
-  <button id="b-son" aria-label="Activar o silenciar sonido">🔊</button>
-</div>
+  <section data-juego hidden>
+    <div class="parrilla" id="parrilla"></div>
 
-<div class="mesa">
-  <div class="mandos m1">
-    <button data-j="0" data-a="izq" aria-label="Girar izquierda">↺</button>
-    <button data-j="0" data-a="der" aria-label="Girar derecha">↻</button>
-    <button data-j="0" data-a="adel" aria-label="Avanzar">▲</button>
-    <button data-j="0" data-a="fuego" class="fuego">FUEGO</button>
-  </div>
-
-  <div class="marco">
-    <canvas id="lienzo" width="760" height="440"></canvas>
-    <div id="capa">
-      <div id="titulo">Combate</div>
-      <p id="sub">Dos tanques en el laberinto. Los proyectiles rebotan en los muros:
-         los mejores tiros son de rebote.</p>
-      <button id="btn">Jugar</button>
+    <div id="zona-prep">
+      <p class="ayuda" id="txt-prep"></p>
+      <p class="ayuda" style="margin-top:8px">Campo de batalla</p>
+      <div class="opciones" id="mapas"></div>
+      <button class="accion" id="b-listo" style="margin-top:12px">A las máquinas</button>
     </div>
-  </div>
 
-  <div class="mandos m2">
-    <button data-j="1" data-a="izq" aria-label="Girar izquierda">↺</button>
-    <button data-j="1" data-a="der" aria-label="Girar derecha">↻</button>
-    <button data-j="1" data-a="adel" aria-label="Avanzar">▲</button>
-    <button data-j="1" data-a="fuego" class="fuego">FUEGO</button>
-  </div>
-</div>
+    <div id="zona-juego" hidden>
+      <div class="campo">
+        <canvas id="lienzo" width="760" height="440"></canvas>
+        <button id="b-son" aria-label="Silenciar">🔊</button>
+        <div id="capa" class="oculta">
+          <h2 id="capa-t"></h2>
+          <p id="capa-s"></p>
+          <button id="capa-b">Otra batalla</button>
+        </div>
+      </div>
 
-<p class="pie">Jugador 1: A D W · S dispara &nbsp;|&nbsp; Jugador 2: ← → ↑ · Enter dispara</p>
+      <div class="armas" id="armas"></div>
+
+      <div class="mandos">
+        <div class="cruz">
+          <button class="hueco"></button><button data-m="adel">▲</button><button class="hueco"></button>
+          <button data-m="izq">↺</button><button class="hueco"></button><button data-m="der">↻</button>
+          <button class="hueco"></button><button data-m="atras">▼</button><button class="hueco"></button>
+        </div>
+        <div class="acciones2">
+          <button data-m="fuego">FUEGO</button>
+        </div>
+      </div>
+      <p class="ayuda">Teclado: A D giran · W avanza · S retrocede · Espacio dispara · 1 2 3 cambian de arma</p>
+    </div>
+  </section>
+</main>
 
 <script type="module">
+import { Lobby } from './lobby.js?v=4';
 import { Sonido } from './sonido.js?v=4';
+
 const sonido = new Sonido();
 const $ = id => document.getElementById(id);
 
-/* ── Laberinto ─────────────────────────────────────────────
-   Simétrico por rotación de 180°: lo que tiene un tanque al
-   lado, el otro lo tiene igual. Ninguna ventaja de salida. */
-const MAPA = [
-  '###################',
-  '#.................#',
-  '#.###.#..#.####...#',
-  '#.....#..##.......#',
-  '#.##.###..#######.#',
-  '#.................#',
-  '#.#######..###.##.#',
-  '#.......##..#.....#',
-  '#...####.#..#.###.#',
-  '#.................#',
-  '###################'
+/* ── Campos de batalla ─────────────────────────────────────
+   Todos simétricos por rotación de 180°: lo que uno tiene al
+   lado, el otro lo tiene igual. Ninguna salida da ventaja. */
+const MAPAS = [
+  { n:'Búnker', e:'🧱', m:[
+    '###################','#.................#','#.###.#....####...#',
+    '#.....#..##.......#','#.##.###..#######.#','#.................#',
+    '#.#######..###.##.#','#.......##..#.....#','#...####....#.###.#',
+    '#.................#','###################'] },
+  { n:'Trincheras', e:'🕳️', m:[
+    '###################','#.................#','#..######..######.#',
+    '#........#........#','#.#.#.#####..####.#','#...#.........#...#',
+    '#.####..#####.#.#.#','#........#........#','#.######..######..#',
+    '#.................#','###################'] },
+  { n:'Laberinto', e:'🌀', m:[
+    '###################','#.................#','#.##.#.##.#.....#.#',
+    '#....#.#........#.#','#.#..#.########.#.#','#.................#',
+    '#.#.########.#..#.#','#.#........#.#....#','#.#.....#.##.#.##.#',
+    '#.................#','###################'] },
+  { n:'Arena', e:'⚔️', m:[
+    '###################','#.................#','#...........####..#',
+    '#..######...#.....#','#..##.###.###.....#','#..##.#.....#.##..#',
+    '#.....###.###.##..#','#.....#...######..#','#..####...........#',
+    '#.................#','###################'] }
 ];
-const FIL = MAPA.length, COL = MAPA[0].length, T = 40;
-const W = COL*T, H = FIL*T, META = 5;
 
-const muro = (f,c) => f<0 || c<0 || f>=FIL || c>=COL || MAPA[f][c] === '#';
+const FIL = 11, COL = 19, T = 40;
+const W = COL*T, H = FIL*T, META = 7, MAX_J = 4;
+const COLORES_J = { A:'#FFC94A', B:'#6FE7C4', C:'#C58CF0', D:'#FF8C6B' };
+
+/* ── Armas ─────────────────────────────────────────────────
+   El cañón es infinito; las otras dos se consiguen en premios. */
+const ARMAS = {
+  canon:   { n:'Cañón',        e:'💥', vel:4.6, dano:1, recarga:22, rebotes:4,
+             simultaneas:1, radio:3.4, col:'#FFF6DC', municion:Infinity },
+  metra:   { n:'Metralleta',   e:'🔫', vel:6.4, dano:1, recarga:6,  rebotes:1,
+             simultaneas:5, radio:2.2, col:'#9BE8FF', municion:40 },
+  laser:   { n:'Láser',        e:'⚡', vel:0,   dano:1, recarga:38, rebotes:0,
+             simultaneas:1, radio:0,   col:'#FF7BE8', municion:6 }
+};
+const PREMIOS = {
+  metra:  { e:'🔫', col:'#9BE8FF', txt:'Metralleta' },
+  laser:  { e:'⚡', col:'#FF7BE8', txt:'Láser' },
+  escudo: { e:'🛡️', col:'#7FA6FF', txt:'Escudo' },
+  turbo:  { e:'⚡️', col:'#F2D65C', txt:'Turbo' }
+};
+
+let mapa = MAPAS[0];
+const muro = (f,c) => f<0 || c<0 || f>=FIL || c>=COL || mapa.m[f][c] === '#';
 const muroEn = (x,y) => muro(Math.floor(y/T), Math.floor(x/T));
 
 const cv = $('lienzo'), cx = cv.getContext('2d');
-const COLORES = ['#FFC94A', '#6FE7C4'];
-const INICIO = [{x:1.5*T, y:5.5*T, a:0}, {x:(COL-1.5)*T, y:5.5*T, a:Math.PI}];
+const SALIDAS = [ {x:1.5*T, y:5.5*T, a:0}, {x:(COL-1.5)*T, y:5.5*T, a:Math.PI},
+                  {x:9.5*T, y:1.5*T, a:Math.PI/2}, {x:9.5*T, y:(FIL-1.5)*T, a:-Math.PI/2} ];
 
-let tanques = [], balas = [], chispas = [], humo = [], huellas = [];
-let marcador = [0,0], jugando = false, pausa = 0, sacudida = 0;
-const pulsado = {}, tecla = {};
+const estadoInicial = () => ({
+  fase:'preparando', mapa:0, listos:{}, pos:{}, marcador:{},
+  premios:[], tomas:{}, impactos:{}, ganador:''
+});
 
-/* ── Estado ────────────────────────────────────────────── */
-function reset(){
-  tanques = INICIO.map((p,i) => ({
-    x:p.x, y:p.y, a:p.a, vivo:true, color:COLORES[i],
-    rodado:0, retroceso:0, recarga:0
-  }));
-  balas = []; chispas = []; humo = [];
+/* ── Estado local ──────────────────────────────────────── */
+let sala = null, miRol = 'A', anfitrion = true, soloBot = false, nivelBot = 2;
+let yo = null, otros = {}, balas = [], premios = [], rayos = [];
+let chispas = [], humo = [], huellas = [], sacudida = 0;
+let corriendo = false, ultimoEnvio = 0, nDisparo = 0, nImpacto = 0, vistos = {};
+let bot = null, aviso = '', avisoHasta = 0;
+const pulsa = {};
+
+const jugadores = () => soloBot ? ['A','B'] : (sala && sala.ocupados ? sala.ocupados() : ['A']);
+
+/* ── Tanques ───────────────────────────────────────────── */
+function nuevoTanque(k){
+  const s = SALIDAS[k % SALIDAS.length];
+  return { x:s.x, y:s.y, a:s.a, vivo:true, rodado:0, retroceso:0, recarga:0,
+           arma:'canon', mun:{ metra:0, laser:0 }, escudo:0, turbo:0, respawn:0 };
 }
 
 function reiniciar(){
-  marcador = [0,0]; hud(); reset();
-  huellas = [];
-  jugando = true; pausa = 0;
-  $('capa').classList.add('oculta');
-  sonido.motorEncender();
-}
-
-function hud(){
-  $('s1').textContent = marcador[0];
-  $('s2').textContent = marcador[1];
-}
-
-function capa(t, s, b){
-  $('titulo').textContent = t; $('sub').textContent = s; $('btn').textContent = b;
-  $('capa').classList.remove('oculta');
+  yo = nuevoTanque(jugadores().indexOf(miRol));
+  otros = {};
+  jugadores().forEach((r,k) => { if (r !== miRol) otros[r] = nuevoTanque(k); });
+  balas = []; rayos = []; chispas = []; humo = []; huellas = [];
+  if (soloBot) bot = crearBot(nivelBot);
+  premios = anfitrion ? [] : premios;
 }
 
 /* ── Controles ─────────────────────────────────────────── */
+const TECLAS = { a:'izq', d:'der', w:'adel', s:'atras',
+                 arrowleft:'izq', arrowright:'der', arrowup:'adel', arrowdown:'atras',
+                 ' ':'fuego', enter:'fuego' };
+addEventListener('keydown', e => {
+  const k = e.key.toLowerCase();
+  if (TECLAS[k]){ e.preventDefault(); pulsa[TECLAS[k]] = true; }
+  if (k === '1') elegirArma('canon');
+  if (k === '2') elegirArma('metra');
+  if (k === '3') elegirArma('laser');
+});
+addEventListener('keyup', e => { const k = TECLAS[e.key.toLowerCase()]; if (k) pulsa[k] = false; });
+addEventListener('blur', () => { for (const k in pulsa) pulsa[k] = false; });
 
-/* Safari en iOS inicia la selección desde el evento táctil, no desde el
-   puntero: hay que cancelar el táctil para que no arrastre el texto de
-   alrededor. Los eventos de puntero siguen funcionando igual. */
 function blindarTacto(el){
   if (!el) return;
   ['touchstart','touchmove','touchend','touchcancel'].forEach(ev =>
     el.addEventListener(ev, e => e.preventDefault(), { passive:false }));
 }
-
-const clave = (j,a) => j + ':' + a;
-document.querySelectorAll('.mandos button').forEach(b => {
-  const k = clave(b.dataset.j, b.dataset.a);
-  const on  = e => { e.preventDefault(); pulsado[k] = true; b.classList.add('on'); };
-  const off = () => { pulsado[k] = false; b.classList.remove('on'); };
-  b.addEventListener('pointerdown', ev => { b.setPointerCapture(ev.pointerId); on(ev); });
+document.querySelectorAll('[data-m]').forEach(b => {
+  const m = b.dataset.m;
+  const on  = e => { e.preventDefault(); b.setPointerCapture(e.pointerId);
+                     pulsa[m] = true; b.classList.add('on'); };
+  const off = () => { pulsa[m] = false; b.classList.remove('on'); };
+  b.addEventListener('pointerdown', on);
   ['pointerup','pointercancel'].forEach(ev => b.addEventListener(ev, off));
   b.addEventListener('lostpointercapture', off);
   blindarTacto(b);
 });
 blindarTacto(cv);
-const TECLAS = {
-  a:'0:izq', d:'0:der', w:'0:adel', s:'0:fuego',
-  arrowleft:'1:izq', arrowright:'1:der', arrowup:'1:adel', enter:'1:fuego'
-};
-addEventListener('keydown', e => { const k = TECLAS[e.key.toLowerCase()]; if (k){ e.preventDefault(); tecla[k] = true; } });
-addEventListener('keyup',   e => { const k = TECLAS[e.key.toLowerCase()]; if (k) tecla[k] = false; });
-addEventListener('blur', () => { for (const k in tecla) tecla[k] = false;
-                                 for (const k in pulsado) pulsado[k] = false; });
-const activo = (j,a) => pulsado[clave(j,a)] || tecla[clave(j,a)];
-
-$('btn').addEventListener('click', reiniciar);
+document.addEventListener('contextmenu', e => {
+  if (e.target.closest('button, canvas')) e.preventDefault();
+});
 $('b-son').textContent = sonido.activo ? '🔊' : '🔇';
 $('b-son').addEventListener('click', () => { $('b-son').textContent = sonido.alternar() ? '🔊' : '🔇'; });
+document.querySelector('a.inicio').addEventListener('click', () => {
+  try { if (sala && sala.salir) sala.salir(); } catch(e){}
+});
+
+function elegirArma(id){
+  if (!yo || !yo.vivo) return;
+  if (id !== 'canon' && !(yo.mun[id] > 0)) return;
+  yo.arma = id;
+  pintarArmas();
+}
+
+function pintarArmas(){
+  const c = $('armas');
+  c.innerHTML = '';
+  for (const [id, A] of Object.entries(ARMAS)){
+    const mun = id === 'canon' ? Infinity : (yo ? yo.mun[id] : 0);
+    const b = document.createElement('button');
+    b.className = 'arma' + (yo && yo.arma === id ? ' sel' : '') + (mun > 0 ? '' : ' vacia');
+    b.style.color = A.col;
+    b.innerHTML = A.e + ' ' + A.n + '<span class="mun">' +
+                  (mun === Infinity ? '∞' : mun) + '</span>';
+    b.addEventListener('click', () => elegirArma(id));
+    c.appendChild(b);
+  }
+}
 
 /* ── Física ────────────────────────────────────────────── */
 function chocaTanque(x, y){
@@ -191,22 +272,88 @@ function chocaTanque(x, y){
   return false;
 }
 
-function disparar(i){
-  const t = tanques[i];
-  if (!t.vivo || t.recarga > 0 || balas.some(b => b.de === i)) return;
-  t.recarga = 22; t.retroceso = 5;
-  const bx = t.x + Math.cos(t.a)*20, by = t.y + Math.sin(t.a)*20;
-  balas.push({ x:bx, y:by, vx:Math.cos(t.a)*4.6, vy:Math.sin(t.a)*4.6,
-               de:i, rebotes:0, vida:340, estela:[] });
-  for (let n = 0; n < 8; n++){
-    const d = t.a + (Math.random()-0.5)*0.7;
-    chispas.push({ x:bx, y:by, vx:Math.cos(d)*(1.5+Math.random()*2),
-                   vy:Math.sin(d)*(1.5+Math.random()*2), v:9, c:'#FFE9A8' });
+function rayoLibre(x0, y0, x1, y1){
+  const d = Math.hypot(x1-x0, y1-y0), pasos = Math.ceil(d/6);
+  for (let i = 1; i < pasos; i++){
+    const t = i/pasos;
+    if (muroEn(x0 + (x1-x0)*t, y0 + (y1-y0)*t)) return false;
   }
-  humo.push({ x:bx, y:by, r:3, v:26 });
-  sacudida = Math.max(sacudida, 2.5);
-  sonido.canon();
+  return true;
 }
+
+function disparar(t, rol){
+  if (!t.vivo || t.recarga > 0) return;
+  const A = ARMAS[t.arma];
+  if (t.arma !== 'canon' && t.mun[t.arma] <= 0){ t.arma = 'canon'; pintarArmas(); return; }
+  if (balas.filter(b => b.de === rol).length >= A.simultaneas) return;
+
+  t.recarga = A.recarga; t.retroceso = 5;
+  if (t.arma !== 'canon'){ t.mun[t.arma]--; if (rol === miRol) pintarArmas(); }
+  const bx = t.x + Math.cos(t.a)*20, by = t.y + Math.sin(t.a)*20;
+
+  if (t.arma === 'laser'){
+    // Instantáneo: recorre en línea recta hasta el primer muro
+    let d = 0;
+    while (d < 900 && !muroEn(bx + Math.cos(t.a)*d, by + Math.sin(t.a)*d)) d += 4;
+    rayos.push({ x:bx, y:by, a:t.a, largo:d, v:14, de:rol });
+    if (rol === miRol) impactosLaser(bx, by, t.a, d);
+    sacudida = Math.max(sacudida, 5);
+    sonido.rebote();
+  } else {
+    balas.push({ x:bx, y:by, vx:Math.cos(t.a)*A.vel, vy:Math.sin(t.a)*A.vel,
+                 de:rol, arma:t.arma, rebotes:0, vida: t.arma === 'metra' ? 150 : 340, estela:[] });
+    sacudida = Math.max(sacudida, t.arma === 'metra' ? 1.5 : 2.5);
+    t.arma === 'metra' ? sonido.golpe() : sonido.canon();
+  }
+  for (let n = 0; n < (t.arma === 'metra' ? 3 : 8); n++){
+    const dd = t.a + (Math.random()-0.5)*0.7;
+    chispas.push({ x:bx, y:by, vx:Math.cos(dd)*(1.5+Math.random()*2),
+                   vy:Math.sin(dd)*(1.5+Math.random()*2), v:9, c:ARMAS[t.arma].col });
+  }
+}
+
+function impactosLaser(bx, by, a, largo){
+  for (const [rol, t] of Object.entries(todosTanques())){
+    if (rol === miRol || !t.vivo) continue;
+    for (let d = 0; d < largo; d += 5){
+      const px = bx + Math.cos(a)*d, py = by + Math.sin(a)*d;
+      if (Math.hypot(px - t.x, py - t.y) < 14){ anotarImpacto(rol); break; }
+    }
+  }
+}
+
+function todosTanques(){
+  const m = {};
+  for (const r of jugadores()) m[r] = r === miRol ? yo : otros[r];
+  return m;
+}
+
+/** Quien dispara declara el impacto: es quien mejor ve su propia bala. */
+function anotarImpacto(victima){
+  nImpacto++;
+  if (soloBot || anfitrion) aplicarImpacto(miRol, victima);
+  else sala.escribir('estado/impactos/' + miRol, { n:nImpacto, v:victima });
+}
+
+function aplicarImpacto(autor, victima){
+  const t = todosTanques()[victima];
+  if (t && t.escudo > 0){ t.escudo = 0; estallar(t.x, t.y, '#7FA6FF'); return; }
+  if (t){ t.vivo = false; t.respawn = 70; estallar(t.x, t.y, COLORES_J[victima]); }
+  const anota = autor === victima ? null : autor;
+  if (!anota) return;
+  if (soloBot){
+    marcadorLocal[anota] = (marcadorLocal[anota] || 0) + 1;
+    if (marcadorLocal[anota] >= META) terminar(anota);
+  } else if (anfitrion){
+    sala.actualizar(s => {
+      const e = s.estado;
+      e.marcador = e.marcador || {};
+      e.marcador[anota] = (e.marcador[anota] || 0) + 1;
+      if (e.marcador[anota] >= META){ e.fase = 'fin'; e.ganador = anota; }
+    });
+  }
+}
+let marcadorLocal = {};
 
 function estallar(x, y, color){
   for (let n = 0; n < 26; n++){
@@ -221,34 +368,84 @@ function estallar(x, y, color){
   sonido.estallido();
 }
 
-function paso(){
-  if (pausa > 0){ pausa--; if (pausa === 0) reset(); return; }
+/* ── Premios ───────────────────────────────────────────── */
+let proxPremio = 0;
+function soltarPremio(){
+  const libres = [];
+  for (let f = 1; f < FIL-1; f++) for (let c = 1; c < COL-1; c++)
+    if (mapa.m[f][c] === '.') libres.push([c*T + T/2, f*T + T/2]);
+  const p = libres[Math.floor(Math.random()*libres.length)];
+  const tipos = Object.keys(PREMIOS);
+  premios.push({ i: Date.now() % 100000 + Math.floor(Math.random()*99),
+                 t: tipos[Math.floor(Math.random()*tipos.length)],
+                 x: p[0], y: p[1] });
+  if (premios.length > 4) premios.shift();
+}
 
-  let algunoMueve = false;
-  tanques.forEach((t,i) => {
-    if (!t.vivo) return;
-    if (t.recarga > 0) t.recarga--;
-    if (t.retroceso > 0) t.retroceso -= 0.6;
-
-    t.a += ((activo(i,'izq') ? -1 : 0) + (activo(i,'der') ? 1 : 0))*0.052;
-
-    if (activo(i,'adel')){
-      const nx = t.x + Math.cos(t.a)*1.55, ny = t.y + Math.sin(t.a)*1.55;
-      let movio = false;
-      if (!chocaTanque(nx, t.y)){ t.x = nx; movio = true; }
-      if (!chocaTanque(t.x, ny)){ t.y = ny; movio = true; }
-      if (movio){
-        t.rodado += 1.55; algunoMueve = true;
-        if (t.rodado % 7 < 1.6) huellas.push({ x:t.x, y:t.y, a:t.a, v:1 });
-      }
+function recoger(t, rol){
+  for (let i = premios.length - 1; i >= 0; i--){
+    const p = premios[i];
+    if (Math.hypot(p.x - t.x, p.y - t.y) > 20) continue;
+    premios.splice(i, 1);
+    if (p.t === 'metra'){ t.mun.metra += ARMAS.metra.municion; t.arma = 'metra'; }
+    else if (p.t === 'laser'){ t.mun.laser += ARMAS.laser.municion; t.arma = 'laser'; }
+    else if (p.t === 'escudo') t.escudo = 1;
+    else if (p.t === 'turbo') t.turbo = 8*60;
+    if (rol === miRol){
+      sonido.premio(); pintarArmas();
+      aviso = PREMIOS[p.t].txt; avisoHasta = performance.now() + 1200;
     }
-    if (activo(i,'fuego')) disparar(i);
-  });
+    if (anfitrion && !soloBot) sala.escribir('estado/premios', premios);
+  }
+}
 
-  sonido.motorEstado(algunoMueve ? 0.42 : 0.11, algunoMueve, true);
+/* ── Simulación ────────────────────────────────────────── */
+function moverTanque(t, ent, rol){
+  if (!t.vivo){
+    if (t.respawn > 0 && --t.respawn === 0){
+      const k = jugadores().indexOf(rol);
+      const s = SALIDAS[k % SALIDAS.length];
+      Object.assign(t, { x:s.x, y:s.y, a:s.a, vivo:true, escudo:0, turbo:0 });
+    }
+    return;
+  }
+  if (t.recarga > 0) t.recarga--;
+  if (t.retroceso > 0) t.retroceso -= 0.6;
+  if (t.turbo > 0) t.turbo--;
+
+  t.a += ((ent.izq ? -1 : 0) + (ent.der ? 1 : 0))*0.052;
+  const vel = 1.55*(t.turbo > 0 ? 1.7 : 1);
+  const av = (ent.adel ? 1 : 0) - (ent.atras ? 0.6 : 0);
+  if (av){
+    const nx = t.x + Math.cos(t.a)*vel*av, ny = t.y + Math.sin(t.a)*vel*av;
+    let movio = false;
+    if (!chocaTanque(nx, t.y)){ t.x = nx; movio = true; }
+    if (!chocaTanque(t.x, ny)){ t.y = ny; movio = true; }
+    if (movio){
+      t.rodado += vel*Math.abs(av);
+      if (t.rodado % 7 < 1.6) huellas.push({ x:t.x, y:t.y, a:t.a, v:1 });
+    }
+  }
+  if (ent.fuego) disparar(t, rol);
+  recoger(t, rol);
+}
+
+function paso(){
+  if (!corriendo || !yo) return;
+
+  moverTanque(yo, pulsa, miRol);
+  if (soloBot && otros.B) moverTanque(otros.B, pasoBot(), 'B');
+
+  // Premios: los reparte el anfitrión
+  if (anfitrion && --proxPremio <= 0){
+    proxPremio = 420 + Math.floor(Math.random()*300);
+    soltarPremio();
+    if (!soloBot) sala.escribir('estado/premios', premios);
+  }
 
   for (let k = balas.length - 1; k >= 0; k--){
     const b = balas[k];
+    const A = ARMAS[b.arma];
     b.vida--;
     b.estela.push({x:b.x, y:b.y});
     if (b.estela.length > 7) b.estela.shift();
@@ -265,28 +462,21 @@ function paso(){
     }
     b.x += b.vx; b.y += b.vy;
 
-    let fuera = b.vida <= 0 || b.rebotes > 4;
-
-    tanques.forEach((t,i) => {
-      if (fuera || !t.vivo) return;
-      if (Math.hypot(b.x - t.x, b.y - t.y) < 13){
-        const anota = (i === b.de) ? 1 - i : b.de;      // el autogol suma al rival
-        marcador[anota]++; hud();
-        estallar(t.x, t.y, t.color);
-        t.vivo = false; fuera = true; pausa = 62;
-        if (marcador[anota] >= META){
-          jugando = false;
-          sonido.motorApagar();
-          setTimeout(() => sonido.victoria(), 400);
-          capa(anota === 0 ? '🏆 Gana Ámbar' : '🏆 Gana Menta',
-               'Marcador final ' + marcador[0] + ' — ' + marcador[1] +
-               '. Buena puntería con los rebotes.', 'Otra batalla');
+    let fuera = b.vida <= 0 || b.rebotes > A.rebotes;
+    if (!fuera && b.de === miRol){
+      for (const [rol, t] of Object.entries(todosTanques())){
+        if (!t || !t.vivo) continue;
+        if (Math.hypot(b.x - t.x, b.y - t.y) < 13){
+          anotarImpacto(rol);
+          fuera = true; break;
         }
       }
-    });
+    }
     if (fuera) balas.splice(k,1);
   }
 
+  rayos.forEach(r => r.v--);
+  rayos = rayos.filter(r => r.v > 0);
   chispas.forEach(c => { c.x += c.vx; c.y += c.vy; c.vx *= 0.95; c.vy *= 0.95; c.v--; });
   chispas = chispas.filter(c => c.v > 0);
   humo.forEach(h => { h.r += 0.35; h.y -= 0.12; h.v--; });
@@ -294,18 +484,66 @@ function paso(){
   huellas.forEach(h => h.v -= 0.0035);
   huellas = huellas.filter(h => h.v > 0);
   if (huellas.length > 400) huellas.splice(0, huellas.length - 400);
-  if (sacudida > 0) sacudida *= 0.86;
+  if (sacudida > 0.2) sacudida *= 0.86;
+}
+
+/* ── Bot ───────────────────────────────────────────────── */
+function crearBot(n){
+  // La predicción es lo que separa a un tirador bueno de uno mediocre:
+  // apuntar a donde va a estar el rival, no a donde está.
+  return { punteria:[0.34,0.18,0.09][n-1], reaccion:[78,42,16][n-1],
+           prediccion:[0, 0.6, 1][n-1],
+           espera:0, giro:0, ux:0, uy:0 };
+}
+function pasoBot(){
+  const t = otros.B, ent = {};
+  if (!t || !t.vivo || !yo || !yo.vivo) return ent;
+
+  // Velocidad estimada del rival, cuadro a cuadro
+  const vx = yo.x - bot.ux, vy = yo.y - bot.uy;
+  bot.ux = yo.x; bot.uy = yo.y;
+  const dist = Math.hypot(yo.x - t.x, yo.y - t.y);
+  const vuelo = dist / ARMAS[t.arma === 'laser' ? 'canon' : t.arma].vel;
+  const px = yo.x + vx*vuelo*bot.prediccion;
+  const py = yo.y + vy*vuelo*bot.prediccion;
+
+  const dx = px - t.x, dy = py - t.y;
+  const objetivo = Math.atan2(dy, dx);
+  let d = objetivo - t.a;
+  while (d > Math.PI) d -= 2*Math.PI;
+  while (d < -Math.PI) d += 2*Math.PI;
+
+  const libre = rayoLibre(t.x, t.y, yo.x, yo.y) && rayoLibre(t.x, t.y, px, py);
+  if (libre){
+    if (d > 0.04) ent.der = true; else if (d < -0.04) ent.izq = true;
+    if (Math.abs(d) < bot.punteria && bot.espera <= 0){
+      ent.fuego = true; bot.espera = bot.reaccion;
+    }
+    if (dist > 150) ent.adel = true;
+    // Si tiene arma pesada, la usa
+    if (t.mun.laser > 0) t.arma = 'laser';
+    else if (t.mun.metra > 0) t.arma = 'metra';
+    else t.arma = 'canon';
+  } else {
+    // Sin línea de tiro: patrulla girando hacia rumbos libres
+    if (bot.giro > 0){ bot.giro--; ent.der = true; }
+    else {
+      const frente = rayoLibre(t.x, t.y, t.x + Math.cos(t.a)*46, t.y + Math.sin(t.a)*46);
+      if (frente) ent.adel = true; else bot.giro = 14 + Math.floor(Math.random()*24);
+    }
+  }
+  if (bot.espera > 0) bot.espera--;
+  return ent;
 }
 
 /* ── Dibujo ────────────────────────────────────────────── */
 function dibujarMuros(){
   for (let f = 0; f < FIL; f++)
     for (let c = 0; c < COL; c++){
-      if (MAPA[f][c] !== '#') continue;
+      if (mapa.m[f][c] !== '#') continue;
       const x = c*T, y = f*T;
       cx.fillStyle = '#4A3568';
       cx.beginPath(); cx.roundRect(x+1, y+1, T-2, T-2, 4); cx.fill();
-      // Hiladas de bloques desfasadas, como un muro de concreto
       cx.fillStyle = 'rgba(0,0,0,.22)';
       cx.fillRect(x+2, y+T/2-1, T-4, 2);
       cx.fillRect(x+T/2-1, y+2, 2, T/2-3);
@@ -316,7 +554,8 @@ function dibujarMuros(){
     }
 }
 
-function dibujarTanque(t){
+function dibujarTanque(t, color, etiqueta){
+  if (!t.vivo) return;
   cx.save();
   cx.translate(t.x, t.y);
   cx.rotate(t.a);
@@ -324,7 +563,6 @@ function dibujarTanque(t){
   cx.fillStyle = 'rgba(0,0,0,.35)';
   cx.beginPath(); cx.ellipse(2, 3, 16, 11, 0, 0, 7); cx.fill();
 
-  // Orugas con eslabones que avanzan según lo rodado
   for (const lado of [-1, 1]){
     cx.fillStyle = '#2A2140';
     cx.beginPath(); cx.roundRect(-15, lado*7 - 4.5, 30, 9, 3); cx.fill();
@@ -333,39 +571,87 @@ function dibujarTanque(t){
       const px = -14 + ((i*4.6 + (t.rodado % 4.6)) % 28);
       cx.fillRect(px, lado*7 - 4, 2, 8);
     }
+    cx.fillStyle = '#3A2E52';                       // ruedas guía
+    cx.beginPath(); cx.arc(-12, lado*7, 2.6, 0, 7); cx.fill();
+    cx.beginPath(); cx.arc(12, lado*7, 2.6, 0, 7); cx.fill();
   }
 
-  // Casco con volumen
   const g = cx.createLinearGradient(0, -8, 0, 8);
-  g.addColorStop(0, t.color);
-  g.addColorStop(1, 'rgba(0,0,0,.45)');
+  g.addColorStop(0, color); g.addColorStop(1, 'rgba(0,0,0,.45)');
   cx.fillStyle = g;
   cx.beginPath(); cx.roundRect(-13, -8, 26, 16, 3); cx.fill();
   cx.strokeStyle = 'rgba(0,0,0,.5)'; cx.lineWidth = 1.5; cx.stroke();
   cx.fillStyle = 'rgba(255,255,255,.16)';
   cx.beginPath(); cx.moveTo(8,-8); cx.lineTo(13,-4); cx.lineTo(13,4); cx.lineTo(8,8);
   cx.closePath(); cx.fill();
+  cx.fillStyle = 'rgba(0,0,0,.25)';                 // remaches
+  for (const rx of [-9,-3,3,9]){ cx.fillRect(rx,-7.4,1.6,1.6); cx.fillRect(rx,5.8,1.6,1.6); }
 
-  // Cañón con retroceso al disparar
+  // Cañón: cambia de forma según el arma
   const r = t.retroceso > 0 ? t.retroceso : 0;
+  const A = ARMAS[t.arma] || ARMAS.canon;
   cx.fillStyle = '#F3ECFF';
-  cx.fillRect(6 - r, -2.6, 17, 5.2);
-  cx.fillRect(20 - r, -3.6, 4, 7.2);                  // freno de boca
-  cx.fillStyle = t.color;
+  if (t.arma === 'metra'){
+    cx.fillRect(6 - r, -3.6, 15, 2.6);
+    cx.fillRect(6 - r, 1, 15, 2.6);
+    cx.fillStyle = A.col; cx.fillRect(19 - r, -4, 3, 8);
+  } else if (t.arma === 'laser'){
+    cx.fillRect(6 - r, -2, 16, 4);
+    cx.fillStyle = A.col;
+    cx.beginPath(); cx.arc(23 - r, 0, 4.2, 0, 7); cx.fill();
+  } else {
+    cx.fillRect(6 - r, -2.6, 17, 5.2);
+    cx.fillRect(20 - r, -3.6, 4, 7.2);
+  }
+  cx.fillStyle = color;
   cx.beginPath(); cx.arc(-1, 0, 8.5, 0, 7); cx.fill();
   cx.fillStyle = 'rgba(0,0,0,.35)';
   cx.beginPath(); cx.arc(-1, 0, 8.5, 0.6, 2.6); cx.fill();
   cx.fillStyle = 'rgba(255,255,255,.35)';
-  cx.beginPath(); cx.arc(-3, -2.5, 2.6, 0, 7); cx.fill();   // escotilla
+  cx.beginPath(); cx.arc(-3, -2.5, 2.6, 0, 7); cx.fill();
   cx.strokeStyle = 'rgba(243,236,255,.55)'; cx.lineWidth = 1;
-  cx.beginPath(); cx.moveTo(-7, -5); cx.lineTo(-13, -13); cx.stroke();  // antena
+  cx.beginPath(); cx.moveTo(-7, -5); cx.lineTo(-13, -13); cx.stroke();
   cx.restore();
+
+  if (t.escudo > 0){
+    cx.strokeStyle = 'rgba(127,166,255,' + (0.5 + Math.sin(performance.now()/150)*0.3) + ')';
+    cx.lineWidth = 2.5;
+    cx.beginPath(); cx.arc(t.x, t.y, 21, 0, 7); cx.stroke();
+  }
+  if (t.turbo > 0){
+    cx.fillStyle = 'rgba(242,214,92,.5)';
+    for (let i = 0; i < 3; i++){
+      const d = 18 + i*7;
+      cx.beginPath();
+      cx.arc(t.x - Math.cos(t.a)*d, t.y - Math.sin(t.a)*d, 4 - i, 0, 7); cx.fill();
+    }
+  }
+  if (etiqueta){
+    cx.fillStyle = color; cx.font = '700 12px "DM Sans", sans-serif'; cx.textAlign = 'center';
+    cx.fillText(etiqueta, t.x, t.y - 26);
+  }
+}
+
+function dibujarPremios(){
+  for (const p of premios){
+    const P = PREMIOS[p.t];
+    const fl = Math.sin(performance.now()/300 + p.x)*3;
+    cx.globalAlpha = .3;
+    cx.fillStyle = P.col;
+    cx.beginPath(); cx.arc(p.x, p.y + fl, 16, 0, 7); cx.fill();
+    cx.globalAlpha = 1;
+    cx.fillStyle = 'rgba(20,12,36,.85)';
+    cx.beginPath(); cx.roundRect(p.x-11, p.y-11+fl, 22, 22, 6); cx.fill();
+    cx.strokeStyle = P.col; cx.lineWidth = 2; cx.stroke();
+    cx.font = '13px sans-serif'; cx.textAlign = 'center'; cx.textBaseline = 'middle';
+    cx.fillText(P.e, p.x, p.y+1+fl);
+    cx.textBaseline = 'alphabetic';
+  }
 }
 
 function dibujar(){
   cx.save();
-  if (sacudida > 0.2)
-    cx.translate((Math.random()-0.5)*sacudida, (Math.random()-0.5)*sacudida);
+  if (sacudida > 0.2) cx.translate((Math.random()-0.5)*sacudida, (Math.random()-0.5)*sacudida);
 
   cx.fillStyle = '#1E1436';
   cx.fillRect(-20, -20, W+40, H+40);
@@ -373,7 +659,6 @@ function dibujar(){
   for (let x = T; x < W; x += T){ cx.beginPath(); cx.moveTo(x,0); cx.lineTo(x,H); cx.stroke(); }
   for (let y = T; y < H; y += T){ cx.beginPath(); cx.moveTo(0,y); cx.lineTo(W,y); cx.stroke(); }
 
-  // Huellas de oruga que se van borrando
   cx.strokeStyle = '#2B1F45'; cx.lineWidth = 3.2; cx.lineCap = 'round';
   for (const h of huellas){
     cx.globalAlpha = h.v*0.55;
@@ -386,21 +671,38 @@ function dibujar(){
   cx.globalAlpha = 1;
 
   dibujarMuros();
+  dibujarPremios();
 
   for (const b of balas){
+    const A = ARMAS[b.arma];
     b.estela.forEach((p,i) => {
       cx.globalAlpha = (i/b.estela.length)*0.5;
-      cx.fillStyle = '#FFE9A8';
-      cx.beginPath(); cx.arc(p.x, p.y, 1.6, 0, 7); cx.fill();
+      cx.fillStyle = A.col;
+      cx.beginPath(); cx.arc(p.x, p.y, A.radio*0.5, 0, 7); cx.fill();
     });
     cx.globalAlpha = 1;
-    cx.fillStyle = 'rgba(255,201,74,.45)';
-    cx.beginPath(); cx.arc(b.x, b.y, 6.5, 0, 7); cx.fill();
-    cx.fillStyle = '#FFF6DC';
-    cx.beginPath(); cx.arc(b.x, b.y, 3.4, 0, 7); cx.fill();
+    cx.fillStyle = A.col + '77';
+    cx.beginPath(); cx.arc(b.x, b.y, A.radio*1.9, 0, 7); cx.fill();
+    cx.fillStyle = A.col;
+    cx.beginPath(); cx.arc(b.x, b.y, A.radio, 0, 7); cx.fill();
   }
 
-  tanques.forEach(t => { if (t.vivo) dibujarTanque(t); });
+  for (const r of rayos){
+    cx.globalAlpha = r.v/14;
+    cx.strokeStyle = ARMAS.laser.col; cx.lineWidth = 2 + (r.v/14)*7;
+    cx.beginPath(); cx.moveTo(r.x, r.y);
+    cx.lineTo(r.x + Math.cos(r.a)*r.largo, r.y + Math.sin(r.a)*r.largo);
+    cx.stroke();
+    cx.strokeStyle = '#FFFFFF'; cx.lineWidth = 1.5;
+    cx.beginPath(); cx.moveTo(r.x, r.y);
+    cx.lineTo(r.x + Math.cos(r.a)*r.largo, r.y + Math.sin(r.a)*r.largo);
+    cx.stroke();
+    cx.globalAlpha = 1;
+  }
+
+  for (const [rol, t] of Object.entries(todosTanques()))
+    if (t) dibujarTanque(t, COLORES_J[rol] || '#FFC94A',
+                         rol === miRol ? null : (sala ? sala.nombre(rol) : rol));
 
   for (const h of humo){
     cx.globalAlpha = Math.min(0.3, h.v/160);
@@ -414,20 +716,202 @@ function dibujar(){
   }
   cx.globalAlpha = 1;
   cx.restore();
+
+  if (performance.now() < avisoHasta){
+    cx.textAlign = 'center';
+    cx.fillStyle = '#FFC94A';
+    cx.font = '800 30px "Bricolage Grotesque", sans-serif';
+    cx.fillText('¡' + aviso.toUpperCase() + '!', W/2, H*0.22);
+  }
 }
 
-function bucle(){
+/* ── Parrilla ──────────────────────────────────────────── */
+function pintarParrilla(e){
+  const cont = $('parrilla');
+  const lista = jugadores();
+  cont.innerHTML = '';
+  const marc = soloBot ? marcadorLocal : (e.marcador || {});
+  for (const r of lista){
+    const d = document.createElement('div');
+    d.className = 'tanque' + (r === miRol ? ' yo' : '') +
+                  ((soloBot || sala.enLinea(r)) ? '' : ' fuera');
+    d.style.color = COLORES_J[r];
+    d.innerHTML = '<span class="pin"></span><span class="nm">' + sala.nombre(r) +
+                  (r === miRol ? ' (tú)' : '') + '</span>' +
+                  '<span class="pt">' + (marc[r] || 0) + '</span>';
+    cont.appendChild(d);
+  }
+}
+
+/* ── Bucle ─────────────────────────────────────────────── */
+function bucle(ahora){
   requestAnimationFrame(bucle);
-  if (jugando) paso();
-  dibujar();
+  try {
+    if (corriendo) paso();
+    if (sala && corriendo && !soloBot && ahora - ultimoEnvio > 90){
+      ultimoEnvio = ahora;
+      if (yo) sala.escribir('estado/pos/' + miRol, {
+        x:+yo.x.toFixed(1), y:+yo.y.toFixed(1), a:+yo.a.toFixed(3),
+        v:yo.vivo?1:0, w:yo.arma, es:yo.escudo, tu:yo.turbo>0?1:0, rd:+yo.rodado.toFixed(1)
+      });
+    }
+    if (mapa) dibujar();
+  } catch(err){ console.error(err); }
 }
 
-reset(); hud(); bucle();
+/* ── Sincronización ────────────────────────────────────── */
+function pintar(s){
+  const e = s && s.estado;
+  if (!e) return;
+  mapa = MAPAS[e.mapa || 0];
+  pintarParrilla(e);
 
-/* En móvil, la pulsación larga sobre un control abre el menú del sistema
-   y selecciona el texto del botón. Aquí no queremos ninguna de las dos. */
-document.addEventListener('contextmenu', e => {
-  if (e.target.closest('button, canvas')) e.preventDefault();
+  if (!soloBot){
+    for (const r of jugadores()){
+      if (r === miRol) continue;
+      const q = e.pos && e.pos[r];
+      if (!q) continue;
+      if (!otros[r]) otros[r] = nuevoTanque(jugadores().indexOf(r));
+      const t = otros[r];
+      t.x += (q.x - t.x)*0.4; t.y += (q.y - t.y)*0.4;
+      let d = q.a - t.a;
+      while (d > Math.PI) d -= 2*Math.PI;
+      while (d < -Math.PI) d += 2*Math.PI;
+      t.a += d*0.4;
+      t.vivo = !!q.v; t.arma = q.w || 'canon'; t.escudo = q.es || 0;
+      t.turbo = q.tu ? 1 : 0; t.rodado = q.rd || 0;
+    }
+    if (!anfitrion && e.premios) premios = e.premios.slice();
+    // El anfitrión aplica los impactos que declaran los demás
+    if (anfitrion && e.impactos) for (const r of jugadores()){
+      const im = e.impactos[r];
+      if (r !== miRol && im && im.n > (vistos[r] || 0)){
+        vistos[r] = im.n;
+        aplicarImpacto(r, im.v);
+      }
+    }
+    // Mi propio tanque muere cuando alguien lo declara
+    if (e.impactos) for (const r of jugadores()){
+      const im = e.impactos[r];
+      if (r !== miRol && im && im.v === miRol && im.n > (vistos['v'+r] || 0)){
+        vistos['v'+r] = im.n;
+        if (yo && yo.vivo){
+          if (yo.escudo > 0){ yo.escudo = 0; estallar(yo.x, yo.y, '#7FA6FF'); }
+          else { yo.vivo = false; yo.respawn = 70; estallar(yo.x, yo.y, COLORES_J[miRol]); }
+        }
+      }
+    }
+  }
+
+  if (e.fase === 'preparando'){
+    $('zona-prep').hidden = false;
+    $('zona-juego').hidden = true;
+    pintarMapas(e);
+    const listo = e.listos && e.listos[miRol];
+    $('b-listo').textContent = listo ? '✓ Listo — esperando…' : 'A las máquinas';
+    $('b-listo').disabled = !!listo || (!soloBot && !sala.completa);
+    const faltan = jugadores().filter(r => !(e.listos && e.listos[r]));
+    $('txt-prep').textContent = (!soloBot && !sala.completa)
+      ? 'Esperando a que entren más tanques…'
+      : (faltan.length ? 'Faltan por confirmar: ' + faltan.map(r => sala.nombre(r)).join(', ')
+                       : '¡Todos listos!');
+  }
+
+  if (e.fase === 'jugando' && $('zona-juego').hidden){
+    $('zona-prep').hidden = true;
+    $('zona-juego').hidden = false;
+    reiniciar(); pintarArmas();
+    corriendo = true;
+    $('capa').classList.add('oculta');
+  }
+
+  if (e.fase === 'fin' && corriendo){
+    corriendo = false;
+    const gano = e.ganador === miRol;
+    $('capa-t').textContent = gano ? '🏆 ¡Victoria!' : 'Gana ' + sala.nombre(e.ganador);
+    $('capa-s').textContent = gano
+      ? 'Llegaste a ' + META + ' impactos. El campo es tuyo.'
+      : sala.nombre(e.ganador) + ' llegó primero a ' + META + ' impactos.';
+    $('capa').classList.remove('oculta');
+    gano ? sonido.victoria() : sonido.derrota();
+  }
+}
+
+function terminar(ganador){
+  corriendo = false;
+  const gano = ganador === miRol;
+  $('capa-t').textContent = gano ? '🏆 ¡Victoria!' : 'Gana ' + sala.nombre(ganador);
+  $('capa-s').textContent = gano ? 'Llegaste a ' + META + ' impactos.'
+                                 : 'El bot llegó primero a ' + META + '.';
+  $('capa').classList.remove('oculta');
+  gano ? sonido.victoria() : sonido.derrota();
+}
+
+function pintarMapas(e){
+  const cont = $('mapas');
+  cont.innerHTML = '';
+  MAPAS.forEach((m,i) => {
+    const b = document.createElement('button');
+    b.className = 'opcion' + ((e.mapa||0) === i ? ' sel' : '');
+    b.innerHTML = '<b>' + m.e + '</b><span>' + m.n + '</span>';
+    b.disabled = miRol !== 'A';
+    b.addEventListener('click', () => sala.actualizar(s => {
+      if (s.estado.fase !== 'preparando') return false;
+      s.estado.mapa = i;
+    }));
+    cont.appendChild(b);
+  });
+}
+
+$('b-listo').addEventListener('click', () => sala.actualizar(s => {
+  const e = s.estado;
+  if (e.fase !== 'preparando') return false;
+  e.listos = e.listos || {};
+  e.listos[miRol] = true;
+  if (jugadores().every(r => e.listos[r])){
+    e.fase = 'jugando'; e.marcador = {}; e.pos = {}; e.impactos = {}; e.premios = [];
+  }
+}));
+
+$('capa-b').addEventListener('click', () => {
+  marcadorLocal = {};
+  sala.actualizar(s => {
+    const e = s.estado;
+    e.fase = 'preparando'; e.listos = {}; e.marcador = {};
+    e.pos = {}; e.impactos = {}; e.premios = []; e.ganador = '';
+  });
+});
+
+requestAnimationFrame(bucle);
+
+new Lobby({
+  juego: 'tanques',
+  titulo: 'Combate de <em>tanques</em>',
+  lema: 'Cuatro campos, tres armas y proyectiles que rebotan.',
+  maxJugadores: MAX_J,
+  textoOnline: 'En línea · de 2 a 4 tanques',
+  textoSolo: '🤖 Un jugador · contra el bot',
+  tituloNivel: 'Nivel del <em>bot</em>',
+  niveles: [
+    { n:1, t:'Recluta',  d:'Apunta mal y tarda en disparar.' },
+    { n:2, t:'Veterano', d:'Buena puntería y reacciona rápido.' },
+    { n:3, t:'As',       d:'Casi no falla un tiro con línea limpia.' }
+  ],
+  estadoInicial,
+  nombreRobot: n => ['Recluta','Veterano','As'][n-1],
+  alEntrar: s => {
+    sala = s; miRol = s.rol; anfitrion = (miRol === 'A'); soloBot = false;
+    s.alCambiar(pintar);
+    s.alJugador((r, q) => {
+      aviso = s.nombre(r) + (q === 'entra' ? ' se unió' : ' salió');
+      avisoHasta = performance.now() + 1800;
+    });
+  },
+  alSolo: (s, n) => {
+    sala = s; miRol = 'A'; anfitrion = true; soloBot = true; nivelBot = n;
+    marcadorLocal = {};
+    s.alCambiar(pintar);
+  }
 });
 </script>
 </body>
