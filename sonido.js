@@ -208,6 +208,39 @@ export class Sonido {
     this._ruido(0.6, 'lowpass', 800, 50, 0.35, 0.16);
   }
 
+  /** Puñetazo que conecta: golpe corto y carnoso. */
+  golpe(){
+    if (!this._listo()) return;
+    this._ruido(0.09, 'lowpass', 1400, 260, 0.42);
+    this._tono(0.11, 220, 70, 0.34);
+  }
+
+  /** Patada: más grave y con algo más de cuerpo. */
+  patada(){
+    if (!this._listo()) return;
+    this._ruido(0.14, 'lowpass', 1100, 160, 0.48);
+    this._tono(0.16, 160, 48, 0.4);
+  }
+
+  /** Golpe al aire. */
+  fallo(){
+    if (!this._listo()) return;
+    this._ruido(0.13, 'bandpass', 900, 2600, 0.13);
+  }
+
+  /** Cuerpo que cae al suelo. */
+  caida(){
+    if (!this._listo()) return;
+    this._ruido(0.3, 'lowpass', 600, 70, 0.4);
+    this._tono(0.28, 110, 42, 0.3);
+  }
+
+  /** Aviso de oleada superada. */
+  avance(){
+    if (!this._listo()) return;
+    [523, 659, 784].forEach((f,i) => this._tono(0.22, f, f, 0.17, 'triangle', i*0.09));
+  }
+
   /** Fanfarria de victoria: arpegio ascendente sobre un retumbo. */
   victoria(){
     if (!this._listo()) return;

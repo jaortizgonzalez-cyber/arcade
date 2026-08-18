@@ -4,6 +4,7 @@
 // ─────────────────────────────────────────────────────────────
 
 import { Sala } from './sala.js?v=4';
+import { SalaLocal } from './sala-local.js?v=4';
 import { configurado } from './config.js?v=4';
 
 const HTML = `
@@ -12,8 +13,21 @@ const HTML = `
   <h1 data-titulo></h1>
   <p class="nota" data-lema></p>
   <button class="accion" data-b="online">En línea · dos celulares</button>
-  <button class="accion fantasma" data-b="local" hidden>Aquí mismo · un dispositivo</button>
+  <button class="accion menta" data-b="solo" hidden>🤖 Solo · contra el robot</button>
+  <button class="accion fantasma" data-b="local" hidden>Aquí mismo · dos en un dispositivo</button>
   <p class="aviso" data-aviso="config"></p>
+</section>
+
+<section class="pantalla" data-p="nivel">
+  <a class="volver" href="#" data-b="atras2">← Atrás</a>
+  <h1>Nivel del <em>robot</em></h1>
+  <p class="nota">¿Qué tan duro lo quieres?</p>
+  <button class="accion nivel" data-n="1">
+    <b>Principiante</b><span>Comete errores seguido. Para entrar en calor.</span></button>
+  <button class="accion nivel" data-n="2">
+    <b>Intermedio</b><span>Juega bien y castiga los descuidos.</span></button>
+  <button class="accion nivel" data-n="3">
+    <b>Experto</b><span>Sin concesiones. Ganarle cuesta.</span></button>
 </section>
 
 <section class="pantalla" data-p="acceso">
@@ -69,6 +83,7 @@ export class Lobby {
     this.$('[data-titulo]').innerHTML = op.titulo;
     this.$('[data-lema]').textContent = op.lema || '¿Cómo quieren jugar?';
     if (op.alLocal) this.$('[data-b="local"]').hidden = false;
+    if (op.alSolo)  this.$('[data-b="solo"]').hidden = false;
 
     if (!configurado){
       this.$('[data-b="online"]').disabled = true;
@@ -80,6 +95,20 @@ export class Lobby {
       this.ver('acceso');
     });
     if (op.alLocal) this.$('[data-b="local"]').addEventListener('click', () => { this.verJuego(); op.alLocal(); });
+    if (op.alSolo){
+      this.$('[data-b="solo"]').addEventListener('click', () => this.ver('nivel'));
+      this.$('[data-b="atras2"]').addEventListener('click', e => { e.preventDefault(); this.ver('menu'); });
+      this.caja.querySelectorAll('.nivel').forEach(b => b.addEventListener('click', () => {
+        const nivel = +b.dataset.n;
+        localStorage.setItem('nivelRobot', nivel);
+        const nombre = localStorage.getItem('nombreJugador') || 'Tú';
+        const nombreBot = typeof op.nombreRobot === 'function'
+          ? op.nombreRobot(nivel) : (op.nombreRobot || 'Robot');
+        const sala = new SalaLocal(op.juego, op.estadoInicial(), { A: nombre, B: nombreBot });
+        this.verJuego();
+        op.alSolo(sala, nivel);
+      }));
+    }
     this.$('[data-b="atras"]').addEventListener('click', e => { e.preventDefault(); this.ver('menu'); });
     this.$('[data-b="crear"]').addEventListener('click', () => this._crear());
     this.$('[data-b="unir"]').addEventListener('click', () => this._unir());

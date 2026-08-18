@@ -283,6 +283,12 @@ puntos = 0; nivel = 1; lineas = 0; jugando = false;
 siguiente = sacarPieza();
 dibujarProximo();
 requestAnimationFrame(bucle);
+
+/* En móvil, la pulsación larga sobre un control abre el menú del sistema
+   y selecciona el texto del botón. Aquí no queremos ninguna de las dos. */
+document.addEventListener('contextmenu', e => {
+  if (e.target.closest('button, canvas')) e.preventDefault();
+});
 </script>
 </body>
 </html>

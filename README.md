@@ -49,10 +49,12 @@ En un par de minutos queda en `https://TU-USUARIO.github.io/sala-de-juegos/`.
 | Archivo | Qué es |
 |---|---|
 | `index.html` | Catálogo |
+| `furia-callejera.html` | Beat'em up cooperativo (Double Dragon) |
 | `motocross.html` | Carrera de motocross en línea |
 | `batalla-naval.html` | Batalla naval en línea |
 | `tres-en-raya.html` | Tres en raya en línea (y local) |
 | `sala.js` | Clase `Sala`: Firebase, salas, presencia, transacciones |
+| `sala-local.js` | Clase `SalaLocal`: misma interfaz, sin red, para jugar solo |
 | `lobby.js` | Clase `Lobby`: pantallas de crear/entrar, compartidas |
 | `sonido.js` | Clase `Sonido`: efectos sintetizados, sin archivos |
 | `tanques-combate.html` | Combat de Atari, dos jugadores |
@@ -101,3 +103,61 @@ Dos detalles de diseño que la hacen jugable pese a la latencia de la red:
 
 El ganador se decide por tiempo propio medido en cada dispositivo, no por reloj
 compartido: así un desfase de relojes entre los dos celulares no afecta el resultado.
+
+## Modo de un jugador
+
+`SalaLocal` implementa exactamente la misma interfaz que `Sala` pero guarda todo
+en memoria. Los juegos no distinguen si el rival es una persona por internet o un
+robot en el mismo dispositivo: reciben el mismo objeto y llaman a los mismos métodos.
+Añadir un robot a un juego nuevo solo requiere pasarle `alSolo` al `Lobby` y escribir
+la lógica del rival como un oyente más de `alCambiar`.
+
+Cada robot tiene tres niveles, y la diferencia no es solo ruido: cambia la
+estrategia. Medido por simulación:
+
+**Tres en raya** — minimax completo con distinto margen de despiste
+
+| Nivel | Contra juego al azar | Contra juego perfecto |
+|---|---|---|
+| Principiante (55% despiste) | gana 71%, pierde 17% | pierde 74% |
+| Intermedio (22%) | gana 85%, pierde 5% | pierde 38%, empata 62% |
+| Experto (0%) | nunca pierde | siempre empata |
+
+**Batalla naval** — disparos necesarios para hundir las cinco naves
+
+| Nivel | Estrategia | Promedio |
+|---|---|---|
+| Grumete | disparos al azar, sin perseguir | 95 |
+| Capitán | persigue las casillas contiguas al impacto | 70 |
+| Almirante | retícula alterna + deduce el eje del barco | 56 |
+
+(azar puro ≈ 95; un humano bueno ronda 45-55)
+
+**Motocross** — 2000 m, cambia potencia del motor y control en el aire
+
+| Nivel | Mediana | Caídas |
+|---|---|---|
+| Aprendiz | 92 s | 4.7 |
+| Rival | 76 s | 2.3 |
+| Campeón | 68 s | 0.5 |
+
+## Furia callejera (beat'em up cooperativo)
+
+Es el único juego donde los dos están del mismo lado, y por eso necesita algo que
+los demás no: **una autoridad**. Los enemigos son compartidos, así que quien crea
+la sala los simula y reparte el daño; cada jugador mueve su propio personaje al
+instante y transmite su posición. Sin eso, con 300 ms de latencia cada uno vería
+a los matones en un sitio distinto.
+
+La regla que hace jugable el género: **solo dos enemigos entran a pelear a la vez**
+y el resto merodea esperando turno. Sin ella, seis matones rodean al jugador y lo
+liquidan en segundos. Medido por simulación (25 partidas por caso):
+
+| | Completan | Vidas perdidas |
+|---|---|---|
+| 1 jugador, poca destreza | 4% | 3 de 3 |
+| 1 jugador, destreza media | 88% | 2.1 de 3 |
+| 2 jugadores, poca destreza | 96% | 3.8 de 6 |
+| 2 jugadores, destreza media | 100% | 3.6 de 6 |
+
+Cooperar recompensa de verdad: en pareja se pasa incluso jugando mal.

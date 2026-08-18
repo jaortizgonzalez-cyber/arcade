@@ -351,13 +351,84 @@ $('b-son').addEventListener('click', () => {
 $('b-cerrar').addEventListener('click', () => { $('final').hidden = true; });
 $('b-revancha').addEventListener('click', () => { $('final').hidden = true; $('b-nueva').click(); });
 
+/* ── Robot ─────────────────────────────────────────────────
+   Minimax completo: con juego perfecto el tres en raya siempre
+   es empate, así que le dejamos un margen de error para que
+   ganarle sea posible y la partida tenga gracia. */
+function ganadorDe(t){
+  for (const l of LINEAS){
+    const v = t[l[0]];
+    if (v !== '-' && v === t[l[1]] && v === t[l[2]]) return v;
+  }
+  return t.includes('-') ? null : 'empate';
+}
+
+function minimax(t, turno, robot, prof){
+  const g = ganadorDe(t);
+  if (g === robot)   return { punt: 10 - prof };
+  if (g === 'empate') return { punt: 0 };
+  if (g)             return { punt: prof - 10 };
+
+  let mejor = null;
+  for (let i = 0; i < 9; i++){
+    if (t[i] !== '-') continue;
+    const sig = t.slice(0,i) + turno + t.slice(i+1);
+    const otro = turno === 'A' ? 'B' : 'A';
+    const p = minimax(sig, otro, robot, prof+1).punt;
+    if (!mejor || (turno === robot ? p > mejor.punt : p < mejor.punt)) mejor = { punt:p, i };
+  }
+  return mejor;
+}
+
+// Cuánto se despista según el nivel. En experto no falla nunca:
+// con juego perfecto el tres en raya es empate, así que lo máximo
+// a lo que se puede aspirar contra él es a las tablas.
+const DESPISTE = { 1: 0.55, 2: 0.22, 3: 0 };
+
+function jugadaRobot(t, robot, nivel){
+  const libres = [];
+  for (let i = 0; i < 9; i++) if (t[i] === '-') libres.push(i);
+  if (!libres.length) return -1;
+  if (Math.random() < DESPISTE[nivel]) return libres[Math.floor(Math.random()*libres.length)];
+  const m = minimax(t, robot, robot, 0);
+  return m && m.i != null ? m.i : libres[0];
+}
+
+function conectarRobot(sala, nivel){
+  const ROBOT = 'B';
+  let pensando = false;
+  sala.alCambiar(s => {
+    const e = s.estado;
+    if (!e || e.ganador || e.turno !== ROBOT || pensando) return;
+    pensando = true;
+    const demora = 420 + Math.random()*420;      // que se note que "piensa"
+    setTimeout(() => {
+      pensando = false;
+      const i = jugadaRobot(e.tablero, ROBOT, nivel);
+      if (i >= 0) sala.actualizar(x => aplicarJugada(x.estado, i, ROBOT));
+    }, demora);
+  });
+}
+
 /* ── Arranque ──────────────────────────────────────────── */
 new Lobby({
   juego: 'tresenraya',
   titulo: 'Tres en <em>raya</em>',
   estadoInicial,
+  nombreRobot: n => ['Novato','Robot','Maestro'][n-1],
   alEntrar: s => { sala = s; miRol = s.rol; previo = null; s.alCambiar(x => pintar(x.estado)); },
+  alSolo: (s, nivel) => {
+    sala = s; miRol = s.rol; previo = null; finalMostrado = false;
+    s.alCambiar(x => pintar(x.estado));
+    conectarRobot(s, nivel);
+  },
   alLocal: () => { local = estadoInicial(); previo = null; finalMostrado = false; pintar(local); }
+});
+
+/* En móvil, la pulsación larga sobre un control abre el menú del sistema
+   y selecciona el texto del botón. Aquí no queremos ninguna de las dos. */
+document.addEventListener('contextmenu', e => {
+  if (e.target.closest('button, canvas')) e.preventDefault();
 });
 </script>
 </body>

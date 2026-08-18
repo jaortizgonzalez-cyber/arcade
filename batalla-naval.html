@@ -361,15 +361,19 @@ function cabe(celdas, excepto){
   for (const [id, cs] of Object.entries(misBarcos)) if (id !== excepto) cs.forEach(c => oc.add(c));
   return celdas.every(c => !oc.has(c));
 }
-function colocarAlAzar(){
-  misBarcos = {};
+function flotaAlAzar(){
+  const barcos = {}, ocupadas = new Set();
   for (const b of FLOTA){
-    for (let t = 0; t < 500; t++){
+    for (let t = 0; t < 800; t++){
       const cs = celdasDesde(Math.floor(Math.random()*100), b.l, Math.random() < .5);
-      if (cabe(cs, b.id)){ misBarcos[b.id] = cs; break; }
+      if (cs && cs.every(c => !ocupadas.has(c))){
+        barcos[b.id] = cs; cs.forEach(c => ocupadas.add(c)); break;
+      }
     }
   }
+  return barcos;
 }
+function colocarAlAzar(){ misBarcos = flotaAlAzar(); }
 
 /* ── Cuadrículas con coordenadas ───────────────────────── */
 function construir(cont, alTocar, alPasar){
@@ -725,6 +729,150 @@ function pintar(s){
   if (e.pendiente && e.pendiente.de !== miRol && Object.keys(misBarcos).length) resolver(e.pendiente);
 }
 
+/* ── Robot ─────────────────────────────────────────────────
+   Caza y remate: busca en casillas alternas (ningún barco mide
+   menos de dos, así que esa retícula no deja huecos) y al tocar
+   algo persigue las casillas contiguas hasta hundirlo. */
+function conectarRobot(sala, nivel){
+  const R = 'B', HUM = 'A';
+  const flota = flotaAlAzar();
+  let cola = [], tocadas = [], ocupado = false, tiroVistoR = 0;
+
+  const disparosR = () => (sala.ultimo.estado.disparos && sala.ultimo.estado.disparos[R]) || {};
+
+  function vecinos(c){
+    const f = Math.floor(c/10), col = c%10, v = [];
+    if (f > 0) v.push(c-10);
+    if (f < 9) v.push(c+10);
+    if (col > 0) v.push(c-1);
+    if (col < 9) v.push(c+1);
+    return v;
+  }
+
+  /* Con dos o más impactos en el mismo barco ya se conoce su eje:
+     no tiene sentido probar de lado, solo por los dos extremos. */
+  function extremos(){
+    if (tocadas.length < 2) return null;
+    const filas = new Set(tocadas.map(c => Math.floor(c/10)));
+    const cols  = new Set(tocadas.map(c => c%10));
+    const ord = [...tocadas].sort((a,b) => a-b);
+    const ini = ord[0], fin = ord[ord.length-1];
+    if (filas.size === 1){
+      const f = Math.floor(ini/10), lista = [];
+      if (ini%10 > 0) lista.push(ini-1);
+      if (fin%10 < 9) lista.push(fin+1);
+      return lista.filter(c => Math.floor(c/10) === f);
+    }
+    if (cols.size === 1){
+      const lista = [];
+      if (ini >= 10) lista.push(ini-10);
+      if (fin < 90)  lista.push(fin+10);
+      return lista;
+    }
+    return null;
+  }
+
+  function elegir(){
+    const hechos = disparosR();
+    if (nivel >= 3){
+      const ext = extremos();
+      if (ext){
+        const buenos = ext.filter(c => !hechos['c'+c]);
+        if (buenos.length) return buenos[Math.floor(Math.random()*buenos.length)];
+      }
+    }
+    if (nivel >= 2){
+      while (cola.length){
+        const c = cola.shift();
+        if (!hechos['c'+c]) return c;
+      }
+    }
+    const libres = [];
+    for (let i = 0; i < 100; i++) if (!hechos['c'+i]) libres.push(i);
+    if (!libres.length) return -1;
+    // Solo el experto busca en retícula alterna: ningún barco mide
+    // menos de dos casillas, así que esa malla no deja huecos.
+    if (nivel >= 3){
+      const alternas = libres.filter(i => ((i%10) + Math.floor(i/10)) % 2 === 0);
+      if (alternas.length) return alternas[Math.floor(Math.random()*alternas.length)];
+    }
+    return libres[Math.floor(Math.random()*libres.length)];
+  }
+
+  function resolverRobot(p){
+    const e = sala.ultimo.estado;
+    const previos = (e.disparos && e.disparos[p.de]) || {};
+    const celda = p.celda;
+    let tocadoId = null;
+    for (const [id, cs] of Object.entries(flota)) if (cs.includes(celda)) tocadoId = id;
+    let hundido = null;
+    if (tocadoId){
+      const cs = flota[tocadoId];
+      if (cs.every(c => c === celda || previos['c'+c] === 'tocado')) hundido = tocadoId;
+    }
+    sala.actualizar(s => {
+      const x = s.estado;
+      if (!x.pendiente || x.pendiente.celda !== celda || x.pendiente.de !== p.de) return false;
+      x.disparos = x.disparos || {};
+      x.disparos[p.de] = x.disparos[p.de] || {};
+      x.disparos[p.de]['c'+celda] = tocadoId ? 'tocado' : 'agua';
+      if (hundido){
+        x.hundidos = x.hundidos || {};
+        x.hundidos[p.de] = x.hundidos[p.de] || {};
+        x.hundidos[p.de][hundido] = true;
+      }
+      x.pendiente = null;
+      x.n = (x.n || 0) + 1;
+      x.ultimoTiro = { de:p.de, celda, res: tocadoId ? 'tocado' : 'agua', hundido: hundido || '', n:x.n };
+      x.log = ((x.log || []).concat([x.ultimoTiro])).slice(-8);
+      if (hundido && Object.keys(x.hundidos[p.de]).length === FLOTA.length){
+        x.fase = 'fin'; x.ganador = p.de;
+        x.marcador = x.marcador || {A:0,B:0};
+        x.marcador[p.de] = (x.marcador[p.de] || 0) + 1;
+      } else x.turno = p.de === 'A' ? 'B' : 'A';
+    });
+  }
+
+  const luego = (ms, fn) => { ocupado = true; setTimeout(() => { ocupado = false; fn(); }, ms); };
+
+  sala.alCambiar(s => {
+    const e = s.estado;
+    if (!e || ocupado) return;
+
+    // Aprende de su propio disparo anterior
+    const t = e.ultimoTiro;
+    if (t && t.de === R && t.n > tiroVistoR){
+      tiroVistoR = t.n;
+      if (t.res === 'tocado' && !t.hundido){ tocadas.push(t.celda); cola.push(...vecinos(t.celda)); }
+      if (t.hundido){ cola = []; tocadas = []; }
+    }
+
+    if (e.fase === 'colocando'){
+      if (!(e.listos && e.listos[R]))
+        luego(800, () => sala.actualizar(x => {
+          const y = x.estado;
+          y.listos = y.listos || {};
+          y.listos[R] = true;
+          if (y.listos.A && y.listos.B) y.fase = 'combate';
+        }));
+      return;
+    }
+    if (e.fase !== 'combate') return;
+
+    if (e.pendiente && e.pendiente.de === HUM){
+      luego(500, () => resolverRobot(e.pendiente));
+    } else if (!e.pendiente && e.turno === R){
+      luego(900 + Math.random()*700, () => sala.actualizar(x => {
+        const y = x.estado;
+        if (y.pendiente || y.turno !== R || y.fase !== 'combate') return false;
+        const c = elegir();
+        if (c < 0) return false;
+        y.pendiente = { de: R, celda: c };
+      }));
+    }
+  });
+}
+
 /* ── Botones ───────────────────────────────────────────── */
 $('b-cerrar').addEventListener('click', () => { $('final').hidden = true; });
 $('b-revancha').addEventListener('click', () => { $('final').hidden = true; $('b-otra').click(); });
@@ -775,6 +923,13 @@ new Lobby({
   titulo: 'Batalla <em>naval</em>',
   lema: 'Cada uno esconde su flota. Solo se revela lo que el otro acierta.',
   estadoInicial,
+  nombreRobot: n => ['Grumete','Capitán','Almirante'][n-1],
+  alSolo: async (s, nivel) => {
+    sala = s; miRol = s.rol;
+    colocarAlAzar(); pintarColocacion();
+    s.alCambiar(pintar);
+    conectarRobot(s, nivel);
+  },
   alEntrar: async s => {
     sala = s; miRol = s.rol;
     colocarAlAzar();
@@ -789,6 +944,12 @@ new Lobby({
       }
     } catch(err){ console.warn('No se pudo recuperar la flota guardada', err); }
   }
+});
+
+/* En móvil, la pulsación larga sobre un control abre el menú del sistema
+   y selecciona el texto del botón. Aquí no queremos ninguna de las dos. */
+document.addEventListener('contextmenu', e => {
+  if (e.target.closest('button, canvas')) e.preventDefault();
 });
 </script>
 </body>

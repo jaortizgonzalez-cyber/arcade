@@ -356,11 +356,11 @@ const pendiente = x => (altura(x+0.6) - altura(x-0.6))/1.2;
 const G = 26, GCUESTA = 14, ACEL = 15.5, FRENO = 18, ROCE = 0.30, VMAX = 31, GIRO = 3.4;
 
 function nuevaMoto(){
-  return { x:6, y:altura(6), vx:0, vy:0, ang:0, va:0, suelo:true,
+  return { x:6, y:altura(6), vx:0, vy:0, ang:0, va:0, suelo:true, potencia:1,
            caido:0, caidas:0, aire:0, mejorAire:0, terminado:false };
 }
 
-function pasoFisica(m, dt, gas, freno){
+function pasoFisica(m, dt, gas, freno, mudo){
   if (m.caido > 0){
     m.caido -= dt;
     m.vx *= 0.90;
@@ -386,11 +386,10 @@ function pasoFisica(m, dt, gas, freno){
       while (d < -Math.PI) d += 2*Math.PI;
       if (Math.abs(d) > 1.05){
         m.caido = 1.4; m.caidas++; m.vx *= 0.25;
-        sonido.explosion();
-        sonido.patinar(false);
+        if (!mudo){ sonido.explosion(); sonido.patinar(false); }
       } else {
         m.vx *= 0.94;
-        if (m.aire > 0.8) sonido.turno();
+        if (m.aire > 0.8 && !mudo) sonido.turno();
       }
       m.mejorAire = Math.max(m.mejorAire, m.aire);
       m.aire = 0;
@@ -401,7 +400,7 @@ function pasoFisica(m, dt, gas, freno){
     m.ang += (angSuelo - m.ang)*Math.min(1, 14*dt);
 
     if (m.caido <= 0){
-      if (gas)   m.vx += ACEL*dt;
+      if (gas)   m.vx += ACEL*(m.potencia || 1)*dt;
       if (freno) m.vx -= FRENO*dt;
       m.vx -= GCUESTA*Math.sin(angSuelo)*dt;            // gravedad a lo largo de la cuesta
       m.vx -= m.vx*ROCE*dt + Math.sign(m.vx)*0.6*dt;
@@ -665,6 +664,13 @@ function cuadro(ahora){
     if (moto.x < pista.largo){ moto.x = pista.largo; moto.y = altura(moto.x); }
   }
 
+  // El robot corre con la misma física, en este mismo dispositivo
+  if (robot && corriendo && robot.m){
+    pasoRobot(dt);
+    objetivo = { x:robot.m.x, y:robot.m.y, a:robot.m.ang,
+                 v:robot.m.vx, c:robot.m.caido > 0 ? 1 : 0 };
+  }
+
   // Interpolación suave del rival
   if (objetivo){
     if (!fantasma) fantasma = { ...objetivo, caido:0 };
@@ -679,7 +685,7 @@ function cuadro(ahora){
   }
 
   // Envío de mi posición (10 veces por segundo)
-  if (sala && corriendo && ahora - ultimoEnvio > 100){
+  if (sala && !robot && corriendo && ahora - ultimoEnvio > 100){
     ultimoEnvio = ahora;
     sala.escribir('estado/pos/' + miRol, {
       x: +moto.x.toFixed(2), y: +moto.y.toFixed(2),
@@ -728,6 +734,7 @@ function arrancar(e){
   $('final').hidden = true;
   $('zona-prep').hidden = true;
   $('zona-carrera').hidden = false;
+  if (robot){ robot.m = nuevaMoto(); robot.m.potencia = robot.potencia; robot.despiste = 0; }
   cuentaHasta = Date.now() + 3300;
   sonido.motorEncender();
   sonido.motorEstado(0, false, true);
@@ -778,6 +785,61 @@ function mostrarFinal(e){
   $('final').hidden = false;
   if (gane){ lanzarConfeti(); sonido.victoria(); }
   else { $('confeti').innerHTML = ''; sonido.derrota(); }
+}
+
+/* ── Corredor robot ────────────────────────────────────────
+   Pilota con la misma física que tú. Nivela la moto en el aire
+   mirando la pendiente donde va a caer, pero se despista cada
+   tanto: sin esos errores sería imbatible y no tendría gracia. */
+let robot = null;
+
+// Los niveles cambian dos cosas: cuánto se despista en el aire
+// y cuánta potencia le saca al motor.
+const NIVELES = {
+  1: { torpeza: 2.4, potencia: 0.70, tol: 0.14 },
+  2: { torpeza: 1.0, potencia: 0.86, tol: 0.08 },
+  3: { torpeza: 0.2, potencia: 1.00, tol: 0.05 }
+};
+
+function crearRobot(nivel){
+  const n = NIVELES[nivel] || NIVELES[2];
+  return { m:null, tol:n.tol, torpeza:n.torpeza, potencia:n.potencia, despiste:0 };
+}
+
+function pasoRobot(dt){
+  const m = robot.m;
+  if (!m || m.terminado) return;
+  let gas = true, freno = false;
+  if (!m.suelo){
+    const objetivo = Math.atan(pendiente(m.x + m.vx*0.45));
+    let d = objetivo - m.ang;
+    while (d >  Math.PI) d -= 2*Math.PI;
+    while (d < -Math.PI) d += 2*Math.PI;
+    gas = d > robot.tol; freno = d < -robot.tol;
+  }
+  if (robot.despiste > 0){ robot.despiste -= dt; gas = true; freno = false; }
+  else if (Math.random() < robot.torpeza*dt) robot.despiste = 0.3 + Math.random()*0.45;
+
+  pasoFisica(m, dt, gas, freno, true);
+  if (m.x >= pista.largo){
+    m.terminado = true;
+    sala.escribir('estado/meta/B', +tiempo.toFixed(2));
+  }
+}
+
+function conectarRobot(s){
+  s.alCambiar(x => {
+    const e = x.estado;
+    if (!e) return;
+    if (e.fase === 'preparando' && !(e.listos && e.listos.B)){
+      setTimeout(() => s.actualizar(y => {
+        const z = y.estado;
+        z.listos = z.listos || {};
+        z.listos.B = true;
+        if (z.listos.A && z.listos.B){ z.fase = 'corriendo'; z.pos = {}; z.meta = {}; }
+      }), 500);
+    }
+  });
 }
 
 /* ── Sincronización con la sala ────────────────────────── */
@@ -870,8 +932,10 @@ function mando(id, prop){
   const b = $(id);
   const on  = ev => { ev.preventDefault(); teclas[prop] = true;  b.classList.add('on'); };
   const off = ev => { teclas[prop] = false; b.classList.remove('on'); };
-  b.addEventListener('pointerdown', on);
-  ['pointerup','pointercancel','pointerleave'].forEach(ev => b.addEventListener(ev, off));
+  b.addEventListener('pointerdown', ev => { b.setPointerCapture(ev.pointerId); on(ev); });
+  ['pointerup','pointercancel'].forEach(ev => b.addEventListener(ev, off));
+  b.addEventListener('lostpointercapture', off);
+  b.addEventListener('dragstart', ev => ev.preventDefault());
 }
 $('b-son').textContent = sonido.activo ? '🔊' : '🔇';
 $('b-son').addEventListener('click', () => {
@@ -946,10 +1010,23 @@ new Lobby({
   titulo: 'Moto<em>cross</em>',
   lema: 'Misma pista, dos motos, un cronómetro.',
   estadoInicial,
+  nombreRobot: n => ['Aprendiz','Rival','Campeón'][n-1],
+  alSolo: (s, nivel) => {
+    sala = s; miRol = s.rol; rival = s.rival;
+    robot = crearRobot(nivel);
+    s.alCambiar(pintar);
+    conectarRobot(s);
+  },
   alEntrar: s => {
     sala = s; miRol = s.rol; rival = s.rival;
     s.alCambiar(pintar);
   }
+});
+
+/* En móvil, la pulsación larga sobre un control abre el menú del sistema
+   y selecciona el texto del botón. Aquí no queremos ninguna de las dos. */
+document.addEventListener('contextmenu', e => {
+  if (e.target.closest('button, canvas')) e.preventDefault();
 });
 </script>
 </body>
