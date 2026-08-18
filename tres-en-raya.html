@@ -77,6 +77,7 @@
 </style>
 </head>
 <body>
+<a class="inicio" href="index.html">◀ Sala de juegos</a>
 <main>
   <div id="lobby"></div>
 
@@ -411,6 +412,12 @@ function conectarRobot(sala, nivel){
 }
 
 /* ── Arranque ──────────────────────────────────────────── */
+// Al volver al catálogo liberamos el puesto: si no, la sala queda
+// con un jugador fantasma hasta que Firebase note la desconexión.
+document.querySelector('a.inicio').addEventListener('click', () => {
+  try { if (sala && sala.salir) sala.salir(); } catch(e){}
+});
+
 new Lobby({
   juego: 'tresenraya',
   titulo: 'Tres en <em>raya</em>',

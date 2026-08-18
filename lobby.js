@@ -9,7 +9,6 @@ import { configurado } from './config.js?v=4';
 
 const HTML = `
 <section class="pantalla activa" data-p="menu">
-  <a class="volver" href="index.html">← Sala de juegos</a>
   <h1 data-titulo></h1>
   <p class="nota" data-lema></p>
   <button class="accion" data-b="online" id="b-online-txt">En línea · dos celulares</button>

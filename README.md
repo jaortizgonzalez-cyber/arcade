@@ -141,26 +141,6 @@ estrategia. Medido por simulación:
 | Rival | 76 s | 2.3 |
 | Campeón | 68 s | 0.5 |
 
-## Furia callejera (beat'em up cooperativo)
-
-Es el único juego donde los dos están del mismo lado, y por eso necesita algo que
-los demás no: **una autoridad**. Los enemigos son compartidos, así que quien crea
-la sala los simula y reparte el daño; cada jugador mueve su propio personaje al
-instante y transmite su posición. Sin eso, con 300 ms de latencia cada uno vería
-a los matones en un sitio distinto.
-
-La regla que hace jugable el género: **solo dos enemigos entran a pelear a la vez**
-y el resto merodea esperando turno. Sin ella, seis matones rodean al jugador y lo
-liquidan en segundos. Medido por simulación (25 partidas por caso):
-
-| | Completan | Vidas perdidas |
-|---|---|---|
-| 1 jugador, poca destreza | 4% | 3 de 3 |
-| 1 jugador, destreza media | 88% | 2.1 de 3 |
-| 2 jugadores, poca destreza | 96% | 3.8 de 6 |
-| 2 jugadores, destreza media | 100% | 3.6 de 6 |
-
-Cooperar recompensa de verdad: en pareja se pasa incluso jugando mal.
 
 ## Motocross con varios corredores
 
@@ -185,3 +165,28 @@ Cinco paletas con terreno propio, verificadas por simulación (25 semillas cada 
 | Volcán | 59° | 25/25 | 71 s |
 
 El volcán es el más quebrado (rampas más juntas y altas); la nieve, el más suave.
+
+## Furia callejera (beat'em up)
+
+Se juega solo contra la banda, o en línea de dos a cuatro. **No hay modo de dos en
+un mismo teclado**: en un beat'em up cada quien necesita su cruceta.
+
+Como los enemigos son compartidos, hace falta una autoridad: quien crea la sala los
+simula y reparte el daño. Los demás mueven su personaje al instante y publican dos
+cosas — su posición y sus golpes. El anfitrión aplica esos golpes contra los enemigos
+y devuelve la salud de todos. Sin ese ida y vuelta, los puñetazos de los invitados
+no le harían nada a nadie.
+
+La regla que hace jugable el género: **solo dos enemigos entran a pelear a la vez**
+(tres si son más de dos jugadores) y el resto merodea esperando turno.
+
+Curva de dificultad, medida por simulación con un jugador de destreza media:
+
+| | Pandilla floja | Pandilla | Pandilla brava |
+|---|---|---|---|
+| 1 jugador | 100% | 50% | 0% (17% jugando muy bien) |
+| 2 jugadores | 100% | 100% | 92% |
+| 4 jugadores | 100% | 100% | 100% |
+
+La partida dura entre 90 s y 2:30. "Pandilla brava" en solitario está pensada para
+ser casi imposible: es el reto de verdad.

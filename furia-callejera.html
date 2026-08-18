@@ -13,71 +13,62 @@
   main{max-width:900px;margin:0 auto}
   [data-juego]{display:flex;flex-direction:column;gap:8px}
 
-  .barras{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center}
-  .luchador{background:var(--panel);border:2px solid var(--borde);border-radius:13px;padding:7px 9px}
-  .luchador .quien{display:flex;justify-content:space-between;align-items:baseline;
-                   font-size:11px;font-weight:700;margin-bottom:4px}
-  .luchador .vidas{font-size:11px;letter-spacing:1px}
-  .barra{height:9px;background:#1B1233;border-radius:5px;overflow:hidden}
-  .barra i{display:block;height:100%;border-radius:5px;transition:width .18s}
-  .lA .barra i{background:linear-gradient(90deg,#6FA8FF,#9ECBFF)}
-  .lB .barra i{background:linear-gradient(90deg,#FF7B7B,#FFB0A0)}
-  .lA .quien{color:#8FBBFF} .lB .quien{color:#FF9B8E}
-  .luchador.ausente{opacity:.4}
-  .centro{text-align:center;font-size:10px;letter-spacing:.11em;
-          text-transform:uppercase;color:var(--tenue)}
-  .centro b{display:block;font-family:var(--display);font-size:18px;color:var(--tinta);letter-spacing:0}
+  .banda{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+  .peleador{background:var(--panel);border:2px solid var(--borde);border-radius:12px;
+            padding:6px 9px;min-width:118px}
+  .peleador.yo{border-color:currentColor}
+  .peleador.fuera{opacity:.4}
+  .peleador .fila{display:flex;justify-content:space-between;align-items:baseline;gap:6px}
+  .peleador .nm{font-weight:700;font-size:12px;color:var(--tinta);max-width:74px;
+                overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .peleador .vd{font-size:10px;letter-spacing:1px;color:currentColor}
+  .barra{height:7px;background:#160E2C;border-radius:4px;overflow:hidden;margin-top:4px}
+  .barra i{display:block;height:100%;background:currentColor;border-radius:4px;transition:width .18s}
+  .zonaHud{align-self:center;font-size:10px;letter-spacing:.11em;text-transform:uppercase;
+           color:var(--tenue);text-align:center}
+  .zonaHud b{display:block;font-family:var(--display);font-size:17px;color:var(--tinta);letter-spacing:0}
 
   .escenario{position:relative;border-radius:14px;overflow:hidden;border:2px solid var(--borde)}
   canvas{display:block;width:100%;aspect-ratio:16/9;background:#0E0A1E}
-  #aviso{position:absolute;left:0;right:0;top:34%;text-align:center;pointer-events:none;
-         font-family:var(--display);font-weight:800;font-size:clamp(20px,5vw,34px);
-         color:var(--ambar);text-shadow:0 4px 18px rgba(0,0,0,.8);opacity:0;
-         transition:opacity .25s}
+  #aviso{position:absolute;left:0;right:0;top:30%;text-align:center;pointer-events:none;
+         font-family:var(--display);font-weight:800;font-size:clamp(20px,5vw,36px);
+         color:var(--ambar);text-shadow:0 4px 18px rgba(0,0,0,.85);opacity:0;transition:opacity .25s}
   #aviso.ver{opacity:1}
   #b-son{position:absolute;right:8px;top:8px;background:rgba(20,12,36,.7);border:none;
          border-radius:10px;padding:7px 9px;font-size:15px;cursor:pointer}
-
   #capa{position:absolute;inset:0;display:grid;place-content:center;text-align:center;gap:8px;
         padding:20px;background:rgba(14,10,30,.9)}
   #capa.oculta{display:none}
   #capa h2{font-family:var(--display);font-weight:800;font-size:clamp(21px,5vw,30px)}
-  #capa p{font-size:13px;color:var(--tenue);max-width:300px;line-height:1.5}
+  #capa p{font-size:13px;color:var(--tenue);max-width:320px;line-height:1.5}
   #capa button{margin-top:6px;font-family:inherit;font-weight:700;font-size:15px;
                padding:12px 26px;border-radius:13px;border:none;background:var(--ambar);
                color:#241634;cursor:pointer}
 
-  .mandos{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-  .cruz{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;max-width:150px}
-  .cruz button{aspect-ratio:1;border-radius:11px;border:2px solid var(--borde);
-               background:var(--panel);color:var(--tinta);font-size:16px;cursor:pointer;
-               touch-action:none}
+  .mandos{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:center}
+  .cruz{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;width:156px}
+  .cruz button{aspect-ratio:1;border-radius:12px;border:2px solid var(--borde);
+               background:var(--panel);color:var(--tinta);font-size:17px;cursor:pointer}
   .cruz .hueco{visibility:hidden;border:none;background:none}
-  .acciones2{display:grid;grid-template-columns:1fr 1fr;gap:6px;align-content:center}
-  .acciones2 button{padding:16px 0;border-radius:13px;border:2px solid var(--borde);
+  .acciones2{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .acciones2 button{padding:18px 0;border-radius:13px;border:2px solid var(--borde);
                     background:var(--panel);color:var(--tinta);cursor:pointer;
-                    font-family:var(--display);font-weight:800;font-size:13px;touch-action:none}
-  .acciones2 .pu{color:#FFC94A} .acciones2 .pa{color:#6FE7C4} .acciones2 .sa{color:#C58CF0}
-  button.on,.cruz button:active,.acciones2 button:active{background:#3F2A5C}
+                    font-family:var(--display);font-weight:800;font-size:14px}
+  .acciones2 .pu{color:#FFC94A} .acciones2 .pa{color:#6FE7C4}
+  .acciones2 .sa{color:#C58CF0;grid-column:span 2;padding:14px 0}
+  button.on{background:#3F2A5C}
   .ayuda{font-size:11px;color:var(--tenue);text-align:center;line-height:1.5}
+  a.inicio{flex:none;margin:0 0 6px}
 </style>
 </head>
 <body>
+<a class="inicio" href="index.html">◀ Sala de juegos</a>
 <main>
   <div id="lobby"></div>
 
   <section data-juego hidden>
-    <div class="barras">
-      <div class="luchador lA" id="lu-A">
-        <div class="quien"><span id="nom-A">—</span><span class="vidas" id="vi-A">♥♥♥</span></div>
-        <div class="barra"><i id="ba-A" style="width:100%"></i></div>
-      </div>
-      <div class="centro">Zona<b id="hud-zona">1</b></div>
-      <div class="luchador lB" id="lu-B">
-        <div class="quien"><span id="nom-B">—</span><span class="vidas" id="vi-B">♥♥♥</span></div>
-        <div class="barra"><i id="ba-B" style="width:100%"></i></div>
-      </div>
-    </div>
+    <div class="banda" id="banda"></div>
+    <div class="zonaHud">Zona<b id="hud-zona">1</b></div>
 
     <div class="escenario">
       <canvas id="lienzo" width="960" height="540"></canvas>
@@ -99,10 +90,10 @@
       <div class="acciones2">
         <button class="pu" data-m="puno">PUÑO</button>
         <button class="pa" data-m="patada">PATADA</button>
-        <button class="sa" data-m="salto" style="grid-column:span 2">SALTO</button>
+        <button class="sa" data-m="salto">SALTO</button>
       </div>
     </div>
-    <p class="ayuda" id="ayuda-teclas"></p>
+    <p class="ayuda">Teclado: W A S D para moverte · F puño · G patada · H salto</p>
   </section>
 </main>
 
@@ -115,168 +106,161 @@ const $ = id => document.getElementById(id);
 
 /* ── Mundo ─────────────────────────────────────────────────
    x avanza por la calle, y es la profundidad (arriba = lejos),
-   z es la altura del salto. Como en los arcades de los 80. */
+   z la altura del salto. La planta clásica del género. */
 const W = 960, H = 540;
-const SUELO_Y0 = 0, SUELO_Y1 = 100;          // franja jugable en profundidad
-const LARGO_ZONA = 2200;
-const ZONAS = 3;
+const HONDO0 = 0, HONDO1 = 100;
+const ZONAS = 3, MAX_J = 4;
 
+const COL_J = { A:'#6FA8FF', B:'#FF7B7B', C:'#7BE8A0', D:'#E8C25C' };
 const cv = $('lienzo'), cx = cv.getContext('2d');
-const COL = { A:'#6FA8FF', B:'#FF7B7B' };
+
+const NIVEL = {
+  1:{ dano:0.7, cuantos:0, nombre:'Pandilla floja' },
+  2:{ dano:1.0, cuantos:0, nombre:'Pandilla' },
+  3:{ dano:1.18, cuantos:1, nombre:'Pandilla brava' }
+};
+let nivel = 2;
+
+const TIPOS = {
+  maton: { vida:34, vel:1.5, dano:4,  alcance:34, col:'#8E5FBF', pelo:'#E85D8A', ancho:1 },
+  bruto: { vida:70, vel:1.1, dano:6,  alcance:38, col:'#B5713A', pelo:'#3A2A22', ancho:1.28 },
+  jefe:  { vida:150, vel:1.4, dano:8, alcance:42, col:'#C43B63', pelo:'#1B1233', ancho:1.12 }
+};
+const ATACANTES = 2;
 
 const estadoInicial = () => ({
-  fase:'listos', zona:0, avance:0,
-  pos:{}, salud:{A:100,B:100}, vidas:{A:3,B:3}, puntos:{A:0,B:0},
-  enemigos:[], ganador:'', sig:1
+  fase:'listos', zona:0, ganador:'',
+  pos:{}, salud:{}, vidas:{}, golpes:{}, enemigos:[]
 });
 
 /* ── Entidades ─────────────────────────────────────────── */
 function nuevoLuchador(x, y){
-  return { x, y, z:0, vz:0, dir:1, est:'quieto', marco:0, ataque:0, tipo:'',
-           salud:100, invul:0, aturdido:0, enSuelo:0 };
+  return { x, y, z:0, vz:0, dir:1, est:'quieto', marco:0, ataque:0,
+           salud:100, invul:0, aturdido:0, enSuelo:0, tipo:'jugador' };
 }
-function nuevoEnemigo(i, tipo, x, y){
-  const base = { maton:{v:34, vel:1.5, dano:7, alcance:34},
-                 bruto:{v:70, vel:1.1, dano:12, alcance:38},
-                 jefe:{v:150, vel:1.4, dano:16, alcance:42} }[tipo];
-  return { i, t:tipo, x, y, z:0, vz:0, dir:-1, v:base.v, vmax:base.v,
+let contadorId = 1;
+function nuevoEnemigo(tipo, x, y){
+  const d = TIPOS[tipo];
+  return { i:contadorId++, t:tipo, x, y, z:0, dir:-1, v:d.vida, vmax:d.vida,
            est:'quieto', marco:0, ataque:0, espera:0, invul:0, aturdido:0, enSuelo:0 };
 }
-const DATOS = { maton:{vel:1.5, dano:4, alcance:34, col:'#B98CE8'},
-                bruto:{vel:1.1, dano:6, alcance:38, col:'#E8A05C'},
-                jefe:{vel:1.4, dano:8, alcance:42, col:'#E85D8A'} };
-// Cuántos enemigos entran a pelear a la vez. El resto merodea:
-// es la regla de oro del género, sin ella el jugador no respira.
-const ATACANTES = 2;
 
 /* ── Estado local ──────────────────────────────────────── */
-let sala = null, miRol = null, rival = null, anfitrion = true, dosLocal = false;
-let mios = {}, enemigos = [], camX = 0, avanceZona = 0, zona = 0;
-let corriendo = false, ultimoEnvio = 0, sacudida = 0, golpes = [];
-let avisoHasta = 0, finalMostrado = false;
-const pulsa = { A:{}, B:{} };
+let sala = null, miRol = 'A', anfitrion = true, soloLocal = false;
+let mios = {}, enemigos = [], camX = 0, oleada = 0, zona = 0;
+let corriendo = false, ultimoEnvio = 0, sacudida = 0, chispas = [];
+let avisoHasta = 0, finalMostrado = false, nGolpe = 0, vistos = {};
+const pulsa = {};
+
+const roles = () => soloLocal ? ['A'] : (sala && sala.ocupados ? sala.ocupados() : ['A']);
 
 /* ── Controles ─────────────────────────────────────────── */
-const TECLAS_A = { a:'izq', d:'der', w:'arriba', s:'abajo', f:'puno', g:'patada', h:'salto' };
-const TECLAS_B = { arrowleft:'izq', arrowright:'der', arrowup:'arriba', arrowdown:'abajo',
-                   '1':'puno', '2':'patada', '3':'salto' };
-function tecla(e, valor){
-  const k = e.key.toLowerCase();
-  const yo = dosLocal ? 'A' : miRol;
-  if (TECLAS_A[k]){ e.preventDefault(); pulsa[yo][TECLAS_A[k]] = valor; return; }
-  if (TECLAS_B[k] && dosLocal){ e.preventDefault(); pulsa.B[TECLAS_B[k]] = valor; return; }
-  if (TECLAS_B[k] && !dosLocal){ e.preventDefault(); pulsa[miRol][TECLAS_B[k]] = valor; }
-}
-addEventListener('keydown', e => tecla(e, true));
-addEventListener('keyup',   e => tecla(e, false));
-addEventListener('blur', () => { for (const r of ['A','B']) for (const k in pulsa[r]) pulsa[r][k] = false; });
+const TECLAS = { a:'izq', d:'der', w:'arriba', s:'abajo',
+                 arrowleft:'izq', arrowright:'der', arrowup:'arriba', arrowdown:'abajo',
+                 f:'puno', g:'patada', h:'salto', ' ':'salto', j:'puno', k:'patada' };
+addEventListener('keydown', e => { const m = TECLAS[e.key.toLowerCase()];
+  if (m){ e.preventDefault(); pulsa[m] = true; } });
+addEventListener('keyup', e => { const m = TECLAS[e.key.toLowerCase()];
+  if (m){ e.preventDefault(); pulsa[m] = false; } });
+addEventListener('blur', () => { for (const k in pulsa) pulsa[k] = false; });
 
-
-/* Safari en iOS inicia la selección desde el evento táctil, no desde el
-   puntero: hay que cancelar el táctil para que no arrastre el texto de
-   alrededor. Los eventos de puntero siguen funcionando igual. */
 function blindarTacto(el){
   if (!el) return;
   ['touchstart','touchmove','touchend','touchcancel'].forEach(ev =>
     el.addEventListener(ev, e => e.preventDefault(), { passive:false }));
 }
-
 document.querySelectorAll('[data-m]').forEach(b => {
   const m = b.dataset.m;
-  const on  = e => { e.preventDefault(); pulsa[dosLocal ? 'A' : miRol][m] = true;  b.classList.add('on'); };
-  const off = () => { pulsa[dosLocal ? 'A' : miRol][m] = false; b.classList.remove('on'); };
-  b.addEventListener('pointerdown', ev => { b.setPointerCapture(ev.pointerId); on(ev); });
+  const on  = e => { e.preventDefault(); b.setPointerCapture(e.pointerId);
+                     pulsa[m] = true; b.classList.add('on'); };
+  const off = () => { pulsa[m] = false; b.classList.remove('on'); };
+  b.addEventListener('pointerdown', on);
   ['pointerup','pointercancel'].forEach(ev => b.addEventListener(ev, off));
   b.addEventListener('lostpointercapture', off);
   blindarTacto(b);
 });
 blindarTacto(cv);
-
+document.addEventListener('contextmenu', e => {
+  if (e.target.closest('button, canvas')) e.preventDefault();
+});
 $('b-son').textContent = sonido.activo ? '🔊' : '🔇';
 $('b-son').addEventListener('click', () => { $('b-son').textContent = sonido.alternar() ? '🔊' : '🔇'; });
 
 /* ── Oleadas ───────────────────────────────────────────── */
 function generarOleada(z, n){
   const lista = [];
-  const cuantos = 2 + z + Math.min(2, n);
+  const jug = roles().length;
+  const cuantos = 2 + z + Math.min(2, n) + NIVEL[nivel].cuantos + (jug > 2 ? 1 : 0);
   for (let k = 0; k < cuantos; k++){
-    const tipo = (z === ZONAS-1 && k === 0) ? 'jefe' : (Math.random() < 0.28 + z*0.1 ? 'bruto' : 'maton');
+    const tipo = (z === ZONAS-1 && k === 0) ? 'jefe'
+               : (Math.random() < 0.28 + z*0.1 ? 'bruto' : 'maton');
     const lado = Math.random() < 0.5 ? -1 : 1;
-    lista.push(nuevoEnemigo(estadoSig(), tipo,
-      camX + W/2 + lado*(W*0.55 + Math.random()*160),
-      SUELO_Y0 + Math.random()*(SUELO_Y1 - SUELO_Y0)));
+    lista.push(nuevoEnemigo(tipo, camX + lado*(W*0.55 + Math.random()*160),
+                            HONDO0 + Math.random()*(HONDO1 - HONDO0)));
   }
   return lista;
 }
-let contadorId = 1;
-const estadoSig = () => contadorId++;
 
 /* ── Combate ───────────────────────────────────────────── */
-function golpear(atac, esJugador, tipoGolpe){
-  const alcance = tipoGolpe === 'patada' ? 46 : 36;
-  const dano = tipoGolpe === 'patada' ? 14 : 9;
-  const bx = atac.x + atac.dir*alcance*0.6;
-  let acerto = false;
+function chispear(x, y, z){ chispas.push({ x, y, z, v:12 }); }
 
-  const objetivos = esJugador ? enemigos : Object.values(mios).filter(p => p && p.vidas !== 0);
-  for (const o of objetivos){
-    if (!o || o.v <= 0 || o.salud <= 0 || o.invul > 0) continue;
+/** Un golpe de jugador contra los enemigos. Solo lo resuelve el anfitrión. */
+function golpeAEnemigos(g){
+  const alcance = g.t === 'patada' ? 46 : 36;
+  const dano = g.t === 'patada' ? 14 : 9;
+  const bx = g.x + g.d*alcance*0.6;
+  let acerto = false;
+  for (const o of enemigos){
+    if (o.v <= 0 || o.invul > 0) continue;
     if (Math.abs(o.x - bx) > alcance) continue;
-    if (Math.abs(o.y - atac.y) > 22) continue;
-    if (Math.abs(o.z - atac.z) > 34) continue;
+    if (Math.abs(o.y - g.y) > 22) continue;
+    if (Math.abs(o.z - g.z) > 34) continue;
     acerto = true;
-    o.invul = 12;
-    o.dir = o.x < atac.x ? 1 : -1;
-    if (esJugador){
-      o.v -= dano;
-      o.est = 'herido'; o.aturdido = 16;
-      o.x += atac.dir*10;
-      if (o.v <= 0){ o.est = 'suelo'; o.enSuelo = 70; sonido.caida(); }
-    } else {
-      const d = DATOS[atac.t] ? DATOS[atac.t].dano : dano;
-      o.salud -= d;
-      o.est = 'herido'; o.aturdido = 12;
-      o.invul = 55;                        // respiro tras encajar un golpe
-      o.x += atac.dir*8;
-      if (o.salud <= 0){ o.est = 'suelo'; o.enSuelo = 90; sonido.caida(); }
-    }
-    golpes.push({ x:bx, y:o.y, z:o.z + 22, v:12 });
-    sacudida = Math.max(sacudida, tipoGolpe === 'patada' ? 6 : 4);
+    o.invul = 12; o.dir = o.x < g.x ? 1 : -1;
+    o.v -= dano; o.est = 'herido'; o.aturdido = 16; o.x += g.d*10;
+    if (o.v <= 0){ o.est = 'suelo'; o.enSuelo = 70; }
+    chispear(bx, o.y, o.z + 22);
   }
-  if (acerto) tipoGolpe === 'patada' ? sonido.patada() : sonido.golpe();
-  else sonido.fallo();
+  return acerto;
 }
 
-/* ── Movimiento de un luchador ─────────────────────────── */
-function moverLuchador(p, ent, dt){
-  if (p.salud <= 0){
-    if (p.enSuelo > 0){ p.enSuelo--; p.est = 'suelo'; }
-    return;
+/** Un golpe de enemigo contra los jugadores. Solo lo resuelve el anfitrión. */
+function golpeAJugadores(e){
+  const d = TIPOS[e.t];
+  const bx = e.x + e.dir*d.alcance*0.6;
+  for (const r of roles()){
+    const o = mios[r];
+    if (!o || o.salud <= 0 || o.invul > 0) continue;
+    if (Math.abs(o.x - bx) > d.alcance) continue;
+    if (Math.abs(o.y - e.y) > 22) continue;
+    if (Math.abs(o.z - e.z) > 34) continue;
+    o.salud -= d.dano * NIVEL[nivel].dano;
+    o.est = 'herido'; o.aturdido = 12; o.invul = 55;
+    o.x += e.dir*8;
+    chispear(bx, o.y, o.z + 22);
+    sacudida = Math.max(sacudida, 5);
+    if (o.salud <= 0){ o.salud = 0; o.est = 'suelo'; o.enSuelo = 90; sonido.caida(); }
+    if (!soloLocal) sala.escribir('estado/salud/' + r, Math.max(0, Math.round(o.salud)));
   }
+}
+
+/* ── Movimiento ────────────────────────────────────────── */
+function moverLuchador(p, ent){
+  if (p.salud <= 0){ if (p.enSuelo > 0) p.enSuelo--; p.est = 'suelo'; return; }
   if (p.aturdido > 0){ p.aturdido--; p.est = 'herido'; return; }
   if (p.invul > 0) p.invul--;
+  if (p.ataque > 0){ p.ataque--; if (p.ataque === 0) p.est = 'quieto'; return; }
 
-  if (p.ataque > 0){
-    p.ataque--;
-    if (p.ataque === 0) p.est = 'quieto';
-    return;
-  }
-
-  // Salto
   if (p.z > 0 || p.vz !== 0){
-    p.vz -= 0.85;
-    p.z += p.vz;
-    if (p.z <= 0){ p.z = 0; p.vz = 0; p.est = 'quieto'; }
-    else p.est = 'salto';
-  } else if (ent.salto){
-    p.vz = 12; p.est = 'salto';
-  }
+    p.vz -= 0.85; p.z += p.vz;
+    if (p.z <= 0){ p.z = 0; p.vz = 0; p.est = 'quieto'; } else p.est = 'salto';
+  } else if (ent.salto){ p.vz = 12; p.est = 'salto'; }
 
   const vx = (ent.der ? 1 : 0) - (ent.izq ? 1 : 0);
   const vy = (ent.abajo ? 1 : 0) - (ent.arriba ? 1 : 0);
   if (vx || vy){
     p.x += vx*3.2;
-    p.y = Math.max(SUELO_Y0, Math.min(SUELO_Y1, p.y + vy*1.9));
+    p.y = Math.max(HONDO0, Math.min(HONDO1, p.y + vy*1.9));
     if (vx) p.dir = vx;
     if (p.z === 0) p.est = 'anda';
     p.marco += 0.22;
@@ -284,46 +268,60 @@ function moverLuchador(p, ent, dt){
 
   p.x = Math.max(camX - W*0.42, Math.min(camX + W*0.44, p.x));
 
-  if (ent.puno){ p.est = 'puno'; p.ataque = 12; golpear(p, true, 'puno'); }
-  else if (ent.patada){ p.est = 'patada'; p.ataque = 16; golpear(p, true, 'patada'); }
+  if (ent.puno || ent.patada){
+    const tipo = ent.puno ? 'puno' : 'patada';
+    p.est = tipo; p.ataque = tipo === 'puno' ? 12 : 16;
+    emitirGolpe(p, tipo);
+  }
 }
 
-/* ── Enemigos (solo los simula el anfitrión) ───────────── */
+/** Publica el golpe. El anfitrión lo aplica; los demás lo mandan por la red. */
+function emitirGolpe(p, tipo){
+  const g = { n:++nGolpe, x:p.x, y:p.y, z:p.z, d:p.dir, t:tipo };
+  if (anfitrion){
+    const acerto = golpeAEnemigos(g);
+    sacudida = Math.max(sacudida, tipo === 'patada' ? 6 : 4);
+    if (acerto) tipo === 'patada' ? sonido.patada() : sonido.golpe();
+    else sonido.fallo();
+  } else {
+    sonido.fallo();
+    sala.escribir('estado/golpes/' + miRol, g);
+  }
+}
+
+let puedenAtacar = new Set();
 function rankAtaque(){
   const vivos = enemigos.filter(x => x.v > 0);
-  const jug = Object.values(mios).filter(p => p && p.salud > 0);
+  const jug = roles().map(r => mios[r]).filter(p => p && p.salud > 0);
   if (!jug.length) return new Set();
   const dist = e => Math.min(...jug.map(p => Math.abs(p.x-e.x) + Math.abs(p.y-e.y)*2));
-  return new Set(vivos.sort((a,b) => dist(a)-dist(b)).slice(0, ATACANTES).map(x => x.i));
+  const cupo = ATACANTES + (roles().length > 2 ? 1 : 0);
+  return new Set(vivos.sort((a,b) => dist(a)-dist(b)).slice(0, cupo).map(x => x.i));
 }
-let puedenAtacar = new Set();
 
 function moverEnemigo(e){
   if (e.v <= 0){ if (e.enSuelo > 0) e.enSuelo--; e.est = 'suelo'; return; }
   if (e.aturdido > 0){ e.aturdido--; return; }
   if (e.invul > 0) e.invul--;
   if (e.ataque > 0){ e.ataque--; if (e.ataque === 0) e.est = 'quieto'; return; }
-  if (e.espera > 0){ e.espera--; }
+  if (e.espera > 0) e.espera--;
 
-  const d = DATOS[e.t];
-  const vivos = Object.entries(mios).filter(([r,p]) => p && p.salud > 0);
+  const d = TIPOS[e.t];
+  const vivos = roles().map(r => mios[r]).filter(p => p && p.salud > 0);
   if (!vivos.length){ e.est = 'quieto'; return; }
-  let obj = null, mejor = 1e9;
-  for (const [r,p] of vivos){
+  let obj = vivos[0], mejor = 1e9;
+  for (const p of vivos){
     const dist = Math.abs(p.x - e.x) + Math.abs(p.y - e.y)*2;
     if (dist < mejor){ mejor = dist; obj = p; }
   }
-
   const dx = obj.x - e.x, dy = obj.y - e.y;
-  const entra = puedenAtacar.has(e.i);
 
-  if (!entra){
-    // Merodea: se mantiene a distancia esperando su turno
-    const objetivo = obj.x + (e.x < obj.x ? -84 : 84);
-    if (Math.abs(objetivo - e.x) > 8){
-      e.x += Math.sign(objetivo - e.x)*d.vel*0.7;
-      e.est = 'anda'; e.marco += 0.16;
-    } else e.est = 'quieto';
+  // Solo unos pocos entran a pelear; el resto merodea esperando turno.
+  if (!puedenAtacar.has(e.i)){
+    const meta = obj.x + (e.x < obj.x ? -84 : 84);
+    if (Math.abs(meta - e.x) > 8){ e.x += Math.sign(meta - e.x)*d.vel*0.7;
+      e.est = 'anda'; e.marco += 0.16; }
+    else e.est = 'quieto';
     e.dir = Math.sign(dx) || e.dir;
     return;
   }
@@ -332,79 +330,72 @@ function moverEnemigo(e){
     if (e.espera <= 0){
       e.est = 'puno'; e.ataque = 18; e.espera = 48 + Math.random()*32;
       e.dir = dx >= 0 ? 1 : -1;
-      golpear(e, false, 'puno');
+      golpeAJugadores(e);
+      sonido.golpe();
     } else e.est = 'quieto';
   } else {
-    const paso = d.vel;
-    if (Math.abs(dx) > d.alcance*0.8){ e.x += Math.sign(dx)*paso; e.dir = Math.sign(dx); }
-    if (Math.abs(dy) > 4) e.y += Math.sign(dy)*paso*0.55;
+    if (Math.abs(dx) > d.alcance*0.8){ e.x += Math.sign(dx)*d.vel; e.dir = Math.sign(dx); }
+    if (Math.abs(dy) > 4) e.y += Math.sign(dy)*d.vel*0.55;
     e.est = 'anda'; e.marco += 0.2;
   }
 }
 
-/* ── Bucle ─────────────────────────────────────────────── */
-function paso(dt){
+/* ── Bucle de juego ────────────────────────────────────── */
+function paso(){
   const e = sala && sala.ultimo ? sala.ultimo.estado : null;
   if (!e || e.fase !== 'jugando') return;
 
-  // Cada quien mueve su propio luchador
-  const roles = dosLocal ? ['A','B'] : [miRol];
-  for (const r of roles){
-    if (!mios[r]) continue;
-    moverLuchador(mios[r], pulsa[r], dt);
-  }
+  if (mios[miRol]) moverLuchador(mios[miRol], pulsa);
 
   if (anfitrion){
+    // Golpes que llegan de los compañeros
+    if (e.golpes) for (const r of roles()){
+      const g = e.golpes[r];
+      if (r !== miRol && g && g.n > (vistos[r] || 0)){
+        vistos[r] = g.n;
+        const acerto = golpeAEnemigos(g);
+        if (acerto) g.t === 'patada' ? sonido.patada() : sonido.golpe();
+      }
+    }
+
     puedenAtacar = rankAtaque();
     enemigos.forEach(moverEnemigo);
-    // Los caídos desaparecen
     enemigos = enemigos.filter(x => x.v > 0 || x.enSuelo > 0);
 
-    // ¿Oleada limpia? Se abre el paso
     if (!enemigos.some(x => x.v > 0)){
-      avanceZona += 1;
-      if (avanceZona === 1){
-        enemigos = generarOleada(zona, 0);
-        aviso('¡Vienen más!');
-        sonido.avance();
-      } else if (avanceZona === 2){
-        enemigos = generarOleada(zona, 1);
-      } else {
-        avanceZona = 0;
-        zona++;
+      oleada++;
+      if (oleada >= 3){
+        oleada = 0; zona++;
         if (zona >= ZONAS){ terminar(true); return; }
         aviso('Zona ' + (zona+1));
-        sonido.avance();
-        enemigos = generarOleada(zona, 0);
+        sala.escribir('estado/zona', zona);
+      } else aviso('¡Vienen más!');
+      sonido.avance();
+      enemigos = generarOleada(zona, oleada);
+    }
+
+    // Vidas
+    for (const r of roles()){
+      const p = mios[r];
+      if (!p || p.salud > 0 || p.enSuelo > 0) continue;
+      const v = (e.vidas && e.vidas[r]) ?? 3;
+      if (v > 1){
+        sala.escribir('estado/vidas/' + r, v - 1);
+        p.salud = 100; p.invul = 90; p.est = 'quieto'; p.x = camX; p.y = 60;
+        if (!soloLocal) sala.escribir('estado/salud/' + r, 100);
+      } else {
+        sala.escribir('estado/vidas/' + r, 0);
+        if (roles().every(o => ((e.vidas && e.vidas[o]) ?? 3) <= 1 &&
+                               (!mios[o] || mios[o].salud <= 0))) terminar(false);
       }
     }
   }
 
-  // Muerte y vidas
-  for (const r of roles){
-    const p = mios[r];
-    if (!p || p.salud > 0 || p.enSuelo > 0) continue;
-    const vidas = (sala.ultimo.estado.vidas || {})[r] ?? 3;
-    if (vidas > 1){
-      sala.actualizar(s => { s.estado.vidas[r] = vidas - 1; });
-      p.salud = 100; p.invul = 90; p.est = 'quieto'; p.x = camX; p.y = 60;
-    } else {
-      sala.actualizar(s => { s.estado.vidas[r] = 0; });
-      p.salud = 0;
-      const otros = roles.filter(o => o !== r && mios[o] && mios[o].salud > 0);
-      if (!otros.length) terminar(false);
-    }
-  }
-
-  // Cámara: sigue al que va más adelante
-  const vivos = Object.values(mios).filter(p => p && p.salud > 0);
-  if (vivos.length){
-    const objetivo = Math.max(...vivos.map(p => p.x));
-    camX += (objetivo - camX)*0.06;
-  }
+  const vivos = roles().map(r => mios[r]).filter(p => p && p.salud > 0);
+  if (vivos.length) camX += (Math.max(...vivos.map(p => p.x)) - camX)*0.06;
   if (sacudida > 0.2) sacudida *= 0.85;
-  golpes.forEach(g => g.v--);
-  golpes = golpes.filter(g => g.v > 0);
+  chispas.forEach(c => c.v--);
+  chispas = chispas.filter(c => c.v > 0);
 }
 
 function terminar(gano){
@@ -418,148 +409,216 @@ function aviso(txt){
   avisoHasta = performance.now() + 1600;
 }
 
-/* ── Dibujo ────────────────────────────────────────────── */
-const escY = y => H*0.52 + y*1.6;                      // profundidad → pantalla
-const escala = y => 0.78 + (y/SUELO_Y1)*0.34;          // más cerca, más grande
-
-function aPantalla(x, y, z){
-  return [ x - camX + W/2, escY(y) - z*escala(y) ];
-}
+/* ── Dibujo del escenario ──────────────────────────────── */
+const escY = y => H*0.52 + y*1.6;
+const escala = y => 0.78 + (y/HONDO1)*0.34;
+const aPantalla = (x, y, z) => [ x - camX + W/2, escY(y) - z*escala(y) ];
 
 function dibujarFondo(){
   const g = cx.createLinearGradient(0,0,0,H);
   g.addColorStop(0,'#181042'); g.addColorStop(0.55,'#3B2168'); g.addColorStop(1,'#4A2A5E');
   cx.fillStyle = g; cx.fillRect(0,0,W,H);
-
-  // Luna y edificios con parallax
   cx.fillStyle = 'rgba(255,232,180,.85)';
   cx.beginPath(); cx.arc(W*0.8, H*0.14, 26, 0, 7); cx.fill();
 
   for (const [f, col, alt] of [[0.12,'#1E1440',0.30],[0.28,'#2A1B52',0.22]]){
-    cx.fillStyle = col;
     for (let i = -2; i < 22; i++){
       const bx = ((i*120 - camX*f) % (W+360) + W+360) % (W+360) - 180;
       const bh = H*alt*(0.6 + ((i*37)%10)/14);
+      cx.fillStyle = col;
       cx.fillRect(bx, H*0.52 - bh, 96, bh);
       cx.fillStyle = 'rgba(255,201,74,.14)';
       for (let vy = 0; vy < bh-18; vy += 22)
         for (let vx = 0; vx < 4; vx++)
           if (((i*7+vy+vx*3) % 5) < 2) cx.fillRect(bx+10+vx*20, H*0.52-bh+10+vy, 9, 11);
-      cx.fillStyle = col;
     }
   }
 
-  // Acera y calzada
-  cx.fillStyle = '#2C2140'; cx.fillRect(0, escY(SUELO_Y0)-26, W, 26);
-  cx.fillStyle = '#3A2C52'; cx.fillRect(0, escY(SUELO_Y0)-30, W, 5);
-  const gs = cx.createLinearGradient(0, escY(SUELO_Y0), 0, H);
+  cx.fillStyle = '#2C2140'; cx.fillRect(0, escY(HONDO0)-26, W, 26);
+  cx.fillStyle = '#3A2C52'; cx.fillRect(0, escY(HONDO0)-30, W, 5);
+  const gs = cx.createLinearGradient(0, escY(HONDO0), 0, H);
   gs.addColorStop(0,'#241B36'); gs.addColorStop(1,'#171025');
-  cx.fillStyle = gs; cx.fillRect(0, escY(SUELO_Y0), W, H);
-  // Líneas de la calzada
+  cx.fillStyle = gs; cx.fillRect(0, escY(HONDO0), W, H);
   cx.strokeStyle = 'rgba(255,255,255,.07)'; cx.lineWidth = 3;
-  cx.setLineDash([40, 46]); cx.lineDashOffset = -camX*0.9;
-  cx.beginPath(); cx.moveTo(0, escY(SUELO_Y1*0.72)); cx.lineTo(W, escY(SUELO_Y1*0.72)); cx.stroke();
+  cx.setLineDash([40,46]); cx.lineDashOffset = -camX*0.9;
+  cx.beginPath(); cx.moveTo(0, escY(HONDO1*0.72)); cx.lineTo(W, escY(HONDO1*0.72)); cx.stroke();
   cx.setLineDash([]);
 
-  // Farolas
   for (let i = -1; i < 14; i++){
     const fx = i*380 - (camX % 380);
     if (fx < -60 || fx > W+60) continue;
-    cx.fillStyle = '#2A2140'; cx.fillRect(fx, escY(SUELO_Y0)-150, 6, 150);
-    cx.fillStyle = '#FFE9A8'; cx.beginPath(); cx.arc(fx+3, escY(SUELO_Y0)-152, 7, 0, 7); cx.fill();
+    cx.fillStyle = '#2A2140'; cx.fillRect(fx, escY(HONDO0)-150, 6, 150);
+    cx.fillStyle = '#FFE9A8'; cx.beginPath(); cx.arc(fx+3, escY(HONDO0)-152, 7, 0, 7); cx.fill();
     cx.fillStyle = 'rgba(255,233,168,.07)';
-    cx.beginPath(); cx.moveTo(fx+3, escY(SUELO_Y0)-150);
+    cx.beginPath(); cx.moveTo(fx+3, escY(HONDO0)-150);
     cx.lineTo(fx-46, H); cx.lineTo(fx+52, H); cx.closePath(); cx.fill();
   }
 }
 
-/** Dibuja un peleador con poses articuladas. */
-function dibujarPersona(p, color, etiqueta){
-  const [sx, sy] = aPantalla(p.x, p.y, p.z);
-  if (sx < -90 || sx > W+90) return;
-  const s = escala(p.y)*1.15;
+/* ── Dibujo de los peleadores ──────────────────────────────
+   Cada miembro es un polígono que se estrecha hacia el extremo,
+   con contorno oscuro: así se leen como sprites de arcade y no
+   como palitos. Las poses salen de mover unos pocos puntos. */
+function hueso(ax, ay, bx, by, w1, w2, col){
+  const dx = bx-ax, dy = by-ay, L = Math.hypot(dx,dy) || 1;
+  const nx = -dy/L, ny = dx/L;
+  cx.beginPath();
+  cx.moveTo(ax + nx*w1, ay + ny*w1);
+  cx.lineTo(bx + nx*w2, by + ny*w2);
+  cx.lineTo(bx - nx*w2, by - ny*w2);
+  cx.lineTo(ax - nx*w1, ay - ny*w1);
+  cx.closePath();
+  cx.fillStyle = col; cx.fill(); cx.stroke();
+}
 
-  // Sombra en el suelo
-  const [ssx, ssy] = aPantalla(p.x, p.y, 0);
-  cx.fillStyle = 'rgba(0,0,0,.4)';
-  cx.beginPath(); cx.ellipse(ssx, ssy, 15*s, 5*s, 0, 0, 7); cx.fill();
+function dibujarPersona(o, look, etiqueta){
+  const [sx, sy] = aPantalla(o.x, o.y, o.z);
+  if (sx < -110 || sx > W+110) return;
+  const s = escala(o.y)*1.28*(look.ancho || 1);
+
+  const [ssx, ssy] = aPantalla(o.x, o.y, 0);
+  cx.fillStyle = 'rgba(0,0,0,.42)';
+  cx.beginPath(); cx.ellipse(ssx, ssy, 17*s, 5.5*s, 0, 0, 7); cx.fill();
 
   cx.save();
   cx.translate(sx, sy);
-  cx.scale(p.dir*s, s);
-  if (p.invul > 0 && Math.floor(p.invul/3)%2) cx.globalAlpha = 0.45;
+  cx.scale(o.dir*s, s);
+  if (o.invul > 0 && Math.floor(o.invul/3)%2) cx.globalAlpha = .45;
+  if (o.est === 'suelo'){ cx.rotate(-Math.PI/2); cx.translate(-16, 4); }
 
-  if (p.est === 'suelo'){
-    cx.rotate(-Math.PI/2);
-    cx.translate(-14, 0);
-  }
+  cx.lineWidth = 1.6; cx.lineJoin = 'round';
+  cx.strokeStyle = '#140D28';
+  const piel = look.piel, ropa = look.ropa, pant = look.pant;
+  const t = o.marco, anda = o.est === 'anda';
+  const bal = anda ? Math.sin(t)*9 : 0;
+  const resp = o.est === 'quieto' ? Math.sin(t*0.06)*0.8 : 0;
 
-  const t = p.marco;
-  const anda = p.est === 'anda';
-  const bal = anda ? Math.sin(t)*10 : 0;
-
-  // Piernas
-  cx.strokeStyle = '#2E2450'; cx.lineWidth = 6; cx.lineCap = 'round';
-  if (p.est === 'patada'){
-    cx.beginPath(); cx.moveTo(0,-22); cx.lineTo(4,-10); cx.lineTo(2,2); cx.stroke();
-    cx.beginPath(); cx.moveTo(0,-22); cx.lineTo(16,-24); cx.lineTo(30,-22); cx.stroke();
-  } else if (p.est === 'salto'){
-    cx.beginPath(); cx.moveTo(0,-22); cx.lineTo(-6,-12); cx.lineTo(2,-8); cx.stroke();
-    cx.beginPath(); cx.moveTo(0,-22); cx.lineTo(8,-12); cx.lineTo(14,-6); cx.stroke();
+  // ── Piernas
+  if (o.est === 'patada'){
+    hueso(-2,-26, -8,-13, 6,5, pant); hueso(-8,-13, -6,-1, 5,4.5, '#2A2038');
+    hueso(-2,-26, 14,-30, 6.5,5, pant); hueso(14,-30, 32,-30, 5,4.5, '#2A2038');
+  } else if (o.est === 'salto'){
+    hueso(-2,-26, -10,-16, 6,5, pant); hueso(-10,-16, -2,-10, 5,4.5, '#2A2038');
+    hueso(2,-26, 12,-18, 6,5, pant);   hueso(12,-18, 18,-8, 5,4.5, '#2A2038');
   } else {
-    cx.beginPath(); cx.moveTo(0,-22); cx.lineTo(-3+bal*0.5,-11); cx.lineTo(-5+bal,0); cx.stroke();
-    cx.beginPath(); cx.moveTo(0,-22); cx.lineTo(4-bal*0.5,-11); cx.lineTo(6-bal,0); cx.stroke();
+    hueso(-3,-26, -4+bal*0.5,-13, 6.5,5, pant);
+    hueso(-4+bal*0.5,-13, -6+bal,-1, 5,4.5, '#2A2038');
+    hueso(3,-26, 4-bal*0.5,-13, 6.5,5, pant);
+    hueso(4-bal*0.5,-13, 6-bal,-1, 5,4.5, '#2A2038');
   }
 
-  // Torso
-  cx.fillStyle = color;
-  cx.beginPath(); cx.roundRect(-8,-44, 16, 24, 5); cx.fill();
-  cx.fillStyle = 'rgba(0,0,0,.25)';
-  cx.beginPath(); cx.roundRect(-8,-28, 16, 8, 3); cx.fill();
+  // ── Torso: trapecio de hombros anchos y cintura estrecha
+  cx.beginPath();
+  cx.moveTo(-11,-50+resp); cx.lineTo(11,-50+resp);
+  cx.lineTo(8,-26); cx.lineTo(-8,-26);
+  cx.closePath();
+  cx.fillStyle = ropa; cx.fill(); cx.stroke();
+  cx.fillStyle = 'rgba(0,0,0,.22)';
+  cx.beginPath(); cx.moveTo(4,-50+resp); cx.lineTo(11,-50+resp);
+  cx.lineTo(8,-26); cx.lineTo(3,-26); cx.closePath(); cx.fill();
+  if (look.chaleco){                                   // chaleco abierto
+    cx.fillStyle = look.chaleco;
+    cx.beginPath(); cx.moveTo(-11,-50+resp); cx.lineTo(-4,-50+resp);
+    cx.lineTo(-3,-27); cx.lineTo(-8,-26); cx.closePath(); cx.fill(); cx.stroke();
+  }
+  cx.fillStyle = '#241A38';                            // cinturón
+  cx.fillRect(-8.5,-29, 17, 4); cx.strokeRect(-8.5,-29, 17, 4);
+  cx.fillStyle = look.hebilla || '#C9B24A';
+  cx.fillRect(-1.5,-29.5, 4, 5);
 
-  // Brazos
-  cx.strokeStyle = color; cx.lineWidth = 5.5;
-  if (p.est === 'puno'){
-    cx.beginPath(); cx.moveTo(4,-40); cx.lineTo(18,-38); cx.lineTo(30,-38); cx.stroke();
-    cx.fillStyle = '#F3ECFF'; cx.beginPath(); cx.arc(32,-38,4.5,0,7); cx.fill();
-    cx.strokeStyle = color;
-    cx.beginPath(); cx.moveTo(-4,-40); cx.lineTo(-10,-32); cx.stroke();
-  } else if (p.est === 'patada'){
-    cx.beginPath(); cx.moveTo(4,-40); cx.lineTo(-6,-32); cx.stroke();
-    cx.beginPath(); cx.moveTo(-4,-40); cx.lineTo(-14,-44); cx.stroke();
-  } else if (p.est === 'herido'){
-    cx.beginPath(); cx.moveTo(4,-40); cx.lineTo(12,-50); cx.stroke();
-    cx.beginPath(); cx.moveTo(-4,-40); cx.lineTo(-12,-48); cx.stroke();
+  // ── Brazos
+  const hy = -47 + resp;
+  if (o.est === 'puno'){
+    hueso(6,hy, 20,hy+2, 5.5,4.5, piel);
+    hueso(20,hy+2, 33,hy+2, 4.5,4, piel);
+    cx.fillStyle = look.venda || '#F3ECFF';
+    cx.beginPath(); cx.arc(35,hy+2,5,0,7); cx.fill(); cx.stroke();
+    hueso(-6,hy, -12,hy+9, 5.5,4.5, piel);
+    cx.fillStyle = look.venda || '#F3ECFF';
+    cx.beginPath(); cx.arc(-13,hy+11,4.4,0,7); cx.fill(); cx.stroke();
+  } else if (o.est === 'patada'){
+    hueso(6,hy, 16,hy-8, 5.5,4.5, piel);
+    hueso(-6,hy, -16,hy-6, 5.5,4.5, piel);
+  } else if (o.est === 'herido'){
+    hueso(6,hy, 14,hy-12, 5.5,4.5, piel);
+    hueso(-6,hy, -14,hy-10, 5.5,4.5, piel);
   } else {
-    cx.beginPath(); cx.moveTo(4,-40); cx.lineTo(9,-30+bal*0.4); cx.stroke();
-    cx.beginPath(); cx.moveTo(-4,-40); cx.lineTo(-9,-30-bal*0.4); cx.stroke();
+    // Guardia: puños arriba, como un boxeador
+    hueso(6,hy, 12,hy+6-bal*0.3, 5.5,4.5, piel);
+    hueso(12,hy+6-bal*0.3, 15,hy-3, 4.5,4, piel);
+    cx.fillStyle = look.venda || '#F3ECFF';
+    cx.beginPath(); cx.arc(16,hy-5,4.6,0,7); cx.fill(); cx.stroke();
+    hueso(-6,hy, -12,hy+6+bal*0.3, 5.5,4.5, piel);
+    hueso(-12,hy+6+bal*0.3, -9,hy-3, 4.5,4, piel);
+    cx.fillStyle = look.venda || '#F3ECFF';
+    cx.beginPath(); cx.arc(-8,hy-5,4.6,0,7); cx.fill(); cx.stroke();
   }
 
-  // Cabeza
-  cx.fillStyle = '#F0C9A0';
-  cx.beginPath(); cx.arc(1,-52,8,0,7); cx.fill();
-  cx.fillStyle = '#2E2450';
-  cx.beginPath(); cx.arc(1,-55,8,Math.PI,0); cx.fill();
-  cx.fillStyle = color;
-  cx.fillRect(-7,-57,16,3.5);                       // cinta en la frente
-  cx.fillStyle = '#2E2450';
-  cx.fillRect(4,-52,2.6,2.6);                       // ojo
+  // ── Cuello y cabeza
+  hueso(0,-50+resp, 0,-56+resp, 4.5,4.5, piel);
+  cx.beginPath();
+  cx.moveTo(-7,-58+resp); cx.lineTo(7,-58+resp); cx.lineTo(8,-66+resp);
+  cx.quadraticCurveTo(0,-73+resp, -8,-66+resp);
+  cx.closePath();
+  cx.fillStyle = piel; cx.fill(); cx.stroke();
+  // Pelo o accesorio de cabeza
+  if (look.tipoPelo === 'cresta'){
+    cx.fillStyle = look.pelo;
+    cx.beginPath(); cx.moveTo(-6,-68+resp);
+    cx.lineTo(-2,-80+resp); cx.lineTo(1,-70+resp);
+    cx.lineTo(4,-79+resp); cx.lineTo(7,-67+resp);
+    cx.closePath(); cx.fill(); cx.stroke();
+  } else if (look.tipoPelo === 'calvo'){
+    cx.fillStyle = 'rgba(255,255,255,.14)';
+    cx.beginPath(); cx.ellipse(0,-68+resp, 6,3.4, 0,0,7); cx.fill();
+  } else if (look.tipoPelo === 'gafas'){
+    cx.fillStyle = look.pelo;
+    cx.beginPath(); cx.moveTo(-8,-67+resp); cx.quadraticCurveTo(0,-75+resp,8,-67+resp);
+    cx.lineTo(8,-70+resp); cx.quadraticCurveTo(0,-78+resp,-8,-70+resp);
+    cx.closePath(); cx.fill(); cx.stroke();
+    cx.fillStyle = '#100A1E'; cx.fillRect(0,-65+resp, 9, 4.5);
+  } else {
+    cx.fillStyle = look.pelo;                          // cinta en la frente
+    cx.beginPath(); cx.moveTo(-8.4,-67+resp); cx.lineTo(8.4,-67+resp);
+    cx.lineTo(8.4,-62.5+resp); cx.lineTo(-8.4,-62.5+resp); cx.closePath();
+    cx.fill(); cx.stroke();
+    cx.beginPath(); cx.moveTo(-8,-65+resp); cx.lineTo(-17,-60+resp);
+    cx.lineTo(-16,-63.5+resp); cx.closePath(); cx.fill(); cx.stroke();
+  }
+  cx.fillStyle = '#241A38';
+  cx.fillRect(3.5,-62+resp, 3, 2.6);                   // ojo
+  if (o.est === 'herido'){ cx.fillRect(1,-58+resp, 5, 2); }
 
   cx.globalAlpha = 1;
   cx.restore();
 
   if (etiqueta){
-    cx.fillStyle = color; cx.font = '700 13px "DM Sans", sans-serif'; cx.textAlign = 'center';
-    cx.fillText(etiqueta, sx, sy - 74*s);
+    cx.fillStyle = look.ropa;
+    cx.font = '700 13px "DM Sans", sans-serif'; cx.textAlign = 'center';
+    cx.fillText(etiqueta, sx, sy - 92*s);
   }
 }
+
+const LOOK_J = r => ({ ropa: COL_J[r] || '#6FA8FF', piel:'#F0C9A0', pant:'#2E2450',
+                       pelo:'#F3ECFF', venda:'#F3ECFF', tipoPelo:'cinta', ancho:1 });
+const LOOK_E = {
+  maton: { ropa:TIPOS.maton.col, piel:'#D9A97F', pant:'#3A2A4E',
+           pelo:TIPOS.maton.pelo, tipoPelo:'cresta', venda:'#D9A97F', ancho:0.95 },
+  bruto: { ropa:TIPOS.bruto.col, piel:'#C98F63', pant:'#4A3320',
+           pelo:'#3A2A22', tipoPelo:'calvo', venda:'#C98F63', ancho:1.3,
+           chaleco:'#6B4326' },
+  jefe:  { ropa:TIPOS.jefe.col, piel:'#E0B48C', pant:'#241830',
+           pelo:'#1B1233', tipoPelo:'gafas', venda:'#E0B48C', ancho:1.12,
+           chaleco:'#7A1E3C', hebilla:'#E8C25C' }
+};
 
 function barraEnemigo(e){
   if (e.v <= 0 || e.v >= e.vmax) return;
   const [sx, sy] = aPantalla(e.x, e.y, e.z);
   const s = escala(e.y);
-  cx.fillStyle = 'rgba(0,0,0,.5)'; cx.fillRect(sx-16, sy-78*s, 32, 4);
-  cx.fillStyle = '#FF7B7B'; cx.fillRect(sx-16, sy-78*s, 32*(e.v/e.vmax), 4);
+  cx.fillStyle = 'rgba(0,0,0,.55)'; cx.fillRect(sx-18, sy-98*s, 36, 5);
+  cx.fillStyle = e.v/e.vmax > 0.35 ? '#FFC94A' : '#FF7B7B';
+  cx.fillRect(sx-18, sy-98*s, 36*(e.v/e.vmax), 5);
 }
 
 function dibujar(){
@@ -567,26 +626,28 @@ function dibujar(){
   if (sacudida > 0.2) cx.translate((Math.random()-0.5)*sacudida, (Math.random()-0.5)*sacudida);
   dibujarFondo();
 
-  const todos = [];
-  for (const r of ['A','B']) if (mios[r] && (mios[r].salud > 0 || mios[r].enSuelo > 0))
-    todos.push({ o:mios[r], col:COL[r], eti: sala ? sala.nombre(r) : r });
-  for (const e of enemigos) todos.push({ o:e, col:DATOS[e.t].col, eti:null, ene:true });
-  todos.sort((a,b) => a.o.y - b.o.y);                 // los de atrás primero
-  for (const t of todos){
-    dibujarPersona(t.o, t.col, t.eti);
-    if (t.ene) barraEnemigo(t.o);
+  const orden = [];
+  for (const r of roles()){
+    const p = mios[r];
+    if (p && (p.salud > 0 || p.enSuelo > 0))
+      orden.push({ o:p, look:LOOK_J(r), eti: sala ? sala.nombre(r) : r });
+  }
+  for (const e of enemigos) orden.push({ o:e, look:LOOK_E[e.t], ene:true });
+  orden.sort((a,b) => a.o.y - b.o.y);
+  for (const it of orden){
+    dibujarPersona(it.o, it.look, it.eti);
+    if (it.ene) barraEnemigo(it.o);
   }
 
-  // Destellos de impacto
-  for (const g of golpes){
-    const [gx, gy] = aPantalla(g.x, g.y, g.z);
-    cx.globalAlpha = g.v/12;
-    cx.strokeStyle = '#FFE9A8'; cx.lineWidth = 3;
-    for (let i = 0; i < 6; i++){
-      const a = i*Math.PI/3;
+  for (const c of chispas){
+    const [gx, gy] = aPantalla(c.x, c.y, c.z);
+    cx.globalAlpha = c.v/12;
+    cx.strokeStyle = '#FFE9A8'; cx.lineWidth = 3.4;
+    for (let i = 0; i < 7; i++){
+      const a = i*Math.PI/3.5;
       cx.beginPath();
-      cx.moveTo(gx+Math.cos(a)*6, gy+Math.sin(a)*6);
-      cx.lineTo(gx+Math.cos(a)*(16-g.v*0.5), gy+Math.sin(a)*(16-g.v*0.5));
+      cx.moveTo(gx+Math.cos(a)*7, gy+Math.sin(a)*7);
+      cx.lineTo(gx+Math.cos(a)*(19-c.v*0.6), gy+Math.sin(a)*(19-c.v*0.6));
       cx.stroke();
     }
     cx.globalAlpha = 1;
@@ -598,35 +659,39 @@ function dibujar(){
 function hud(){
   const e = sala && sala.ultimo ? sala.ultimo.estado : null;
   if (!e) return;
-  for (const r of ['A','B']){
-    const activo = dosLocal || r === miRol || (sala && sala.jugador && sala.jugador(r));
-    $('lu-'+r).classList.toggle('ausente', !activo);
-    $('nom-'+r).textContent = sala ? sala.nombre(r) : r;
+  const cont = $('banda');
+  const lista = roles();
+  if (cont.childElementCount !== lista.length) cont.innerHTML = '';
+  lista.forEach((r,k) => {
+    let d = cont.children[k];
+    if (!d){ d = document.createElement('div'); d.className = 'peleador'; cont.appendChild(d); }
     const p = mios[r];
-    const s = p ? Math.max(0, p.salud) : 0;
-    $('ba-'+r).style.width = s + '%';
+    const s = p ? Math.max(0, Math.round(p.salud)) : ((e.salud && e.salud[r]) ?? 100);
     const v = (e.vidas && e.vidas[r]) ?? 3;
-    $('vi-'+r).textContent = '♥'.repeat(Math.max(0,v)) || '—';
-  }
+    const on = soloLocal ? true : sala.enLinea(r);
+    d.className = 'peleador' + (r === miRol ? ' yo' : '') + (on ? '' : ' fuera');
+    d.style.color = COL_J[r];
+    d.innerHTML = '<div class="fila"><span class="nm">' + sala.nombre(r) +
+                  (r === miRol ? ' (tú)' : '') + '</span>' +
+                  '<span class="vd">' + ('♥'.repeat(Math.max(0,v)) || '—') + '</span></div>' +
+                  '<div class="barra"><i style="width:' + s + '%"></i></div>';
+  });
   $('hud-zona').textContent = (zona+1) + '/' + ZONAS;
 }
 
-let ultimo = performance.now();
+let ultimoT = performance.now();
 function bucle(ahora){
   requestAnimationFrame(bucle);
-  const dt = Math.min(0.05, (ahora - ultimo)/1000);
-  ultimo = ahora;
-
-  if (corriendo) paso(dt);
+  ultimoT = ahora;
+  if (corriendo) paso();
   if (avisoHasta && ahora > avisoHasta){ $('aviso').classList.remove('ver'); avisoHasta = 0; }
 
-  // Sincronización
-  if (sala && corriendo && !dosLocal && ahora - ultimoEnvio > 90){
+  if (sala && corriendo && !soloLocal && ahora - ultimoEnvio > 90){
     ultimoEnvio = ahora;
     const p = mios[miRol];
     if (p) sala.escribir('estado/pos/' + miRol, {
       x:+p.x.toFixed(1), y:+p.y.toFixed(1), z:+p.z.toFixed(1),
-      d:p.dir, e:p.est, s:Math.round(p.salud), m:+p.marco.toFixed(1)
+      d:p.dir, e:p.est, m:+p.marco.toFixed(1)
     });
     if (anfitrion) sala.escribir('estado/enemigos', enemigos.map(e => ({
       i:e.i, t:e.t, x:+e.x.toFixed(1), y:+e.y.toFixed(1), z:+e.z.toFixed(1),
@@ -642,24 +707,28 @@ function bucle(ahora){
 function pintar(s){
   const e = s && s.estado;
   if (!e) return;
+  zona = e.zona || 0;
 
-  if (!dosLocal){
-    // Posición del compañero
-    const q = e.pos && e.pos[rival];
-    if (q){
-      if (!mios[rival]) mios[rival] = nuevoLuchador(q.x, q.y);
-      const r = mios[rival];
-      r.x += (q.x - r.x)*0.35; r.y += (q.y - r.y)*0.35; r.z = q.z;
-      r.dir = q.d; r.est = q.e; r.salud = q.s; r.marco = q.m;
+  if (!soloLocal){
+    for (const r of roles()){
+      if (r === miRol){
+        // El anfitrión manda sobre mi salud
+        if (!anfitrion && mios[r] && e.salud && e.salud[r] != null) mios[r].salud = e.salud[r];
+        continue;
+      }
+      const q = e.pos && e.pos[r];
+      if (!q) continue;
+      if (!mios[r]) mios[r] = nuevoLuchador(q.x, q.y);
+      const p = mios[r];
+      p.x += (q.x - p.x)*0.35; p.y += (q.y - p.y)*0.35; p.z = q.z;
+      p.dir = q.d; p.est = q.e; p.marco = q.m;
+      if (e.salud && e.salud[r] != null) p.salud = e.salud[r];
     }
-    // Enemigos: los manda el anfitrión
     if (!anfitrion && e.enemigos){
-      const prev = {}; enemigos.forEach(x => prev[x.i] = x);
-      enemigos = e.enemigos.map(x => {
-        const a = prev[x.i] || {};
-        return { i:x.i, t:x.t, x:x.x, y:x.y, z:x.z, dir:x.d, est:x.e,
-                 v:x.v, vmax:x.vm, marco:x.m, invul:0, aturdido:0, enSuelo:x.v<=0?1:0 };
-      });
+      enemigos = e.enemigos.map(x => ({
+        i:x.i, t:x.t, x:x.x, y:x.y, z:x.z, dir:x.d, est:x.e, v:x.v, vmax:x.vm,
+        marco:x.m, invul:0, aturdido:0, enSuelo: x.v <= 0 ? 1 : 0
+      }));
     }
   }
 
@@ -668,24 +737,21 @@ function pintar(s){
     finalMostrado = true; corriendo = false;
     const gano = e.ganador === 'jugadores';
     capa(gano ? '🏆 ¡Calle despejada!' : '💀 Los tumbaron',
-         gano ? 'Limpiaron las ' + ZONAS + ' zonas. Marian está a salvo.'
-              : 'Se quedaron sin vidas. La banda sigue mandando en el barrio.',
+         gano ? 'Limpiaron las ' + ZONAS + ' zonas. El barrio es suyo.'
+              : 'Se quedaron sin vidas. La banda sigue mandando.',
          'Otra vez');
     gano ? sonido.victoria() : sonido.derrota();
   }
 }
 
 function arrancar(e){
-  zona = e.zona || 0; avanceZona = 0;
-  camX = 0; contadorId = 1;
-  mios = {};
-  const roles = dosLocal ? ['A','B'] : [miRol];
-  roles.forEach((r,k) => { mios[r] = nuevoLuchador(-60 + k*70, 40 + k*30); });
-  if (!dosLocal && e.pos && e.pos[rival]) mios[rival] = nuevoLuchador(e.pos[rival].x, e.pos[rival].y);
+  zona = e.zona || 0; oleada = 0; camX = 0; contadorId = 1;
+  mios = {}; vistos = {}; nGolpe = 0;
+  roles().forEach((r,k) => { mios[r] = nuevoLuchador(-70 + k*60, 35 + k*22); });
   enemigos = anfitrion ? generarOleada(zona, 0) : [];
   corriendo = true; finalMostrado = false;
   $('capa').classList.add('oculta');
-  aviso('Zona 1');
+  aviso('Zona ' + (zona+1));
 }
 
 function capa(t, s, b){
@@ -696,52 +762,45 @@ function capa(t, s, b){
 $('capa-b').addEventListener('click', () => {
   finalMostrado = false;
   sala.actualizar(s => {
-    s.estado.fase = 'jugando'; s.estado.zona = 0; s.estado.ganador = '';
-    s.estado.vidas = {A:3, B:3}; s.estado.enemigos = []; s.estado.pos = {};
+    const e = s.estado;
+    e.fase = 'jugando'; e.zona = 0; e.ganador = '';
+    e.vidas = {}; e.salud = {}; e.enemigos = []; e.pos = {}; e.golpes = {};
+    for (const r of roles()){ e.vidas[r] = 3; e.salud[r] = 100; }
   });
 });
 
 /* ── Arranque ──────────────────────────────────────────── */
 requestAnimationFrame(bucle);
 
+// Al volver al catálogo liberamos el puesto: si no, la sala queda
+// con un jugador fantasma hasta que Firebase note la desconexión.
+document.querySelector('a.inicio').addEventListener('click', () => {
+  try { if (sala && sala.salir) sala.salir(); } catch(e){}
+});
+
 new Lobby({
   juego: 'furia',
   titulo: 'Furia <em>callejera</em>',
-  lema: 'Beat’em up cooperativo: los dos contra la banda.',
+  lema: 'Beat’em up: tú, o todos ustedes, contra la banda.',
+  maxJugadores: MAX_J,
   estadoInicial,
-  nombreRobot: () => 'Compañero',
+  nombreRobot: n => NIVEL[n].nombre,
   alEntrar: s => {
-    sala = s; miRol = s.rol; rival = s.rival;
-    anfitrion = (miRol === 'A');
-    $('ayuda-teclas').textContent = 'Teclado: W A S D para moverte · F puño · G patada · H salto';
+    sala = s; miRol = s.rol; anfitrion = (miRol === 'A'); soloLocal = false;
     s.alCambiar(pintar);
-    capa('Furia callejera', 'Golpea, patea y salta. Limpien las ' + ZONAS +
-         ' zonas antes de quedarse sin vidas.', 'Empezar');
+    capa('Furia callejera',
+         'Golpea, patea y salta. Limpien las ' + ZONAS + ' zonas antes de quedarse sin vidas. ' +
+         'Pueden sumarse hasta ' + MAX_J + '.', 'Empezar');
   },
-  alLocal: () => {
-    dosLocal = true; anfitrion = true; miRol = 'A'; rival = 'B';
-    sala = new (class {
-      constructor(){ this.ultimo = { jugadores:{A:{nombre:'Jugador 1'},B:{nombre:'Jugador 2'}},
-                                     estado: estadoInicial() }; this._o = []; }
-      get rival(){ return 'B'; }
-      nombre(r){ return this.ultimo.jugadores[r].nombre; }
-      jugador(r){ return this.ultimo.jugadores[r]; }
-      alCambiar(cb){ this._o.push(cb); cb(this.ultimo); }
-      actualizar(fn){ if (fn(this.ultimo) === false) return; this._o.forEach(cb => cb(this.ultimo)); }
-      escribir(){}
-    })();
-    $('ayuda-teclas').textContent =
-      'Jugador 1: W A S D · F puño · G patada · H salto  |  Jugador 2: flechas · 1 puño · 2 patada · 3 salto';
-    sala.alCambiar(pintar);
-    capa('Furia callejera', 'Dos jugadores en este dispositivo. Limpien las ' +
-         ZONAS + ' zonas juntos.', 'Empezar');
+  alSolo: (s, n) => {
+    sala = s; miRol = 'A'; anfitrion = true; soloLocal = true; nivel = n;
+    // En solitario la sala vive en memoria: el rol B no participa
+    s.ultimo.jugadores = { A: s.ultimo.jugadores.A };
+    s.alCambiar(pintar);
+    capa('Tú contra la banda',
+         'Tres zonas, tres oleadas cada una y un jefe al final. Dificultad: ' +
+         NIVEL[n].nombre.toLowerCase() + '.', 'Empezar');
   }
-});
-
-/* En móvil, la pulsación larga sobre un control abre el menú del sistema
-   y selecciona el texto del botón. Aquí no queremos ninguna de las dos. */
-document.addEventListener('contextmenu', e => {
-  if (e.target.closest('button, canvas')) e.preventDefault();
 });
 </script>
 </body>

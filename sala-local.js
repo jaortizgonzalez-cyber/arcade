@@ -27,6 +27,10 @@ export class SalaLocal {
   }
 
   get rival(){ return 'B'; }
+  get roles(){ return Object.keys(this.ultimo.jugadores); }
+  ocupados(){ return this.roles; }
+  presentes(){ return this.roles; }
+  otros(){ return this.roles.filter(r => r !== this.rol); }
   get completa(){ return true; }
   get activa(){ return true; }
 

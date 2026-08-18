@@ -131,9 +131,11 @@
   @keyframes caer{
     0%{transform:translateY(0) rotate(0deg);opacity:1}
     100%{transform:translateY(340px) rotate(720deg);opacity:0}}
+  a.inicio{flex:none;margin:0 0 6px}
 </style>
 </head>
 <body>
+<a class="inicio" href="index.html">◀ Sala de juegos</a>
 <main>
   <div id="lobby"></div>
 
@@ -1127,6 +1129,12 @@ $('b-revancha').addEventListener('click', () => {
 pista = crearPista(1, 800, escena);
 moto = nuevaMoto();
 requestAnimationFrame(bucle);
+
+// Al volver al catálogo liberamos el puesto: si no, la sala queda
+// con un jugador fantasma hasta que Firebase note la desconexión.
+document.querySelector('a.inicio').addEventListener('click', () => {
+  try { if (sala && sala.salir) sala.salir(); } catch(e){}
+});
 
 new Lobby({
   juego: 'motocross',

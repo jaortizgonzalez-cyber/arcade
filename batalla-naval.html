@@ -179,6 +179,7 @@
 </style>
 </head>
 <body>
+<a class="inicio" href="index.html">◀ Sala de juegos</a>
 <div id="toast"><b id="toast-t"></b><span id="toast-s"></span></div>
 <main>
   <div id="lobby"></div>
@@ -917,6 +918,12 @@ const celdasCol    = construir($('malla-propia-col'),
                                 i => tocarColocacion(i, true));
 const celdasRival  = construir($('malla-rival'), disparar);
 const celdasPropia = construir($('malla-propia'), null);
+
+// Al volver al catálogo liberamos el puesto: si no, la sala queda
+// con un jugador fantasma hasta que Firebase note la desconexión.
+document.querySelector('a.inicio').addEventListener('click', () => {
+  try { if (sala && sala.salir) sala.salir(); } catch(e){}
+});
 
 new Lobby({
   juego: 'batallanaval',
