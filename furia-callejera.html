@@ -171,13 +171,26 @@ addEventListener('keydown', e => tecla(e, true));
 addEventListener('keyup',   e => tecla(e, false));
 addEventListener('blur', () => { for (const r of ['A','B']) for (const k in pulsa[r]) pulsa[r][k] = false; });
 
+
+/* Safari en iOS inicia la selección desde el evento táctil, no desde el
+   puntero: hay que cancelar el táctil para que no arrastre el texto de
+   alrededor. Los eventos de puntero siguen funcionando igual. */
+function blindarTacto(el){
+  if (!el) return;
+  ['touchstart','touchmove','touchend','touchcancel'].forEach(ev =>
+    el.addEventListener(ev, e => e.preventDefault(), { passive:false }));
+}
+
 document.querySelectorAll('[data-m]').forEach(b => {
   const m = b.dataset.m;
   const on  = e => { e.preventDefault(); pulsa[dosLocal ? 'A' : miRol][m] = true;  b.classList.add('on'); };
   const off = () => { pulsa[dosLocal ? 'A' : miRol][m] = false; b.classList.remove('on'); };
-  b.addEventListener('pointerdown', on);
-  ['pointerup','pointercancel','pointerleave'].forEach(ev => b.addEventListener(ev, off));
+  b.addEventListener('pointerdown', ev => { b.setPointerCapture(ev.pointerId); on(ev); });
+  ['pointerup','pointercancel'].forEach(ev => b.addEventListener(ev, off));
+  b.addEventListener('lostpointercapture', off);
+  blindarTacto(b);
 });
+blindarTacto(cv);
 
 $('b-son').textContent = sonido.activo ? '🔊' : '🔇';
 $('b-son').addEventListener('click', () => { $('b-son').textContent = sonido.alternar() ? '🔊' : '🔇'; });

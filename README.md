@@ -161,3 +161,27 @@ liquidan en segundos. Medido por simulación (25 partidas por caso):
 | 2 jugadores, destreza media | 100% | 3.6 de 6 |
 
 Cooperar recompensa de verdad: en pareja se pasa incluso jugando mal.
+
+## Motocross con varios corredores
+
+`Sala` admite ahora hasta seis puestos (`new Sala(juego, max)`), asignados por orden
+de llegada: A, B, C… El motocross usa cinco. Los juegos de dos siguen creándose con
+el valor por defecto, así que nada cambió para ellos.
+
+Con más de dos puestos, quien crea la sala no queda bloqueado esperando: puede
+entrar de una y los demás se suman sobre la marcha. La carrera arranca cuando todos
+los que están dentro confirman "Estoy listo".
+
+### Escenarios
+
+Cinco paletas con terreno propio, verificadas por simulación (25 semillas cada una):
+
+| Escenario | Pendiente máxima | Se completan | Tiempo mediano |
+|---|---|---|---|
+| Ciudad nocturna | 49° | 25/25 | 67 s |
+| Desierto | 51° | 25/25 | 68 s |
+| Bosque | 56° | 25/25 | 69 s |
+| Nieve | 49° | 25/25 | 67 s |
+| Volcán | 59° | 25/25 | 71 s |
+
+El volcán es el más quebrado (rampas más juntas y altas); la nieve, el más suave.

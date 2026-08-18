@@ -78,14 +78,17 @@ button.accion.nivel b{display:block;font-family:var(--display);font-weight:800;f
 button.accion.nivel span{display:block;font-weight:400;font-size:12px;
                          color:var(--tenue);margin-top:2px;line-height:1.35}
 
-/* Mantener pulsado un control no debe seleccionar su texto ni abrir
-   el menú del sistema. Sin esto, en móvil se resalta la etiqueta del
-   botón y en PC se arrastra el texto al mover el cursor. */
-button, canvas, .mandos, .cruz, .acciones2, .marcador, .hud,
-.tanteo, .barras, .progreso, .flota, .tabla, .seccion, .leyenda{
+/* En un juego nada debe seleccionarse: al arrastrar el dedo desde un
+   botón, iOS empieza a seleccionar el texto que haya debajo y deforma
+   la pantalla entera. Se exceptúan los campos de escritura. */
+body{
   user-select:none;
   -webkit-user-select:none;
   -webkit-touch-callout:none;
+}
+input, textarea{
+  user-select:text;
+  -webkit-user-select:text;
 }
 button{touch-action:manipulation}
 canvas{touch-action:none}

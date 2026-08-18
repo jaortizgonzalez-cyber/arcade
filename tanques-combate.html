@@ -146,14 +146,27 @@ function capa(t, s, b){
 }
 
 /* ── Controles ─────────────────────────────────────────── */
+
+/* Safari en iOS inicia la selección desde el evento táctil, no desde el
+   puntero: hay que cancelar el táctil para que no arrastre el texto de
+   alrededor. Los eventos de puntero siguen funcionando igual. */
+function blindarTacto(el){
+  if (!el) return;
+  ['touchstart','touchmove','touchend','touchcancel'].forEach(ev =>
+    el.addEventListener(ev, e => e.preventDefault(), { passive:false }));
+}
+
 const clave = (j,a) => j + ':' + a;
 document.querySelectorAll('.mandos button').forEach(b => {
   const k = clave(b.dataset.j, b.dataset.a);
   const on  = e => { e.preventDefault(); pulsado[k] = true; b.classList.add('on'); };
   const off = () => { pulsado[k] = false; b.classList.remove('on'); };
-  b.addEventListener('pointerdown', on);
-  ['pointerup','pointercancel','pointerleave'].forEach(ev => b.addEventListener(ev, off));
+  b.addEventListener('pointerdown', ev => { b.setPointerCapture(ev.pointerId); on(ev); });
+  ['pointerup','pointercancel'].forEach(ev => b.addEventListener(ev, off));
+  b.addEventListener('lostpointercapture', off);
+  blindarTacto(b);
 });
+blindarTacto(cv);
 const TECLAS = {
   a:'0:izq', d:'0:der', w:'0:adel', s:'0:fuego',
   arrowleft:'1:izq', arrowright:'1:der', arrowup:'1:adel', enter:'1:fuego'

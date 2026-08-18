@@ -55,7 +55,17 @@
   .ficha{position:absolute;top:50%;transform:translate(-50%,-50%);
          width:20px;height:20px;border-radius:50%;display:grid;place-items:center;
          font-size:10px;font-weight:800;color:#241634;transition:left .12s linear}
-  .ficha.A{background:var(--ambar)} .ficha.B{background:var(--menta)}
+  .parrilla{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+  .corredor{display:flex;align-items:center;gap:7px;background:var(--panel);
+            border:2px solid var(--borde);border-radius:12px;padding:7px 11px;
+            transition:border-color .2s,transform .2s}
+  .corredor.yo{border-color:currentColor;transform:translateY(-2px)}
+  .corredor .pin{width:9px;height:9px;border-radius:50%;background:currentColor;flex:none}
+  .corredor .nm{font-weight:700;font-size:13px;color:var(--tinta);max-width:96px;
+                overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .corredor .pt{font-family:var(--display);font-weight:800;font-size:17px}
+  .corredor.fuera{opacity:.45}
+  .opcion.mini b{font-size:15px} .opcion.mini span{font-size:9px}
 
   /* Mandos */
   .mandos{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -83,6 +93,15 @@
   .cifra{background:rgba(0,0,0,.25);border-radius:13px;padding:10px 4px}
   .cifra b{display:block;font-family:var(--display);font-weight:800;font-size:19px}
   .cifra span{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--tenue)}
+  .podio{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:5px}
+  .podio li{display:flex;align-items:center;gap:9px;background:rgba(0,0,0,.25);
+            border-radius:11px;padding:8px 11px;font-size:13px}
+  .podio li.yo{outline:2px solid var(--ambar)}
+  .podio .pos{font-family:var(--display);font-weight:800;font-size:15px;
+              color:var(--tenue);width:16px;text-align:center}
+  .podio .nm{font-weight:700;flex:1;text-align:left;overflow:hidden;
+             text-overflow:ellipsis;white-space:nowrap}
+  .podio .tp{font-family:var(--display);font-weight:800;color:var(--tinta)}
 
   .tarjeta-final{max-width:430px}
   .rotulo-campeon{font-family:var(--display);font-weight:800;letter-spacing:.22em;
@@ -119,23 +138,16 @@
   <div id="lobby"></div>
 
   <section data-juego hidden>
-    <div class="marcador">
-      <div class="jugador" data-rol="A" id="tj-A">
-        <div class="nom" id="nom-A">—</div><div class="puntos" id="pt-A">0</div>
-        <div class="yo" id="yo-A">&nbsp;</div>
-      </div>
-      <div class="centro-info">Carreras<b id="pt-tot">0</b></div>
-      <div class="jugador" data-rol="B" id="tj-B">
-        <div class="nom" id="nom-B">—</div><div class="puntos" id="pt-B">0</div>
-        <div class="yo" id="yo-B">&nbsp;</div>
-      </div>
-    </div>
+    <div class="parrilla" id="parrilla"></div>
 
     <!-- PREPARACIÓN -->
     <div id="zona-prep">
       <p class="pista-ayuda" id="txt-prep"></p>
+      <p class="pista-ayuda" style="margin-top:10px">Distancia</p>
       <div class="opciones" id="distancias"></div>
-      <button class="accion" id="b-listo" style="margin-top:10px">Estoy listo</button>
+      <p class="pista-ayuda" style="margin-top:12px">Escenario</p>
+      <div class="opciones" id="escenarios" style="grid-template-columns:repeat(5,1fr)"></div>
+      <button class="accion" id="b-listo" style="margin-top:12px">Estoy listo</button>
     </div>
 
     <!-- CARRERA -->
@@ -157,12 +169,8 @@
       </div>
 
       <button class="accion" id="b-abandono" hidden style="margin-top:8px">
-        🏁 Tu rival no llega — cerrar la carrera</button>
-      <div class="progreso" id="barra">
-        <span class="meta">🏁</span>
-        <div class="ficha A" id="fi-A">A</div>
-        <div class="ficha B" id="fi-B">B</div>
-      </div>
+        🏁 Faltan corredores — cerrar la carrera</button>
+      <div class="progreso" id="barra"><span class="meta">🏁</span></div>
 
       <div class="mandos">
         <button class="freno" id="b-freno">◀ FRENO / MORRO ABAJO</button>
@@ -288,6 +296,42 @@ import { Sonido } from './sonido.js?v=4';
 const sonido = new Sonido();
 const $ = id => document.getElementById(id);
 
+/* ── Escenarios ────────────────────────────────────────────
+   Cada uno cambia la paleta y el carácter del terreno: más
+   ondulado, más rampas, más liso. La semilla hace el resto. */
+const ESCENARIOS = [
+  { id:'noche', n:'Ciudad nocturna', e:'🌃',
+    cielo:['#241A50','#5C3F7E'], montes:['#332459','#3E2C66'],
+    suelo:['#7A5C3A','#5E4630','#2B1F1A'], borde:'#9C7C4A',
+    astro:'#FFD98A', polvo:'#C4A87E',
+    ondas:[3.2,1.9,0.8], rampas:110, altura:1 },
+  { id:'desierto', n:'Desierto', e:'🏜️',
+    cielo:['#F2A65A','#8E4B3C'], montes:['#7A4230','#8E5238'],
+    suelo:['#E0B071','#C08A4E','#6B4526'], borde:'#F2CE97',
+    astro:'#FFF0C4', polvo:'#E8CFA0',
+    ondas:[4.4,2.4,0.6], rampas:95, altura:1.15 },
+  { id:'bosque', n:'Bosque', e:'🌲',
+    cielo:['#12324A','#2E6B58'], montes:['#123A32','#1B4F42'],
+    suelo:['#4E6B34','#3A5227','#1C2A16'], borde:'#7FA24E',
+    astro:'#D8F5C4', polvo:'#8FA86A',
+    ondas:[3.6,2.6,1.2], rampas:85, altura:1.05 },
+  { id:'nieve', n:'Nieve', e:'🏔️',
+    cielo:['#2A3A6B','#7E93C4'], montes:['#3B4A78','#4E5E8E'],
+    suelo:['#EDF2FF','#C7D2EA','#7C87A8'], borde:'#FFFFFF',
+    astro:'#FFFFFF', polvo:'#F2F6FF',
+    ondas:[2.8,1.6,0.5], rampas:130, altura:0.9 },
+  { id:'volcan', n:'Volcán', e:'🌋',
+    cielo:['#3A0F1E','#8E2A1E'], montes:['#2A1018','#451A20'],
+    suelo:['#5A2A24','#3E1C1A','#1C0C0E'], borde:'#E85D3C',
+    astro:'#FF9B3C', polvo:'#8E5A46',
+    ondas:[4.8,3.0,1.4], rampas:75, altura:1.25 }
+];
+let escena = ESCENARIOS[0];
+const escenarioPorId = id => ESCENARIOS.find(x => x.id === id) || ESCENARIOS[0];
+
+const COLORES_J = { A:'#FFC94A', B:'#6FE7C4', C:'#C58CF0', D:'#FF8C6B', E:'#7FA6FF' };
+const MAX_J = 5;
+
 const DISTANCIAS = [
   {m:1000, n:'Corta', t:'~1 min'},
   {m:2000, n:'Media', t:'~2 min'},
@@ -296,7 +340,8 @@ const DISTANCIAS = [
 
 const estadoInicial = () => ({
   fase:'preparando', semilla: Math.floor(Math.random()*1e9), largo: 2000,
-  listos:{A:false,B:false}, pos:{}, meta:{}, ganador:'', marcador:{A:0,B:0}
+  escenario: ESCENARIOS[Math.floor(Math.random()*ESCENARIOS.length)].id,
+  listos:{}, pos:{}, meta:{}, ganador:'', marcador:{}
 });
 
 /* ── Generación de pista determinista ──────────────────────
@@ -314,22 +359,26 @@ function mulberry32(a){
 const PASO = 2;                       // resolución del terreno en metros
 let pista = null;
 
-function crearPista(semilla, largo){
+function crearPista(semilla, largo, esc){
+  esc = esc || ESCENARIOS[0];
   const r = mulberry32(semilla);
   const o1 = r()*99, o2 = r()*99, o3 = r()*99;
   const rampas = [];
-  const cuantas = Math.floor(largo/110);
+  const cuantas = Math.floor(largo/esc.rampas);
   for (let i = 0; i < cuantas; i++)
     {
       const w = 8 + r()*5;
-      rampas.push({ x: 70 + r()*(largo-140), w, a: Math.min(3 + r()*4.5, w*0.52) });
+      rampas.push({ x: 70 + r()*(largo-140), w,
+                    a: Math.min((3 + r()*4.5)*esc.altura, w*0.52) });
     }
 
   const n = Math.ceil((largo + 120)/PASO);
   const h = new Float32Array(n);
   for (let i = 0; i < n; i++){
     const x = i*PASO;
-    let y = 3.2*Math.sin(x*0.018 + o1) + 1.9*Math.sin(x*0.052 + o2) + 0.8*Math.sin(x*0.115 + o3);
+    let y = esc.ondas[0]*Math.sin(x*0.018 + o1)
+          + esc.ondas[1]*Math.sin(x*0.052 + o2)
+          + esc.ondas[2]*Math.sin(x*0.115 + o3);
     for (const R of rampas){
       const d = (x - R.x)/R.w;
       if (Math.abs(d) < 2.4) y += R.a*Math.exp(-d*d*1.5);
@@ -419,7 +468,7 @@ function pasoFisica(m, dt, gas, freno, mudo){
 
 /* ── Estado del juego ──────────────────────────────────── */
 let sala = null, miRol = null, rival = null;
-let moto = null, fantasma = null, objetivo = null;
+let moto = null, fantasmas = {}, objetivos = {};
 let corriendo = false, t0 = 0, tiempo = 0, ultimoEnvio = 0, cuentaHasta = 0;
 let finalMostrado = false, distanciaSel = 2000, esperaDesde = 0;
 const teclas = {};
@@ -556,7 +605,7 @@ function pintarPolvo(dt, camX){
     if (p.vida <= 0){ polvo.splice(i,1); continue; }
     const [px, py] = aPantalla(p.x, p.y, camX);
     cx.globalAlpha = p.vida*0.34;
-    cx.fillStyle = '#C4A87E';
+    cx.fillStyle = escena.polvo;
     cx.beginPath(); cx.arc(px, py, p.r*esc, 0, 7); cx.fill();
   }
   cx.globalAlpha = 1;
@@ -568,13 +617,14 @@ function dibujar(){
 
   // Cielo
   const g = cx.createLinearGradient(0,0,0,H);
-  g.addColorStop(0,'#241A50'); g.addColorStop(1,'#5C3F7E');
+  g.addColorStop(0, escena.cielo[0]); g.addColorStop(1, escena.cielo[1]);
   cx.fillStyle = g; cx.fillRect(0,0,W,H);
 
-  // Sol y montañas con parallax
-  cx.fillStyle = 'rgba(255,217,138,.85)';
+  // Astro y montañas con parallax
+  cx.fillStyle = escena.astro; cx.globalAlpha = .85;
   cx.beginPath(); cx.arc(W*0.78, H*0.2, 26, 0, 7); cx.fill();
-  for (const [f, col, alt] of [[0.15,'#332459',0.30],[0.35,'#3E2C66',0.22]]){
+  cx.globalAlpha = 1;
+  for (const [f, col, alt] of [[0.15,escena.montes[0],0.30],[0.35,escena.montes[1],0.22]]){
     cx.fillStyle = col; cx.beginPath(); cx.moveTo(0,H);
     for (let px = 0; px <= W; px += 12){
       const wx = (camX*f + px/esc);
@@ -594,9 +644,10 @@ function dibujar(){
   const [pxf] = aPantalla(x1, 0, camX);
   cx.lineTo(pxf, H); cx.lineTo(aPantalla(x0,0,camX)[0], H); cx.closePath();
   const gt = cx.createLinearGradient(0, H*0.4, 0, H);
-  gt.addColorStop(0,'#7A5C3A'); gt.addColorStop(0.06,'#5E4630'); gt.addColorStop(1,'#2B1F1A');
+  gt.addColorStop(0, escena.suelo[0]); gt.addColorStop(0.06, escena.suelo[1]);
+  gt.addColorStop(1, escena.suelo[2]);
   cx.fillStyle = gt; cx.fill();
-  cx.strokeStyle = '#9C7C4A'; cx.lineWidth = 3; cx.stroke();
+  cx.strokeStyle = escena.borde; cx.lineWidth = 3; cx.stroke();
 
   // Meta y salida
   for (const [mx, txt] of [[0,'SALIDA'], [pista.largo,'META']]){
@@ -613,8 +664,9 @@ function dibujar(){
   }
 
   pintarPolvo(dtPolvo, camX);
-  if (fantasma) dibujarMoto(fantasma, camX, '#6FE7C4', 0.62, sala ? sala.nombre(rival) : '');
-  if (moto)     dibujarMoto(moto, camX, '#FFC94A', 1, null);
+  for (const [r, f] of Object.entries(fantasmas))
+    dibujarMoto(f, camX, COLORES_J[r] || '#6FE7C4', 0.62, sala ? sala.nombre(r) : r);
+  if (moto) dibujarMoto(moto, camX, COLORES_J[miRol] || '#FFC94A', 1, null);
 }
 
 /* ── Bucle ─────────────────────────────────────────────── */
@@ -667,21 +719,22 @@ function cuadro(ahora){
   // El robot corre con la misma física, en este mismo dispositivo
   if (robot && corriendo && robot.m){
     pasoRobot(dt);
-    objetivo = { x:robot.m.x, y:robot.m.y, a:robot.m.ang,
-                 v:robot.m.vx, c:robot.m.caido > 0 ? 1 : 0 };
+    objetivos.B = { x:robot.m.x, y:robot.m.y, a:robot.m.ang,
+                    v:robot.m.vx, c:robot.m.caido > 0 ? 1 : 0 };
   }
 
-  // Interpolación suave del rival
-  if (objetivo){
-    if (!fantasma) fantasma = { ...objetivo, caido:0 };
-    const k = Math.min(1, 9*dt);
-    fantasma.x += (objetivo.x - fantasma.x)*k;
-    fantasma.y += (objetivo.y - fantasma.y)*k;
-    let d = objetivo.a - fantasma.ang;
+  // Interpolación suave de cada rival
+  const k = Math.min(1, 9*dt);
+  for (const [r, o] of Object.entries(objetivos)){
+    if (!fantasmas[r]) fantasmas[r] = { x:o.x, y:o.y, ang:o.a, caido:0, suelo:true, vx:0 };
+    const f = fantasmas[r];
+    f.x += (o.x - f.x)*k;
+    f.y += (o.y - f.y)*k;
+    let d = o.a - f.ang;
     while (d >  Math.PI) d -= 2*Math.PI;
     while (d < -Math.PI) d += 2*Math.PI;
-    fantasma.ang += d*k;
-    fantasma.caido = objetivo.c ? 1 : 0;
+    f.ang += d*k;
+    f.caido = o.c ? 1 : 0;
   }
 
   // Envío de mi posición (10 veces por segundo)
@@ -702,12 +755,9 @@ function cuadro(ahora){
 function hud(e){
   $('hud-tiempo').textContent = tiempo.toFixed(1);
   $('hud-vel').textContent = Math.max(0, Math.round(moto.vx*3.6));
-  const xr = objetivo ? objetivo.x : 0;
-  $('hud-pos').textContent = !corriendo ? '—' : (moto.x >= xr ? '1º' : '2º');
-
-  const p = m => Math.max(0, Math.min(1, m/pista.largo));
-  $('fi-'+miRol).style.left = (6 + p(moto.x)*88) + '%';
-  if (objetivo) $('fi-'+rival).style.left = (6 + p(xr)*88) + '%';
+  const delante = Object.entries(objetivos)
+    .filter(([r,o]) => r !== miRol && o.x > moto.x).length;
+  $('hud-pos').textContent = corriendo ? (delante + 1) + 'º' : '—';
 
   const av = $('hud-aviso');
   if (moto.caido > 0){ av.hidden = false; av.innerHTML = '<b>¡Te caíste!</b>'; }
@@ -727,9 +777,10 @@ async function terminar(){
 }
 
 function arrancar(e){
-  pista = crearPista(e.semilla, e.largo);
+  escena = escenarioPorId(e.escenario);
+  pista = crearPista(e.semilla, e.largo, escena);
   moto = nuevaMoto();
-  fantasma = null; objetivo = null;
+  fantasmas = {}; objetivos = {};
   tiempo = 0; corriendo = false; finalMostrado = false; esperaDesde = 0;
   $('final').hidden = true;
   $('zona-prep').hidden = true;
@@ -756,31 +807,41 @@ function lanzarConfeti(){
 }
 
 function mostrarFinal(e){
-  sonido.motorApagar();
-  sonido.patinar(false);
-  const mio = e.meta[miRol], suyo = e.meta[rival];
+  const lista = corredores().slice().sort((a,b) => (e.meta[a] ?? 1e9) - (e.meta[b] ?? 1e9));
   const gane = e.ganador === miRol;
-  const dif = Math.abs(mio - suyo);
   const campeon = sala.nombre(e.ganador);
-  const dist = (sala.ultimo.estado.largo || 2000);
+  const dist = e.largo || 2000;
+  const mio = e.meta[miRol];
+  const primero = e.meta[lista[0]];
+  const puesto = lista.indexOf(miRol) + 1;
 
   $('final').className = gane ? 'gane' : 'perdio';
-  $('final-r').textContent = gane ? '🏆 Campeón de la jornada' : 'Segundo lugar';
-  $('final-t').textContent = gane ? '¡' + campeon + ' es el campeón!'
-                                  : campeon + ' cruzó primero';
+  $('final-r').textContent = gane ? '🏆 Campeón de la jornada'
+                                  : ['', '', '2.º puesto', '3.er puesto', '4.º puesto', '5.º puesto'][puesto] || 'Sin podio';
+  $('final-t').textContent = gane ? '¡' + campeon + ' es el campeón!' : campeon + ' cruzó primero';
+  const dif = (mio != null && primero != null) ? Math.abs(mio - primero) : 0;
   const abandono = dif > 900;
-  $('final-s').innerHTML = abandono
-    ? (gane ? sala.nombre(rival) + ' no llegó a la meta. Ganaste los ' + dist + ' metros.'
-            : 'No cruzaste la meta a tiempo. ' + campeon + ' se lleva la jornada.')
-    : gane
-      ? 'Domaste los ' + dist + ' metros y le sacaste <b>' + dif.toFixed(2) +
-        ' s</b> a ' + sala.nombre(rival) + '. La bandera a cuadros es tuya.'
-      : 'Te ganó por <b>' + dif.toFixed(2) + ' s</b> en ' + dist +
-        ' metros. Menos caídas la próxima y esto cambia.';
-  $('final-c').innerHTML =
-    '<div class="cifra"><b>' + mio.toFixed(2) + 's</b><span>Tu tiempo</span></div>' +
+  $('final-s').innerHTML = gane
+    ? 'Domaste los ' + dist + ' m en ' + escena.n.toLowerCase() + '.' +
+      (lista.length > 1 && !abandono ? ' Le sacaste <b>' + dif.toFixed(2) + ' s</b> al segundo.' : '')
+    : (abandono ? 'No cruzaste la meta a tiempo.'
+                : 'Te faltaron <b>' + dif.toFixed(2) + ' s</b> para alcanzarlo.');
+
+  // Podio con todos los tiempos
+  $('final-c').className = '';
+  $('final-c').innerHTML = '<ol class="podio">' + lista.map((r,i) => {
+    const t = e.meta[r];
+    const txt = (t == null || t > 900) ? 'no llegó' : t.toFixed(2) + ' s';
+    return '<li' + (r === miRol ? ' class="yo"' : '') + '>' +
+           '<span class="pos">' + (i+1) + '</span>' +
+           '<span class="nm" style="color:' + (COLORES_J[r]||'#fff') + '">' + sala.nombre(r) + '</span>' +
+           '<span class="tp">' + txt + '</span></li>';
+  }).join('') + '</ol>' +
+  '<div class="cifras" style="margin-top:12px">' +
+    '<div class="cifra"><b>' + (mio != null && mio < 900 ? mio.toFixed(2)+'s' : '—') + '</b><span>Tu tiempo</span></div>' +
     '<div class="cifra"><b>' + moto.caidas + '</b><span>Caídas</span></div>' +
-    '<div class="cifra"><b>' + moto.mejorAire.toFixed(1) + 's</b><span>Mejor salto</span></div>';
+    '<div class="cifra"><b>' + moto.mejorAire.toFixed(1) + 's</b><span>Mejor salto</span></div>' +
+  '</div>';
 
   $('final').hidden = false;
   if (gane){ lanzarConfeti(); sonido.victoria(); }
@@ -843,72 +904,120 @@ function conectarRobot(s){
 }
 
 /* ── Sincronización con la sala ────────────────────────── */
-function pintar(s){
-  if (!s || !s.estado){
-    if (typeof mostrarFallo === 'function' && s && !s.estado)
-      mostrarFallo('Sala creada con una versión anterior. Recarga (Ctrl+Shift+R) y crea otra.');
-    return;
+function corredores(){
+  if (robot) return ['A','B'];
+  return sala && sala.ocupados ? sala.ocupados() : ['A','B'];
+}
+
+function pintarParrilla(e){
+  const cont = $('parrilla');
+  const lista = corredores();
+  cont.innerHTML = '';
+  for (const r of lista){
+    const col = COLORES_J[r] || '#F3ECFF';
+    const div = document.createElement('div');
+    const conectado = robot ? true : sala.enLinea(r);
+    div.className = 'corredor' + (r === miRol ? ' yo' : '') + (conectado ? '' : ' fuera');
+    div.style.color = col;
+    div.innerHTML = '<span class="pin"></span>' +
+                    '<span class="nm">' + sala.nombre(r) + (r === miRol ? ' (tú)' : '') + '</span>' +
+                    '<span class="pt">' + ((e.marcador && e.marcador[r]) || 0) + '</span>';
+    cont.appendChild(div);
   }
+}
+
+function pintarFichas(e){
+  const barra = $('barra');
+  const lista = corredores();
+  for (const r of lista){
+    let f = document.getElementById('fi-'+r);
+    if (!f){
+      f = document.createElement('div');
+      f.className = 'ficha'; f.id = 'fi-'+r;
+      f.style.background = COLORES_J[r] || '#F3ECFF';
+      barra.appendChild(f);
+    }
+    f.textContent = (sala.nombre(r)[0] || r).toUpperCase();
+    const x = r === miRol ? (moto ? moto.x : 0) : ((objetivos[r] && objetivos[r].x) || 0);
+    const p = Math.max(0, Math.min(1, x/(pista ? pista.largo : 1)));
+    f.style.left = (6 + p*88) + '%';
+  }
+}
+
+function pintar(s){
+  if (!s || !s.estado) return;
   const e = s.estado;
 
-  ['A','B'].forEach(r => {
-    $('nom-'+r).textContent = sala.nombre(r);
-    $('pt-'+r).textContent = (e.marcador && e.marcador[r]) || 0;
-    $('tj-'+r).classList.toggle('activo', e.fase === 'corriendo');
-    if (r === miRol) $('yo-'+r).textContent = 'TÚ';
-    else {
-      const on = sala.enLinea(r);
-      $('yo-'+r).innerHTML = '<span class="punto-luz' + (on ? ' on' : '') + '"></span>' +
-                             (on ? 'En línea' : 'Ausente');
-    }
-  });
-  $('pt-tot').textContent = ((e.marcador && e.marcador.A)||0) + ((e.marcador && e.marcador.B)||0);
-  $('fi-A').textContent = sala.nombre('A')[0].toUpperCase();
-  $('fi-B').textContent = sala.nombre('B')[0].toUpperCase();
+  pintarParrilla(e);
 
-  // Posición del rival
-  if (e.pos && e.pos[rival]) objetivo = e.pos[rival];
+  // Posición de cada rival
+  if (!robot && e.pos)
+    for (const r of corredores())
+      if (r !== miRol && e.pos[r]) objetivos[r] = e.pos[r];
 
   if (e.fase === 'preparando'){
     $('zona-prep').hidden = false;
     $('zona-carrera').hidden = true;
     distanciaSel = e.largo;
+    escena = escenarioPorId(e.escenario);
     pintarDistancias(e);
+    pintarEscenarios(e);
     const yo = e.listos && e.listos[miRol];
     $('b-listo').textContent = yo ? '✓ Listo — esperando…' : 'Estoy listo';
-    $('b-listo').disabled = !!yo || !sala.completa;
-    $('txt-prep').textContent = !sala.completa
-      ? 'Esperando a que entre tu rival…'
-      : (miRol === 'A' ? 'Elige la distancia y confirma. Los dos deben estar listos.'
-                       : 'La distancia la elige ' + sala.nombre('A') + '. Confirma cuando quieras.');
+    $('b-listo').disabled = !!yo || (!robot && !sala.completa);
+    const faltan = corredores().filter(r => !(e.listos && e.listos[r]));
+    $('txt-prep').textContent = (!robot && !sala.completa)
+      ? 'Esperando a que entren más corredores…'
+      : (faltan.length
+          ? 'Faltan por confirmar: ' + faltan.map(r => sala.nombre(r)).join(', ')
+          : '¡Todos listos!') +
+        (miRol === 'A' ? '  ·  Tú eliges distancia y escenario.'
+                       : '  ·  Los elige ' + sala.nombre('A') + '.');
   }
 
   if (e.fase === 'corriendo' && $('zona-carrera').hidden) arrancar(e);
+  if (pista) pintarFichas(e);
 
-  // Cuando ambos llegan, A decide el resultado
-  // Si yo llegué y el rival no, tras 15 s ofrezco cerrar la carrera
+  // El anfitrión decide cuando todos los presentes han llegado
+  const lista = corredores();
+  const llegaron = lista.filter(r => e.meta && e.meta[r] != null);
   const yoLlegue = e.meta && e.meta[miRol] != null;
-  const elLlego  = e.meta && e.meta[rival] != null;
-  $('b-abandono').hidden = !(yoLlegue && !elLlego && (Date.now() - esperaDesde) > 15000);
-  if (yoLlegue && !elLlego && !esperaDesde) esperaDesde = Date.now();
+  $('b-abandono').hidden = !(yoLlegue && llegaron.length < lista.length &&
+                             esperaDesde && (Date.now() - esperaDesde) > 15000);
+  if (yoLlegue && !esperaDesde) esperaDesde = Date.now();
   if (!yoLlegue) esperaDesde = 0;
 
-  const mA = e.meta && e.meta.A, mB = e.meta && e.meta.B;
-  if (mA != null && mB != null && !e.ganador && miRol === 'A'){
+  if (llegaron.length === lista.length && lista.length && !e.ganador && miRol === 'A'){
     sala.actualizar(x => {
       const y = x.estado;
       if (y.ganador) return false;
-      const g = y.meta.A <= y.meta.B ? 'A' : 'B';
-      y.ganador = g; y.fase = 'fin';
-      y.marcador = y.marcador || {A:0,B:0};
-      y.marcador[g] = (y.marcador[g] || 0) + 1;
+      const orden = lista.slice().sort((a,b) => y.meta[a] - y.meta[b]);
+      y.ganador = orden[0]; y.fase = 'fin';
+      y.marcador = y.marcador || {};
+      y.marcador[orden[0]] = (y.marcador[orden[0]] || 0) + 1;
     });
   }
-  if (e.fase === 'fin' && !finalMostrado && e.meta && e.meta.A != null && e.meta.B != null){
+  if (e.fase === 'fin' && !finalMostrado && e.ganador){
     finalMostrado = true;
     corriendo = false;
     setTimeout(() => mostrarFinal(e), 500);
   }
+}
+
+function pintarEscenarios(e){
+  const cont = $('escenarios');
+  cont.innerHTML = '';
+  ESCENARIOS.forEach(x => {
+    const b = document.createElement('button');
+    b.className = 'opcion mini' + (e.escenario === x.id ? ' sel' : '');
+    b.innerHTML = '<b>' + x.e + '</b><span>' + x.n.split(' ')[0] + '</span>';
+    b.disabled = miRol !== 'A';
+    b.addEventListener('click', () => sala.actualizar(s => {
+      if (s.estado.fase !== 'preparando') return false;
+      s.estado.escenario = x.id;
+    }));
+    cont.appendChild(b);
+  });
 }
 
 function pintarDistancias(e){
@@ -928,6 +1037,16 @@ function pintarDistancias(e){
 }
 
 /* ── Mandos ────────────────────────────────────────────── */
+
+/* Safari en iOS inicia la selección desde el evento táctil, no desde el
+   puntero: hay que cancelar el táctil para que no arrastre el texto de
+   alrededor. Los eventos de puntero siguen funcionando igual. */
+function blindarTacto(el){
+  if (!el) return;
+  ['touchstart','touchmove','touchend','touchcancel'].forEach(ev =>
+    el.addEventListener(ev, e => e.preventDefault(), { passive:false }));
+}
+
 function mando(id, prop){
   const b = $(id);
   const on  = ev => { ev.preventDefault(); teclas[prop] = true;  b.classList.add('on'); };
@@ -936,6 +1055,7 @@ function mando(id, prop){
   ['pointerup','pointercancel'].forEach(ev => b.addEventListener(ev, off));
   b.addEventListener('lostpointercapture', off);
   b.addEventListener('dragstart', ev => ev.preventDefault());
+  blindarTacto(b);
 }
 $('b-son').textContent = sonido.activo ? '🔊' : '🔇';
 $('b-son').addEventListener('click', () => {
@@ -959,7 +1079,8 @@ function pintarMandos(){
   $('b-freno').classList.toggle('on', !!teclas.freno);
 }
 
-// En PC la mitad derecha del lienzo acelera y la izquierda frena, sin soltar.
+blindarTacto(cv);
+// La mitad derecha del lienzo acelera y la izquierda frena, sin soltar.
 cv.addEventListener('pointerdown', ev => {
   ev.preventDefault();
   cv.setPointerCapture(ev.pointerId);
@@ -976,16 +1097,18 @@ $('b-listo').addEventListener('click', () => sala.actualizar(s => {
   if (e.fase !== 'preparando') return false;
   e.listos = e.listos || {};
   e.listos[miRol] = true;
-  if (e.listos.A && e.listos.B){ e.fase = 'corriendo'; e.pos = {}; e.meta = {}; }
+  if (corredores().every(r => e.listos[r])){ e.fase = 'corriendo'; e.pos = {}; e.meta = {}; }
 }));
 
 $('b-abandono').addEventListener('click', () => sala.actualizar(s => {
   const e = s.estado;
   if (e.ganador || !e.meta || e.meta[miRol] == null) return false;
-  e.meta[rival] = e.meta[miRol] + 999;      // no llegó: pierde por abandono
-  e.ganador = miRol; e.fase = 'fin';
-  e.marcador = e.marcador || {A:0,B:0};
-  e.marcador[miRol] = (e.marcador[miRol] || 0) + 1;
+  // A los que no cruzaron se les anota un tiempo simbólico
+  for (const r of corredores()) if (e.meta[r] == null) e.meta[r] = e.meta[miRol] + 999;
+  const orden = corredores().slice().sort((a,b) => e.meta[a] - e.meta[b]);
+  e.ganador = orden[0]; e.fase = 'fin';
+  e.marcador = e.marcador || {};
+  e.marcador[orden[0]] = (e.marcador[orden[0]] || 0) + 1;
 }));
 
 $('b-cerrar').addEventListener('click', () => { $('final').hidden = true; });
@@ -994,14 +1117,14 @@ $('b-revancha').addEventListener('click', () => {
   sala.actualizar(s => {
     const e = s.estado;
     if (e.fase !== 'fin') return false;
-    e.fase = 'preparando'; e.listos = {A:false,B:false};
+    e.fase = 'preparando'; e.listos = {};
     e.pos = {}; e.meta = {}; e.ganador = '';
     e.semilla = Math.floor(Math.random()*1e9);
   });
 });
 
 /* ── Arranque ──────────────────────────────────────────── */
-pista = crearPista(1, 800);
+pista = crearPista(1, 800, escena);
 moto = nuevaMoto();
 requestAnimationFrame(bucle);
 
@@ -1010,6 +1133,7 @@ new Lobby({
   titulo: 'Moto<em>cross</em>',
   lema: 'Misma pista, dos motos, un cronómetro.',
   estadoInicial,
+  maxJugadores: MAX_J,
   nombreRobot: n => ['Aprendiz','Rival','Campeón'][n-1],
   alSolo: (s, nivel) => {
     sala = s; miRol = s.rol; rival = s.rival;

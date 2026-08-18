@@ -9,9 +9,13 @@
 const CDN = 'https://www.gstatic.com/firebasejs/10.12.2/';
 const ALFABETO = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';   // sin I ni O: se confunden con 1 y 0
 
+const ROLES = ['A','B','C','D','E','F'];
+
 export class Sala {
-  constructor(juego){
+  /** @param {number} max cuántos puestos admite la sala (2 por defecto) */
+  constructor(juego, max = 2){
     this.juego  = juego;
+    this.max    = Math.max(2, Math.min(ROLES.length, max));
     this.codigo = null;
     this.rol    = null;    // 'A' (quien crea) o 'B'
     this.uid    = null;
@@ -20,8 +24,15 @@ export class Sala {
     this._oyentes = [];
   }
 
-  get rival(){ return this.rol === 'A' ? 'B' : 'A'; }
+  get rival(){ return this.rol === 'A' ? 'B' : 'A'; }   // solo para juegos de dos
   get activa(){ return !!this.codigo; }
+  get roles(){ return ROLES.slice(0, this.max); }
+  /** Puestos ocupados, en orden. */
+  ocupados(){ return this.roles.filter(r => this.jugador(r)); }
+  /** Puestos con alguien conectado ahora mismo. */
+  presentes(){ return this.roles.filter(r => this.enLinea(r)); }
+  /** Los demás, sin contarme. */
+  otros(){ return this.ocupados().filter(r => r !== this.rol); }
 
   static codigoNuevo(){
     return Array.from({length:4}, () => ALFABETO[Math.floor(Math.random()*ALFABETO.length)]).join('');
@@ -88,9 +99,9 @@ export class Sala {
     // así que una pestaña olvidada podría dejar la sala trancada).
     const libre = (j, m) => !j[m] || j[m].uid === this.uid || j[m].online !== true;
     const jp = base.jugadores || {};
-    if (!libre(jp,'A') && !libre(jp,'B')){
-      throw new Error('La sala está llena: ' +
-        (jp.A.nombre || 'alguien') + ' y ' + (jp.B.nombre || 'alguien') + ' están dentro.');
+    if (!this.roles.some(m => libre(jp, m))){
+      const dentro = this.roles.map(m => (jp[m] && jp[m].nombre) || 'alguien');
+      throw new Error('La sala está llena: ' + dentro.join(', ') + ' ya están dentro.');
     }
 
     const r = await this.fb.runTransaction(this.nodo('salas/' + codigo), actual => {
@@ -98,16 +109,17 @@ export class Sala {
       if (!s) return;
       const j = s.jugadores || {};
       const tomar = m => { j[m] = { uid:this.uid, nombre, online:true }; s.jugadores = j; return s; };
-      if (j.A && j.A.uid === this.uid) return tomar('A');     // reconexión
-      if (j.B && j.B.uid === this.uid) return tomar('B');
-      if (libre(j,'A')) return tomar('A');
-      if (libre(j,'B')) return tomar('B');
+      const mio = this.roles.find(m => j[m] && j[m].uid === this.uid);
+      if (mio) return tomar(mio);                             // reconexión
+      const hueco = this.roles.find(m => libre(j, m));
+      if (hueco) return tomar(hueco);
       return;
     });
     if (!r.committed) throw new Error('No se pudo entrar, inténtalo otra vez.');
 
     const s = r.snapshot.val();
-    this._sentarse(codigo, (s.jugadores.A && s.jugadores.A.uid === this.uid) ? 'A' : 'B');
+    const mio = this.roles.find(m => s.jugadores[m] && s.jugadores[m].uid === this.uid);
+    this._sentarse(codigo, mio || 'B');
     return this.rol;
   }
 
@@ -159,7 +171,8 @@ export class Sala {
   jugador(rol){ return (this.ultimo && this.ultimo.jugadores && this.ultimo.jugadores[rol]) || null; }
   nombre(rol){ const j = this.jugador(rol); return (j && j.nombre) || (rol === 'A' ? 'Jugador 1' : 'Jugador 2'); }
   enLinea(rol){ const j = this.jugador(rol); return !!(j && j.online); }
-  get completa(){ return !!(this.jugador('A') && this.jugador('B')); }
+  /** Hay con quién jugar: al menos dos puestos ocupados. */
+  get completa(){ return this.ocupados().length >= 2; }
 
   /* ── Nodos privados (datos ocultos al rival) ───────────── */
   async guardarSecreto(datos){

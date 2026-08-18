@@ -948,6 +948,17 @@ new Lobby({
 
 /* En móvil, la pulsación larga sobre un control abre el menú del sistema
    y selecciona el texto del botón. Aquí no queremos ninguna de las dos. */
+
+// Cancelar el táctil evita que iOS arrastre la selección de texto al pulsar.
+document.querySelectorAll('button, canvas').forEach(el => {
+  ['touchstart','touchmove','touchend'].forEach(ev =>
+    el.addEventListener(ev, e => {
+      // En los campos de texto sí queremos el comportamiento normal
+      if (e.target.tagName === 'INPUT') return;
+      e.preventDefault();
+    }, { passive:false }));
+});
+
 document.addEventListener('contextmenu', e => {
   if (e.target.closest('button, canvas')) e.preventDefault();
 });

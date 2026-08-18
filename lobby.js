@@ -12,7 +12,7 @@ const HTML = `
   <a class="volver" href="index.html">← Sala de juegos</a>
   <h1 data-titulo></h1>
   <p class="nota" data-lema></p>
-  <button class="accion" data-b="online">En línea · dos celulares</button>
+  <button class="accion" data-b="online" id="b-online-txt">En línea · dos celulares</button>
   <button class="accion menta" data-b="solo" hidden>🤖 Solo · contra el robot</button>
   <button class="accion fantasma" data-b="local" hidden>Aquí mismo · dos en un dispositivo</button>
   <p class="aviso" data-aviso="config"></p>
@@ -48,8 +48,13 @@ const HTML = `
   <div class="codigo" data-out="codigo">----</div>
   <button class="accion" data-b="compartir">Compartir enlace</button>
   <p class="cargando puntitos">Esperando a que entre</p>
+  <button class="accion menta" data-b="entrar-ya" hidden>Entrar ya (los demás pueden llegar después)</button>
   <button class="accion fantasma" data-b="cancelar">Cancelar</button>
 </section>`;
+
+// Con más de dos puestos no tiene sentido bloquear al anfitrión hasta que
+// estén todos: puede entrar y los demás se suman sobre la marcha.
+const op_espera_manual = op => (op.maxJugadores || 2) > 2;
 
 export class Lobby {
   /**
@@ -59,7 +64,7 @@ export class Lobby {
    */
   constructor(op){
     this.op = op;
-    this.sala = new Sala(op.juego);
+    this.sala = new Sala(op.juego, op.maxJugadores || 2);
     this.caja = document.getElementById('lobby');
     this.caja.innerHTML = HTML;
     this._cablear();
@@ -81,6 +86,9 @@ export class Lobby {
   _cablear(){
     const op = this.op;
     this.$('[data-titulo]').innerHTML = op.titulo;
+    if (op.maxJugadores > 2)
+      this.$('[data-b="online"]').textContent =
+        'En línea · hasta ' + op.maxJugadores + ' jugadores';
     this.$('[data-lema]').textContent = op.lema || '¿Cómo quieren jugar?';
     if (op.alLocal) this.$('[data-b="local"]').hidden = false;
     if (op.alSolo)  this.$('[data-b="solo"]').hidden = false;
@@ -114,6 +122,7 @@ export class Lobby {
     this.$('[data-b="unir"]').addEventListener('click', () => this._unir());
     this.$('[data-in="codigo"]').addEventListener('keydown', e => { if (e.key === 'Enter') this._unir(); });
     this.$('[data-b="cancelar"]').addEventListener('click', () => { this.sala.salir(); this.ver('menu'); });
+    this.$('[data-b="entrar-ya"]').addEventListener('click', () => this.verJuego());
     this.$('[data-b="compartir"]').addEventListener('click', async () => {
       try{
         const r = await this.sala.compartir(op.juego);
@@ -173,6 +182,7 @@ export class Lobby {
     // ve el código y el botón de compartir. Sin esto no tendría cómo invitar.
     if (recienCreada){
       this.ver('espera');
+      if (op_espera_manual(this.op)) this.$('[data-b="entrar-ya"]').hidden = false;
       this.sala.alCambiar(() => { if (this.sala.completa) this.verJuego(); });
     } else {
       this.verJuego();
