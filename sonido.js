@@ -241,6 +241,28 @@ export class Sonido {
     [523, 659, 784].forEach((f,i) => this._tono(0.22, f, f, 0.17, 'triangle', i*0.09));
   }
 
+  /** Público aplaudiendo: muchas palmadas cortas y desordenadas. */
+  aplausos(dur = 2.6){
+    if (!this._listo()) return;
+    for (let t = 0; t < dur; t += 0.018 + Math.random()*0.03){
+      const f = 1800 + Math.random()*2600;
+      this._ruido(0.035 + Math.random()*0.03, 'bandpass', f, f*0.6,
+                  0.05 + Math.random()*0.07, t);
+    }
+    // Un par de silbidos por encima
+    for (const t of [0.35, 0.9, 1.7]){
+      const f = 2200 + Math.random()*900;
+      this._tono(0.3, f, f*1.35, 0.07, 'sine', t);
+    }
+  }
+
+  /** Recoger un premio en el aire. */
+  premio(){
+    if (!this._listo()) return;
+    [784, 988, 1319].forEach((f,i) => this._tono(0.16, f, f, 0.16, 'triangle', i*0.07));
+    this._tono(0.5, 1568, 1568, 0.1, 'sine', 0.2);
+  }
+
   /** Fanfarria de victoria: arpegio ascendente sobre un retumbo. */
   victoria(){
     if (!this._listo()) return;
