@@ -103,12 +103,28 @@ export class Lobby {
   _cablear(){
     const op = this.op;
     this.$('[data-titulo]').innerHTML = op.titulo;
-    if (op.maxJugadores > 2)
-      this.$('[data-b="online"]').textContent =
-        'En línea · hasta ' + op.maxJugadores + ' jugadores';
     this.$('[data-lema]').textContent = op.lema || '¿Cómo quieren jugar?';
+    this.$('[data-b="online"]').textContent = op.textoOnline ||
+      (op.maxJugadores > 2 ? 'En línea · hasta ' + op.maxJugadores + ' jugadores'
+                           : 'En línea · dos celulares');
     if (op.alLocal) this.$('[data-b="local"]').hidden = false;
-    if (op.alSolo)  this.$('[data-b="solo"]').hidden = false;
+    if (op.alSolo){
+      this.$('[data-b="solo"]').hidden = false;
+      this.$('[data-b="solo"]').textContent = op.textoSolo || '🤖 Solo · contra el robot';
+    }
+
+    // Pantalla de nivel: cada juego pone sus propios textos y niveles
+    this.$('[data-titulo-nivel]').innerHTML = op.tituloNivel || 'Nivel del <em>robot</em>';
+    this.$('[data-lema-nivel]').textContent = op.lemaNivel || '¿Qué tan duro lo quieres?';
+    const caja = this.$('[data-niveles]');
+    caja.innerHTML = '';
+    (op.niveles || NIVELES_POR_DEFECTO).forEach(x => {
+      const b = document.createElement('button');
+      b.className = 'accion nivel';
+      b.dataset.n = x.n;
+      b.innerHTML = '<b>' + x.t + '</b><span>' + x.d + '</span>';
+      caja.appendChild(b);
+    });
 
     if (!configurado){
       this.$('[data-b="online"]').disabled = true;
