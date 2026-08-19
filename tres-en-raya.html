@@ -463,5 +463,33 @@ document.addEventListener('contextmenu', e => {
   if (e.target.closest('button, canvas')) e.preventDefault();
 });
 </script>
+
+<script>
+// Si un módulo no carga (por ejemplo, un archivo que falta en el servidor),
+// el navegador no ejecuta nada y la página queda en negro sin explicación.
+// Esto lo convierte en un mensaje legible.
+window.addEventListener('load', () => setTimeout(() => {
+  const l = document.getElementById('lobby');
+  if (l && l.children.length) return;
+  const faltan = ['lobby.js','sala.js','sala-local.js','sonido.js','config.js','estilo.css'];
+  Promise.all(faltan.map(f =>
+    fetch(f, {cache:'no-store'}).then(r => r.ok ? null : f).catch(() => f)
+  )).then(res => {
+    const rotos = res.filter(Boolean);
+    const d = document.createElement('div');
+    d.style.cssText = 'position:fixed;inset:0;z-index:999;display:grid;place-content:center;' +
+      'gap:10px;padding:24px;text-align:center;background:#241634;color:#F3ECFF;' +
+      'font-family:system-ui,sans-serif';
+    d.innerHTML = '<h2 style="font-size:20px">El juego no pudo cargar</h2>' +
+      (rotos.length
+        ? '<p style="color:#FF7B7B;font-size:14px">Faltan estos archivos en el servidor:<br><b>' +
+          rotos.join('<br>') + '</b></p><p style="font-size:13px;color:#A794C4">Súbelos al repositorio y recarga con Ctrl+Shift+R.</p>'
+        : '<p style="font-size:14px;color:#A794C4">Los archivos están, pero el navegador guarda una versión vieja.<br>' +
+          'Recarga forzando la caché: <b>Ctrl+Shift+R</b> en PC, o cierra la pestaña y vuelve a abrirla en el celular.</p>') +
+      '<a href="index.html" style="color:#FFC94A;font-size:13px">◀ Volver a la sala de juegos</a>';
+    document.body.appendChild(d);
+  });
+}, 2500));
+</script>
 </body>
 </html>
