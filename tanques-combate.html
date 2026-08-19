@@ -203,7 +203,8 @@ const jugadores = () => soloBot ? ['A','B'] : (sala && sala.ocupados ? sala.ocup
 function nuevoTanque(k){
   const s = SALIDAS[k % SALIDAS.length];
   return { x:s.x, y:s.y, a:s.a, vivo:true, rodado:0, retroceso:0, recarga:0,
-           arma:'canon', mun:{ metra:0, laser:0 }, escudo:0, turbo:0, respawn:0 };
+           arma:'canon', mun:{ metra:0, laser:0 }, escudo:0, turbo:0,
+           respawn:0, invul:90 };
 }
 
 function reiniciar(){
@@ -341,17 +342,26 @@ function todosTanques(){
 }
 
 /** Quien dispara declara el impacto: es quien mejor ve su propia bala. */
-function anotarImpacto(victima){
+function anotarImpacto(victima, autor = miRol){
+  if (soloBot){ aplicarImpacto(autor, victima); return; }
   nImpacto++;
-  if (soloBot || anfitrion) aplicarImpacto(miRol, victima);
-  else sala.escribir('estado/impactos/' + miRol, { n:nImpacto, v:victima });
+  // Se publica siempre: si no, cuando el anfitrión era quien disparaba,
+  // la víctima nunca se enteraba de que la habían alcanzado.
+  sala.escribir('estado/impactos/' + autor, { n:nImpacto, v:victima, a:autor });
+  if (anfitrion) aplicarImpacto(autor, victima);
 }
 
 function aplicarImpacto(autor, victima){
   const t = todosTanques()[victima];
+  if (t && t.invul > 0) return;              // acaba de reaparecer: aún no cuenta
   if (t && t.escudo > 0){ t.escudo = 0; estallar(t.x, t.y, '#7FA6FF'); return; }
   if (t){ t.vivo = false; t.respawn = 70; estallar(t.x, t.y, COLORES_J[victima]); }
-  const anota = autor === victima ? null : autor;
+  let anota = autor;
+  if (autor === victima){
+    // Matarte con tu propio rebote le regala el punto al otro
+    const resto = jugadores().filter(r => r !== victima);
+    anota = resto.length === 1 ? resto[0] : null;
+  }
   if (!anota) return;
   if (soloBot){
     marcadorLocal[anota] = (marcadorLocal[anota] || 0) + 1;
@@ -417,10 +427,11 @@ function moverTanque(t, ent, rol){
     if (t.respawn > 0 && --t.respawn === 0){
       const k = jugadores().indexOf(rol);
       const s = SALIDAS[k % SALIDAS.length];
-      Object.assign(t, { x:s.x, y:s.y, a:s.a, vivo:true, escudo:0, turbo:0 });
+      Object.assign(t, { x:s.x, y:s.y, a:s.a, vivo:true, escudo:0, turbo:0, invul:90 });
     }
     return;
   }
+  if (t.invul > 0) t.invul--;
   if (t.recarga > 0) t.recarga--;
   if (t.retroceso > 0) t.retroceso -= 0.6;
   if (t.turbo > 0) t.turbo--;
@@ -475,11 +486,14 @@ function paso(){
     b.x += b.vx; b.y += b.vy;
 
     let fuera = b.vida <= 0 || b.rebotes > A.rebotes;
-    if (!fuera && b.de === miRol){
+    // Reviso las balas que simulo yo: las mías siempre, y las del bot
+    // cuando juego en solitario. Antes solo miraba las mías, así que los
+    // disparos del bot me atravesaban sin hacerme nada.
+    if (!fuera && (b.de === miRol || soloBot)){
       for (const [rol, t] of Object.entries(todosTanques())){
         if (!t || !t.vivo) continue;
         if (Math.hypot(b.x - t.x, b.y - t.y) < 13){
-          anotarImpacto(rol);
+          anotarImpacto(rol, b.de);
           fuera = true; break;
         }
       }
@@ -503,9 +517,12 @@ function paso(){
 function crearBot(n){
   // La predicción es lo que separa a un tirador bueno de uno mediocre:
   // apuntar a donde va a estar el rival, no a donde está.
-  return { punteria:[0.34,0.18,0.09][n-1], reaccion:[78,42,16][n-1],
-           prediccion:[0, 0.6, 1][n-1],
-           espera:0, giro:0, ux:0, uy:0 };
+  // `error` desvía el disparo unos grados: es la forma honesta de modelar
+  // mala puntería. Ampliar el margen de aceptación no sirve, porque los
+  // rebotes acaban acertando igual.
+  return { punteria:0.10, reaccion:[120,66,30][n-1],
+           prediccion:[0, 0.6, 1][n-1], error:[0.26, 0.11, 0.025][n-1],
+           desvio:0, espera:0, giro:0, ux:0, uy:0 };
 }
 function pasoBot(){
   const t = otros.B, ent = {};
@@ -520,7 +537,7 @@ function pasoBot(){
   const py = yo.y + vy*vuelo*bot.prediccion;
 
   const dx = px - t.x, dy = py - t.y;
-  const objetivo = Math.atan2(dy, dx);
+  const objetivo = Math.atan2(dy, dx) + bot.desvio;
   let d = objetivo - t.a;
   while (d > Math.PI) d -= 2*Math.PI;
   while (d < -Math.PI) d += 2*Math.PI;
@@ -530,6 +547,7 @@ function pasoBot(){
     if (d > 0.04) ent.der = true; else if (d < -0.04) ent.izq = true;
     if (Math.abs(d) < bot.punteria && bot.espera <= 0){
       ent.fuego = true; bot.espera = bot.reaccion;
+      bot.desvio = (Math.random()*2 - 1)*bot.error;   // el siguiente tiro, otra desviación
     }
     if (dist > 150) ent.adel = true;
     // Si tiene arma pesada, la usa
@@ -569,6 +587,7 @@ function dibujarMuros(){
 function dibujarTanque(t, color, etiqueta){
   if (!t.vivo) return;
   cx.save();
+  if (t.invul > 0 && Math.floor(t.invul/4)%2) cx.globalAlpha = 0.4;
   cx.translate(t.x, t.y);
   cx.rotate(t.a);
 
