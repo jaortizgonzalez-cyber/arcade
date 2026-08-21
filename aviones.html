@@ -1,0 +1,1108 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Alas de combate</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="estilo.css">
+<style>
+  body{overflow-x:hidden}
+  main{max-width:900px;margin:0 auto}
+  [data-juego]{display:flex;flex-direction:column;gap:8px}
+  a.inicio{flex:none;margin:0 0 6px}
+  #fallo{position:fixed;left:0;right:0;bottom:0;z-index:200;background:#5A1E28;
+         color:#FFE3E3;font-size:12px;padding:10px 14px;font-family:ui-monospace,monospace;
+         border-top:2px solid var(--rojo)}
+
+  .escuadra{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+  .piloto{background:var(--panel);border:2px solid var(--borde);border-radius:12px;
+          padding:6px 10px;min-width:120px}
+  .piloto.yo{border-color:currentColor}
+  .piloto.fuera{opacity:.42}
+  .piloto .fila{display:flex;justify-content:space-between;align-items:baseline;gap:6px}
+  .piloto .nm{font-weight:700;font-size:12px;color:var(--tinta);max-width:76px;
+              overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .piloto .dr{font-family:var(--display);font-weight:800;font-size:16px}
+  .piloto .rango{font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--tenue)}
+  .barra{height:6px;background:#160E2C;border-radius:3px;overflow:hidden;margin-top:4px}
+  .barra i{display:block;height:100%;background:currentColor;border-radius:3px;transition:width .18s}
+
+  .cielo{position:relative;border-radius:14px;overflow:hidden;border:2px solid var(--borde)}
+  canvas{display:block;width:100%;aspect-ratio:16/9;background:#0E1230}
+  #b-son{position:absolute;right:8px;top:8px;background:rgba(20,12,36,.7);border:none;
+         border-radius:10px;padding:7px 9px;font-size:15px;cursor:pointer}
+  #capa{position:absolute;inset:0;display:grid;place-content:center;text-align:center;gap:8px;
+        padding:20px;background:rgba(14,10,30,.9)}
+  #capa.oculta{display:none}
+  #capa h2{font-family:var(--display);font-weight:800;font-size:clamp(20px,5vw,29px)}
+  #capa p{font-size:13px;color:var(--tenue);max-width:330px;line-height:1.5}
+  #capa button{margin-top:6px;font-family:inherit;font-weight:700;font-size:15px;
+               padding:12px 26px;border-radius:13px;border:none;background:var(--ambar);
+               color:#241634;cursor:pointer}
+
+  .opciones{display:grid;grid-template-columns:repeat(5,1fr);gap:7px}
+  .opcion{background:var(--panel);border:2px solid var(--borde);border-radius:13px;
+          padding:9px 3px;text-align:center;cursor:pointer;color:var(--tinta);font:inherit}
+  .opcion.sel{border-color:var(--ambar);background:#4A3A16}
+  .opcion b{display:block;font-family:var(--display);font-weight:800;font-size:15px}
+  .opcion span{font-size:9px;color:var(--tenue);letter-spacing:.05em;text-transform:uppercase}
+
+  .armas{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
+  .arma{display:flex;align-items:center;gap:6px;background:var(--panel);
+        border:2px solid var(--borde);border-radius:11px;padding:7px 11px;
+        cursor:pointer;color:var(--tinta);font:inherit;font-size:12px;font-weight:700}
+  .arma.sel{border-color:currentColor;background:#3A2A5C}
+  .arma.vacia{opacity:.35}
+  .arma .mun{font-family:var(--display);font-weight:800;font-size:13px}
+
+  .mandos{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:center}
+  .palanca{display:grid;gap:5px;width:110px}
+  .palanca button{padding:18px 0;border-radius:12px;border:2px solid var(--borde);
+                  background:var(--panel);color:var(--tinta);font-size:17px;cursor:pointer}
+  .acciones2{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .acciones2 button{padding:18px 0;border-radius:13px;border:2px solid var(--borde);
+                    background:var(--panel);cursor:pointer;
+                    font-family:var(--display);font-weight:800;font-size:14px}
+  .acciones2 .gas{color:var(--menta)} .acciones2 .fue{color:var(--ambar)}
+  button.on{background:#3F2A5C}
+  .ayuda{font-size:11px;color:var(--tenue);text-align:center;line-height:1.5}
+</style>
+</head>
+<body>
+<a class="inicio" href="index.html">◀ Sala de juegos</a>
+<div id="fallo" hidden></div>
+<main>
+  <div id="lobby"></div>
+
+  <section data-juego hidden>
+    <div class="escuadra" id="escuadra"></div>
+
+    <div id="zona-prep">
+      <p class="ayuda" id="txt-prep"></p>
+      <p class="ayuda" style="margin-top:8px">Escenario</p>
+      <div class="opciones" id="escenarios"></div>
+      <button class="accion" id="b-listo" style="margin-top:12px">A los aviones</button>
+    </div>
+
+    <div id="zona-vuelo" hidden>
+      <div class="cielo">
+        <canvas id="lienzo" width="960" height="540"></canvas>
+        <button id="b-son" aria-label="Silenciar">🔊</button>
+        <div id="capa" class="oculta">
+          <h2 id="capa-t"></h2>
+          <p id="capa-s"></p>
+          <button id="capa-b">Otra batalla</button>
+        </div>
+      </div>
+
+      <div class="armas" id="armas"></div>
+
+      <div class="mandos">
+        <div class="palanca">
+          <button data-m="arriba">▲ MORRO</button>
+          <button data-m="abajo">▼ PICAR</button>
+        </div>
+        <div class="acciones2">
+          <button class="gas" data-m="gas">GAS</button>
+          <button class="fue" data-m="fuego">FUEGO</button>
+        </div>
+      </div>
+      <p class="ayuda">Teclado: W/↑ morro arriba · S/↓ picar · Shift gas · Espacio dispara · 1 2 3 armas</p>
+    </div>
+  </section>
+</main>
+
+<script type="module">
+import { Lobby } from './lobby.js?v=4';
+import { Sonido } from './sonido.js?v=4';
+
+const sonido = new Sonido();
+const $ = id => document.getElementById(id);
+function mostrarFallo(m){ const d=$('fallo'); d.hidden=false; d.textContent='⚠ '+m; }
+addEventListener('error', e => mostrarFallo(e.message + ' · ' + (e.filename||'').split('/').pop() + ':' + e.lineno));
+addEventListener('unhandledrejection', e => mostrarFallo('Promesa: ' + (e.reason && e.reason.message || e.reason)));
+
+/* ── Escenarios ────────────────────────────────────────── */
+const ESCENARIOS = [
+  { id:'dia',    n:'Mediodía',  e:'☀️', cielo:['#4FA8E8','#BFE4F5'], montes:['#4A7A9B','#6E9BB5'],
+    suelo:['#5E8A46','#3E5C30'], nube:'rgba(255,255,255,.88)', astro:'#FFF3B0', estrellas:0 },
+  { id:'atardecer', n:'Atardecer', e:'🌇', cielo:['#3A2560','#F2955E'], montes:['#3A2A50','#5E3F62'],
+    suelo:['#6B4A32','#3A2A20'], nube:'rgba(255,214,178,.85)', astro:'#FFD08A', estrellas:0 },
+  { id:'noche',  n:'Noche',     e:'🌙', cielo:['#0C1030','#2A2A62'], montes:['#171A3E','#232752'],
+    suelo:['#1A2436','#0E1420'], nube:'rgba(180,190,235,.35)', astro:'#F2F0E0', estrellas:70 },
+  { id:'tormenta', n:'Tormenta', e:'⛈️', cielo:['#2A3040','#5A6270'], montes:['#2A3040','#3A4250'],
+    suelo:['#3A4438','#1E2620'], nube:'rgba(210,215,225,.75)', astro:'#C8CEDC', estrellas:0, rayos:true },
+  { id:'amanecer', n:'Amanecer', e:'🌅', cielo:['#2B3A7A','#F5C9A0'], montes:['#3A3A6B','#5E5286'],
+    suelo:['#4E6B4A','#2E4030'], nube:'rgba(255,235,215,.8)', astro:'#FFE9B0', estrellas:14 }
+];
+let escena = ESCENARIOS[0];
+const escPorId = id => ESCENARIOS.find(x => x.id === id) || ESCENARIOS[0];
+
+/* ── Mundo ─────────────────────────────────────────────── */
+const W = 960, H = 540;
+const MUNDO = 7000, TECHO = 1500;
+const PISTA_X0 = 300, PISTA_X1 = 1300;
+const META = 10, MAX_J = 4;
+const COL_J = { A:'#FFC94A', B:'#6FE7C4', C:'#C58CF0', D:'#FF8C6B' };
+
+/* ── Aviones: el rango sube con los derribos ───────────── */
+const RANGOS = [
+  { n:'Avioneta', derribos:0, vmax:150, empuje:44, giro:1.9, vida:100 },
+  { n:'Caza',     derribos:3, vmax:190, empuje:56, giro:2.2, vida:120 },
+  { n:'Jet',      derribos:6, vmax:240, empuje:72, giro:2.6, vida:140 }
+];
+const rangoDe = d => RANGOS[d >= 6 ? 2 : d >= 3 ? 1 : 0];
+const nivelRango = d => (d >= 6 ? 2 : d >= 3 ? 1 : 0);
+
+const ARMAS = {
+  canon: { n:'Cañón',      e:'🔩', vel:520, dano:14, recarga:16, vida:1.5,
+           radio:3.2, col:'#FFF6DC', mun:Infinity, simult:3 },
+  metra: { n:'Metralleta', e:'🔫', vel:640, dano:9,  recarga:5,  vida:1.1,
+           radio:2.2, col:'#9BE8FF', mun:120, simult:9 },
+  misil: { n:'Misiles',    e:'🚀', vel:380, dano:45, recarga:44, vida:3.2,
+           radio:4.5, col:'#FF8C6B', mun:8, simult:2, busca:true }
+};
+const PREMIOS = {
+  metra:  { e:'🔫', col:'#9BE8FF', txt:'Metralleta' },
+  misil:  { e:'🚀', col:'#FF8C6B', txt:'Misiles' },
+  escudo: { e:'🛡️', col:'#7FA6FF', txt:'Escudo' },
+  reparar:{ e:'❤️', col:'#7BE8A0', txt:'Reparación' },
+  turbo:  { e:'⚡', col:'#F2D65C', txt:'Postcombustión' }
+};
+
+/* ── Física ────────────────────────────────────────────── */
+// G es la gravedad a lo largo del rumbo. Debe quedar por debajo del empuje
+// dividido por sin(45°), o subir en pendiente pronunciada sería imposible y
+// el avión entraría en pérdida en cuanto levantara el morro.
+const G = 55, ROCE = 0.16, VMIN_VUELO = 58, V_DESPEGUE = 76;
+
+function nuevoAvion(k){
+  return { x: PISTA_X0 + 60 + k*90, y:0, ang:0, vel:0, suelo:true,
+           vida:100, vidaMax:100, derribos:0, arma:'canon', mun:{metra:0, misil:0},
+           escudo:0, turbo:0, recarga:0, invul:120, vivo:true, respawn:0,
+           hum:0, muerto:0 };
+}
+
+function pasoAvion(a, ent, dt){
+  if (!a.vivo){
+    if (--a.respawn <= 0){
+      const k = jugadores().indexOf(a.rol || 'A');
+      Object.assign(a, nuevoAvion(k < 0 ? 0 : k), { derribos:a.derribos, rol:a.rol });
+      const R = rangoDe(a.derribos);
+      a.vida = a.vidaMax = R.vida;
+    }
+    return;
+  }
+  if (a.invul > 0) a.invul--;
+  if (a.recarga > 0) a.recarga--;
+  if (a.turbo > 0) a.turbo -= dt;
+  const R = rangoDe(a.derribos);
+  const empuje = R.empuje * (a.turbo > 0 ? 1.7 : 1);
+  const vmax = R.vmax * (a.turbo > 0 ? 1.25 : 1);
+
+  if (a.suelo){
+    // Carreteo por la pista
+    a.ang = 0; a.y = 0;
+    a.vel += (ent.gas ? empuje : -30)*dt;
+    a.vel = Math.max(0, Math.min(vmax, a.vel));
+    a.x += a.vel*dt;
+    if (ent.arriba && a.vel >= V_DESPEGUE){ a.suelo = false; a.ang = 0.22; }
+    if (a.x > PISTA_X1 && a.vel > 10 && a.y <= 0){
+      // Se acabó la pista: si no ha despegado, frena en seco
+      a.vel *= 0.94;
+      if (a.x > PISTA_X1 + 160) a.x = PISTA_X1 + 160;
+    }
+    return;
+  }
+
+  // En el aire: cabeceo, empuje y gravedad a lo largo del rumbo
+  const mando = Math.min(1, a.vel/VMIN_VUELO);
+  const giro = R.giro * mando * dt;
+  if (ent.arriba) a.ang += giro;
+  if (ent.abajo)  a.ang -= giro;
+
+  a.vel += (ent.gas ? empuje : empuje*0.25)*dt;
+  a.vel -= G*Math.sin(a.ang)*dt;               // subir cuesta velocidad, picar la regala
+  a.vel -= ROCE*a.vel*dt;
+  a.vel = Math.max(0, Math.min(vmax, a.vel));
+
+  // Pérdida: sin velocidad no hay sustentación y el morro cae
+  if (a.vel < VMIN_VUELO){
+    // Sin sustentación el morro cae solo y el avión pierde altura
+    const caida = (1 - a.vel/VMIN_VUELO)*1.6*dt;
+    if (a.ang > -Math.PI/2) a.ang -= caida;
+    a.y -= (VMIN_VUELO - a.vel)*0.35*dt;
+  }
+
+  a.x += Math.cos(a.ang)*a.vel*dt;
+  a.y += Math.sin(a.ang)*a.vel*dt;
+
+  while (a.ang >  Math.PI) a.ang -= 2*Math.PI;
+  while (a.ang < -Math.PI) a.ang += 2*Math.PI;
+  a.x = Math.max(60, Math.min(MUNDO-60, a.x));
+  if (a.y > TECHO){ a.y = TECHO; if (a.ang > 0) a.ang *= 0.5; }
+
+  // Suelo
+  if (a.y <= 0){
+    a.y = 0;
+    const suave = Math.abs(a.ang) < 0.22 && a.vel < R.vmax*0.75 &&
+                  a.x > PISTA_X0 - 200 && a.x < PISTA_X1 + 400;
+    if (suave){ a.suelo = true; a.ang = 0; }
+    else { estrellar(a); }
+  }
+  a.hum = a.vida < a.vidaMax*0.4 ? 1 : 0;
+}
+
+/* ── Estado ────────────────────────────────────────────── */
+let sala = null, miRol = 'A', anfitrion = true, soloBot = false, nivelBot = 2;
+let yo = null, otros = {}, balas = [], premios = [], humo = [], chispas = [], rastro = [];
+let camX = 0, camY = 0, corriendo = false, ultimoEnvio = 0, nImpacto = 0, vistos = {};
+let bots = [], aviso = '', avisoHasta = 0, marcadorLocal = {}, proxPremio = 240;
+let relampago = 0;
+const pulsa = {};
+
+const jugadores = () => soloBot ? ['A'] : (sala && sala.ocupados ? sala.ocupados() : ['A']);
+const todosAviones = () => {
+  const m = {};
+  for (const r of jugadores()) m[r] = r === miRol ? yo : otros[r];
+  return m;
+};
+const blancos = () => {
+  const l = [];
+  for (const [r,a] of Object.entries(todosAviones())) if (a) l.push({ id:r, a });
+  bots.forEach((b,i) => l.push({ id:'bot'+i, a:b }));
+  return l;
+};
+
+/* ── Controles ─────────────────────────────────────────── */
+const TECLAS = { w:'arriba', s:'abajo', arrowup:'arriba', arrowdown:'abajo',
+                 shift:'gas', ' ':'fuego', enter:'fuego', a:'gas' };
+addEventListener('keydown', e => {
+  const k = e.key.toLowerCase();
+  if (TECLAS[k]){ e.preventDefault(); pulsa[TECLAS[k]] = true; }
+  if (k === '1') elegirArma('canon');
+  if (k === '2') elegirArma('metra');
+  if (k === '3') elegirArma('misil');
+});
+addEventListener('keyup', e => { const k = TECLAS[e.key.toLowerCase()]; if (k) pulsa[k] = false; });
+addEventListener('blur', () => { for (const k in pulsa) pulsa[k] = false; });
+
+function blindarTacto(el){
+  if (!el) return;
+  ['touchstart','touchmove','touchend','touchcancel'].forEach(ev =>
+    el.addEventListener(ev, e => e.preventDefault(), { passive:false }));
+}
+document.querySelectorAll('[data-m]').forEach(b => {
+  const m = b.dataset.m;
+  const on  = e => { e.preventDefault(); b.setPointerCapture(e.pointerId);
+                     pulsa[m] = true; b.classList.add('on'); };
+  const off = () => { pulsa[m] = false; b.classList.remove('on'); };
+  b.addEventListener('pointerdown', on);
+  ['pointerup','pointercancel'].forEach(ev => b.addEventListener(ev, off));
+  b.addEventListener('lostpointercapture', off);
+  blindarTacto(b);
+});
+blindarTacto($('lienzo'));
+document.addEventListener('contextmenu', e => {
+  if (e.target.closest('button, canvas')) e.preventDefault();
+});
+$('b-son').textContent = sonido.activo ? '🔊' : '🔇';
+$('b-son').addEventListener('click', () => { $('b-son').textContent = sonido.alternar() ? '🔊' : '🔇'; });
+document.querySelector('a.inicio').addEventListener('click', () => {
+  try { if (sala && sala.salir) sala.salir(); } catch(e){}
+});
+
+function elegirArma(id){
+  if (!yo || !yo.vivo) return;
+  if (id !== 'canon' && !(yo.mun[id] > 0)) return;
+  yo.arma = id; pintarArmas();
+}
+function pintarArmas(){
+  const c = $('armas'); c.innerHTML = '';
+  for (const [id, A] of Object.entries(ARMAS)){
+    const mun = id === 'canon' ? Infinity : (yo ? yo.mun[id] : 0);
+    const b = document.createElement('button');
+    b.className = 'arma' + (yo && yo.arma === id ? ' sel' : '') + (mun > 0 ? '' : ' vacia');
+    b.style.color = A.col;
+    b.innerHTML = A.e + ' ' + A.n + '<span class="mun">' + (mun === Infinity ? '∞' : mun) + '</span>';
+    b.addEventListener('click', () => elegirArma(id));
+    c.appendChild(b);
+  }
+}
+
+/* ── Disparos ──────────────────────────────────────────── */
+function disparar(a, id){
+  if (!a.vivo || a.suelo || a.recarga > 0) return;
+  const A = ARMAS[a.arma];
+  if (a.arma !== 'canon' && a.mun[a.arma] <= 0){ a.arma = 'canon'; if (id === miRol) pintarArmas(); return; }
+  if (balas.filter(b => b.de === id).length >= A.simult) return;
+  a.recarga = A.recarga;
+  if (a.arma !== 'canon'){ a.mun[a.arma]--; if (id === miRol) pintarArmas(); }
+  const bx = a.x + Math.cos(a.ang)*26, by = a.y + Math.sin(a.ang)*26;
+  balas.push({ x:bx, y:by, vx:Math.cos(a.ang)*A.vel + Math.cos(a.ang)*a.vel*0.4,
+               vy:Math.sin(a.ang)*A.vel + Math.sin(a.ang)*a.vel*0.4,
+               de:id, arma:a.arma, vida:A.vida, busca:!!A.busca, obj:null });
+  a.arma === 'misil' ? sonido.canon() : (a.arma === 'metra' ? sonido.golpe() : sonido.canon());
+  for (let n = 0; n < 4; n++)
+    chispas.push({ x:bx, y:by, vx:(Math.random()-0.5)*40, vy:(Math.random()-0.5)*40,
+                   v:8, c:A.col });
+}
+
+function estrellar(a){
+  reventar(a.x, a.y, '#FF8C6B');
+  a.vivo = false; a.respawn = 110; a.vel = 0;
+  if (a.rol === miRol) aviso2('Te estrellaste');
+}
+
+function reventar(x, y, col){
+  for (let n = 0; n < 30; n++){
+    const ang = Math.random()*Math.PI*2, s = 40 + Math.random()*160;
+    chispas.push({ x, y, vx:Math.cos(ang)*s, vy:Math.sin(ang)*s, v:22+Math.random()*14,
+                   c: n%3 ? col : '#FFE9A8' });
+  }
+  for (let n = 0; n < 10; n++)
+    humo.push({ x:x+(Math.random()-0.5)*20, y:y+(Math.random()-0.5)*20,
+                r:6+Math.random()*7, v:60 });
+  sonido.estallido();
+}
+
+function anotarDerribo(victima, autor){
+  if (soloBot){ aplicarDerribo(autor, victima); return; }
+  nImpacto++;
+  sala.escribir('estado/impactos/' + autor, { n:nImpacto, v:victima, a:autor });
+  if (anfitrion) aplicarDerribo(autor, victima);
+}
+
+function aplicarDerribo(autor, victima){
+  if (autor === victima) return;
+  if (soloBot){
+    marcadorLocal[autor] = (marcadorLocal[autor] || 0) + 1;
+    if (autor === miRol && yo){ yo.derribos++; subirRango(yo); }
+    if (marcadorLocal[autor] >= META) terminarLocal(autor);
+  } else if (anfitrion){
+    sala.actualizar(s => {
+      const e = s.estado;
+      e.marcador = e.marcador || {};
+      e.marcador[autor] = (e.marcador[autor] || 0) + 1;
+      if (e.marcador[autor] >= META){ e.fase = 'fin'; e.ganador = autor; }
+    });
+  }
+}
+
+function subirRango(a){
+  const antes = nivelRango(a.derribos - 1), ahora = nivelRango(a.derribos);
+  if (ahora > antes){
+    const R = RANGOS[ahora];
+    a.vidaMax = R.vida; a.vida = R.vida;
+    aviso2('¡' + R.n + '!');
+    sonido.premio();
+  }
+}
+
+/* ── Premios ───────────────────────────────────────────── */
+function soltarPremio(){
+  const tipos = Object.keys(PREMIOS);
+  premios.push({ t: tipos[Math.floor(Math.random()*tipos.length)],
+                 x: 400 + Math.random()*(MUNDO-800),
+                 y: 220 + Math.random()*(TECHO-400), f: Math.random()*6 });
+  if (premios.length > 5) premios.shift();
+}
+
+function recoger(a, id){
+  for (let i = premios.length - 1; i >= 0; i--){
+    const p = premios[i];
+    if (Math.hypot(p.x - a.x, p.y - a.y) > 34) continue;
+    premios.splice(i, 1);
+    if (p.t === 'metra'){ a.mun.metra += ARMAS.metra.mun; a.arma = 'metra'; }
+    else if (p.t === 'misil'){ a.mun.misil += ARMAS.misil.mun; a.arma = 'misil'; }
+    else if (p.t === 'escudo') a.escudo = 1;
+    else if (p.t === 'reparar') a.vida = a.vidaMax;
+    else if (p.t === 'turbo') a.turbo = 7;
+    if (id === miRol){ sonido.premio(); pintarArmas(); aviso2(PREMIOS[p.t].txt); }
+    if (anfitrion && !soloBot) sala.escribir('estado/premios', premios);
+  }
+}
+
+function aviso2(t){ aviso = t; avisoHasta = performance.now() + 1400; }
+
+/* ── Bots ──────────────────────────────────────────────── */
+function crearBot(nivel, k){
+  const a = nuevoAvion(k + 1);
+  a.rol = 'bot'; a.x = 2000 + Math.random()*3000; a.y = 500 + Math.random()*500;
+  a.suelo = false; a.vel = 120; a.ang = Math.random() < 0.5 ? 0 : Math.PI;
+  a.derribos = [0,2,5][nivel-1];
+  const R = rangoDe(a.derribos); a.vida = a.vidaMax = R.vida;
+  a.ia = { error:[0.24,0.11,0.04][nivel-1], espera:0,
+           reaccion:[70,42,22][nivel-1], desvio:0, prediccion:[0,0.6,1][nivel-1] };
+  return a;
+}
+
+function pasoBot(b, dt){
+  const ent = {};
+  if (!b.vivo || !yo || !yo.vivo){ ent.gas = true; return ent; }
+  const ia = b.ia;
+
+  // Rumbo hacia la posición prevista del jugador
+  const dist = Math.hypot(yo.x - b.x, yo.y - b.y);
+  const vuelo = dist / ARMAS[b.arma].vel;
+  const px = yo.x + Math.cos(yo.ang)*yo.vel*vuelo*ia.prediccion;
+  const py = yo.y + Math.sin(yo.ang)*yo.vel*vuelo*ia.prediccion;
+  let objetivo = Math.atan2(py - b.y, px - b.x) + ia.desvio;
+
+  // Nunca contra el suelo
+  if (b.y < 220 && Math.sin(b.ang) < 0.2) objetivo = 0.5;
+  if (b.y > TECHO - 150 && Math.sin(b.ang) > 0) objetivo = -0.3;
+
+  let d = objetivo - b.ang;
+  while (d >  Math.PI) d -= 2*Math.PI;
+  while (d < -Math.PI) d += 2*Math.PI;
+  if (d > 0.05) ent.arriba = true; else if (d < -0.05) ent.abajo = true;
+  ent.gas = true;
+
+  if (ia.espera > 0) ia.espera--;
+  if (Math.abs(d) < 0.12 && dist < 900 && ia.espera <= 0){
+    ent.fuego = true; ia.espera = ia.reaccion;
+    ia.desvio = (Math.random()*2 - 1)*ia.error;
+  }
+  return ent;
+}
+
+/* ── Simulación ────────────────────────────────────────── */
+function paso(dt){
+  if (!corriendo || !yo) return;
+
+  pasoAvion(yo, pulsa, dt);
+  if (pulsa.fuego) disparar(yo, miRol);
+  recoger(yo, miRol);
+  if (yo.vivo && !yo.suelo) rastro.push({ x:yo.x, y:yo.y, v:14 });
+
+  if (soloBot){
+    for (const b of bots){
+      const ent = pasoBot(b, dt);
+      pasoAvion(b, ent, dt);
+      if (ent.fuego) disparar(b, 'bot' + bots.indexOf(b));
+      recoger(b, 'bot');
+      if (b.vivo && !b.suelo && Math.random() < 0.4) rastro.push({ x:b.x, y:b.y, v:10 });
+    }
+  }
+
+  if (anfitrion && --proxPremio <= 0){
+    proxPremio = 300 + Math.floor(Math.random()*240);
+    soltarPremio();
+    if (!soloBot) sala.escribir('estado/premios', premios);
+  }
+
+  // Proyectiles
+  for (let k = balas.length - 1; k >= 0; k--){
+    const b = balas[k];
+    const A = ARMAS[b.arma];
+    b.vida -= dt;
+
+    if (b.busca){                                    // los misiles corrigen el rumbo
+      if (!b.obj){
+        let mejor = 1e9;
+        for (const t of blancos()){
+          if (t.id === b.de || !t.a || !t.a.vivo) continue;
+          const d = Math.hypot(t.a.x - b.x, t.a.y - b.y);
+          if (d < mejor){ mejor = d; b.obj = t.id; }
+        }
+      }
+      const t = blancos().find(x => x.id === b.obj);
+      if (t && t.a && t.a.vivo){
+        const deseado = Math.atan2(t.a.y - b.y, t.a.x - b.x);
+        const actual = Math.atan2(b.vy, b.vx);
+        let d = deseado - actual;
+        while (d >  Math.PI) d -= 2*Math.PI;
+        while (d < -Math.PI) d += 2*Math.PI;
+        const nuevo = actual + Math.max(-2.2*dt, Math.min(2.2*dt, d));
+        const v = Math.hypot(b.vx, b.vy);
+        b.vx = Math.cos(nuevo)*v; b.vy = Math.sin(nuevo)*v;
+        humo.push({ x:b.x, y:b.y, r:3, v:16 });
+      }
+    }
+
+    b.x += b.vx*dt; b.y += b.vy*dt;
+    let fuera = b.vida <= 0 || b.y <= 0 || b.x < 0 || b.x > MUNDO;
+
+    if (!fuera && (b.de === miRol || soloBot)){
+      for (const t of blancos()){
+        if (t.id === b.de || !t.a || !t.a.vivo || t.a.invul > 0) continue;
+        if (Math.hypot(b.x - t.a.x, b.y - t.a.y) > 24) continue;
+        fuera = true;
+        chispas.push({ x:b.x, y:b.y, vx:0, vy:0, v:10, c:'#FFE9A8' });
+        if (t.a.escudo > 0){ t.a.escudo = 0; reventar(t.a.x, t.a.y, '#7FA6FF'); break; }
+        t.a.vida -= A.dano;
+        sonido.golpe();
+        if (t.a.vida <= 0){
+          reventar(t.a.x, t.a.y, COL_J[t.id] || '#FF8C6B');
+          t.a.vivo = false; t.a.respawn = 110;
+          if (b.de.startsWith('bot')){
+            if (t.id === miRol){ marcadorLocal.bot = (marcadorLocal.bot || 0) + 1;
+              if (marcadorLocal.bot >= META) terminarLocal('bot'); }
+          } else {
+            if (soloBot && t.id.startsWith('bot')){
+              yo.derribos++; subirRango(yo);
+              marcadorLocal[miRol] = (marcadorLocal[miRol] || 0) + 1;
+              if (marcadorLocal[miRol] >= META) terminarLocal(miRol);
+            } else anotarDerribo(t.id, b.de);
+          }
+        }
+        break;
+      }
+    }
+    if (fuera) balas.splice(k,1);
+  }
+
+  chispas.forEach(c => { c.x += c.vx*dt; c.y += c.vy*dt; c.v--; });
+  chispas = chispas.filter(c => c.v > 0);
+  humo.forEach(h => { h.r += 26*dt; h.y += 12*dt; h.v--; });
+  humo = humo.filter(h => h.v > 0);
+  rastro.forEach(r => r.v--);
+  rastro = rastro.filter(r => r.v > 0);
+  if (yo.hum && Math.random() < 0.35) humo.push({ x:yo.x, y:yo.y, r:4, v:22 });
+
+  // Cámara
+  const objX = yo.x + Math.cos(yo.ang)*120;
+  camX += (objX - W/2 - camX)*0.08;
+  camY += ((yo.y - H*0.45) - camY)*0.08;
+  camX = Math.max(0, Math.min(MUNDO - W, camX));
+  camY = Math.max(-60, Math.min(TECHO - H*0.3, camY));
+
+  if (escena.rayos && Math.random() < 0.004) relampago = 8;
+  if (relampago > 0) relampago--;
+}
+
+function terminarLocal(quien){
+  corriendo = false;
+  const gano = quien === miRol;
+  $('capa-t').textContent = gano ? '🏆 ¡As del aire!' : 'Te derribaron';
+  $('capa-s').textContent = gano
+    ? 'Llegaste a ' + META + ' derribos volando un ' + rangoDe(yo.derribos).n.toLowerCase() + '.'
+    : 'La escuadra enemiga llegó primero a ' + META + '.';
+  $('capa').classList.remove('oculta');
+  gano ? sonido.victoria() : sonido.derrota();
+}
+
+/* ── Dibujo ────────────────────────────────────────────── */
+const px = x => x - camX;
+const py = y => H - (y - camY)*0.5 - 40;
+
+function dibujarFondo(){
+  const g = cx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0, escena.cielo[0]); g.addColorStop(1, escena.cielo[1]);
+  cx.fillStyle = g; cx.fillRect(0,0,W,H);
+
+  if (relampago > 0){
+    cx.fillStyle = 'rgba(255,255,255,' + (relampago/8*0.5) + ')';
+    cx.fillRect(0,0,W,H);
+  }
+
+  // Estrellas
+  for (let i = 0; i < escena.estrellas; i++){
+    const sx = ((i*97 - camX*0.05) % W + W) % W;
+    const sy = (i*53) % (H*0.6);
+    cx.fillStyle = 'rgba(255,255,255,' + (0.4 + (i%5)/8) + ')';
+    cx.fillRect(sx, sy, 2, 2);
+  }
+
+  // Astro
+  cx.fillStyle = escena.astro;
+  cx.beginPath(); cx.arc(W*0.78 - camX*0.02, H*0.16 - camY*0.02, 30, 0, 7); cx.fill();
+
+  // Montañas en dos capas
+  for (const [f, col, alt] of [[0.18, escena.montes[0], 0.42], [0.4, escena.montes[1], 0.3]]){
+    cx.fillStyle = col;
+    cx.beginPath();
+    cx.moveTo(0, H);
+    for (let sx = 0; sx <= W; sx += 14){
+      const wx = (camX*f + sx)*0.01;
+      const h0 = (Math.sin(wx)*0.5 + Math.sin(wx*2.3)*0.3 + Math.sin(wx*0.7)*0.2 + 1)*H*alt*0.5;
+      cx.lineTo(sx, py(0) - h0 + camY*(1-f)*0.2);
+    }
+    cx.lineTo(W, H); cx.closePath(); cx.fill();
+  }
+
+  // Nubes
+  cx.fillStyle = escena.nube;
+  for (let i = 0; i < 26; i++){
+    const wx = (i*640 + (i%5)*130) % MUNDO;
+    const wy = 260 + ((i*337) % (TECHO-360));
+    const sx = px(wx)*0.75 + W*0.12, sy = py(wy);
+    if (sx < -260 || sx > W+260) continue;
+    const r0 = 26 + (i%4)*11;
+    cx.beginPath();
+    cx.arc(sx, sy, r0, 0, 7);
+    cx.arc(sx+r0*0.8, sy+5, r0*0.75, 0, 7);
+    cx.arc(sx-r0*0.85, sy+6, r0*0.65, 0, 7);
+    cx.arc(sx+r0*0.2, sy-r0*0.55, r0*0.6, 0, 7);
+    cx.fill();
+  }
+
+  // Suelo y pista
+  const gs = cx.createLinearGradient(0, py(0)-10, 0, H);
+  gs.addColorStop(0, escena.suelo[0]); gs.addColorStop(1, escena.suelo[1]);
+  cx.fillStyle = gs;
+  cx.fillRect(0, py(0), W, H - py(0) + 10);
+  cx.fillStyle = 'rgba(0,0,0,.25)';
+  cx.fillRect(0, py(0), W, 4);
+
+  const rx0 = px(PISTA_X0), rx1 = px(PISTA_X1);
+  if (rx1 > -40 && rx0 < W+40){
+    cx.fillStyle = '#3E3B4E';
+    cx.fillRect(rx0, py(0)-2, rx1-rx0, 16);
+    cx.fillStyle = '#EDE6FA';
+    for (let x = rx0+30; x < rx1-30; x += 70) cx.fillRect(x, py(0)+5, 34, 3);
+    cx.fillStyle = '#F2D65C';
+    cx.fillRect(rx0, py(0)-4, 5, 20);
+    cx.fillRect(rx1-5, py(0)-4, 5, 20);
+  }
+}
+
+/* Avión: fuselaje, alas, cola y cabina. El diseño cambia con el rango. */
+function dibujarAvion(a, color, etiqueta){
+  if (!a.vivo) return;
+  const sx = px(a.x), sy = py(a.y);
+  if (sx < -140 || sx > W+140) return;
+  const niv = nivelRango(a.derribos);
+  const s = 1 + niv*0.12;
+
+  cx.save();
+  cx.translate(sx, sy);
+  cx.rotate(-a.ang);
+  cx.scale(s, s);
+  if (a.invul > 0 && Math.floor(a.invul/4)%2) cx.globalAlpha = 0.45;
+  cx.lineJoin = 'round';
+  cx.strokeStyle = 'rgba(12,8,26,.85)'; cx.lineWidth = 1.6;
+
+  // Estela de postcombustión
+  if (a.turbo > 0 || (niv === 2 && a.vel > 150)){
+    const l = 16 + Math.random()*14;
+    const gg = cx.createLinearGradient(-18, 0, -18-l, 0);
+    gg.addColorStop(0, 'rgba(255,214,120,.95)');
+    gg.addColorStop(1, 'rgba(255,120,60,0)');
+    cx.fillStyle = gg;
+    cx.beginPath(); cx.moveTo(-16,-4); cx.lineTo(-16-l, 0); cx.lineTo(-16, 4); cx.closePath(); cx.fill();
+  }
+
+  // Cola
+  cx.fillStyle = color;
+  cx.beginPath();
+  cx.moveTo(-14, -1); cx.lineTo(-20, -13); cx.lineTo(-12, -13); cx.lineTo(-7, -1);
+  cx.closePath(); cx.fill(); cx.stroke();
+
+  // Alas
+  const alaAtras = niv === 0 ? 2 : niv === 1 ? 7 : 13;
+  cx.fillStyle = color;
+  cx.beginPath();
+  cx.moveTo(4, 0); cx.lineTo(-2 - alaAtras, 15); cx.lineTo(4 - alaAtras, 16);
+  cx.lineTo(9, 2); cx.closePath(); cx.fill(); cx.stroke();
+  cx.beginPath();
+  cx.moveTo(4, 0); cx.lineTo(-2 - alaAtras, -15); cx.lineTo(4 - alaAtras, -16);
+  cx.lineTo(9, -2); cx.closePath(); cx.fill(); cx.stroke();
+
+  // Fuselaje
+  const gf = cx.createLinearGradient(0, -7, 0, 8);
+  gf.addColorStop(0, '#FFFFFF'); gf.addColorStop(0.28, color); gf.addColorStop(1, 'rgba(0,0,0,.5)');
+  cx.fillStyle = gf;
+  cx.beginPath();
+  cx.moveTo(24, 0); cx.quadraticCurveTo(16, -7, 2, -7);
+  cx.lineTo(-16, -5); cx.quadraticCurveTo(-20, 0, -16, 5);
+  cx.lineTo(2, 7); cx.quadraticCurveTo(16, 7, 24, 0);
+  cx.closePath(); cx.fill(); cx.stroke();
+
+  // Cabina
+  cx.fillStyle = 'rgba(190,235,255,.9)';
+  cx.beginPath();
+  cx.moveTo(10, -6); cx.quadraticCurveTo(4, -12, -3, -6); cx.closePath();
+  cx.fill(); cx.stroke();
+
+  // Morro: hélice o toberas según el rango
+  if (niv < 2){
+    cx.strokeStyle = 'rgba(240,236,255,.8)'; cx.lineWidth = 2.4;
+    const gir = (performance.now()/22) % 20;
+    cx.beginPath(); cx.moveTo(25, -11 + gir*0.2); cx.lineTo(25, 11 - gir*0.2); cx.stroke();
+    cx.fillStyle = '#F3ECFF';
+    cx.beginPath(); cx.arc(24, 0, 2.6, 0, 7); cx.fill();
+  } else {
+    cx.fillStyle = '#2A2140';
+    cx.beginPath(); cx.roundRect(-19, -6, 7, 12, 3); cx.fill();
+    cx.fillStyle = '#FF8C6B';
+    cx.beginPath(); cx.arc(-16, 0, 2.4, 0, 7); cx.fill();
+  }
+
+  // Cañones bajo las alas, del caza en adelante
+  if (niv >= 1){
+    cx.fillStyle = '#2A2140';
+    cx.fillRect(6, 9, 12, 2.2);
+    cx.fillRect(6, -11.2, 12, 2.2);
+  }
+  cx.globalAlpha = 1;
+  cx.restore();
+
+  // Escudo
+  if (a.escudo > 0){
+    cx.strokeStyle = 'rgba(127,166,255,' + (0.5 + Math.sin(performance.now()/150)*0.3) + ')';
+    cx.lineWidth = 2.5;
+    cx.beginPath(); cx.arc(sx, sy, 30*s, 0, 7); cx.stroke();
+  }
+
+  // Nombre y barra de vida
+  if (etiqueta){
+    cx.fillStyle = color; cx.font = '700 12px "DM Sans", sans-serif'; cx.textAlign = 'center';
+    cx.fillText(etiqueta, sx, sy - 34*s);
+  }
+  if (a.vida < a.vidaMax){
+    cx.fillStyle = 'rgba(0,0,0,.5)'; cx.fillRect(sx-18, sy - 28*s, 36, 4);
+    cx.fillStyle = a.vida/a.vidaMax > 0.35 ? '#7BE8A0' : '#FF7B7B';
+    cx.fillRect(sx-18, sy - 28*s, 36*(a.vida/a.vidaMax), 4);
+  }
+}
+
+const cv = $('lienzo'), cx = cv.getContext('2d');
+
+function dibujar(){
+  dibujarFondo();
+
+  // Estelas de vuelo
+  cx.strokeStyle = 'rgba(255,255,255,.16)'; cx.lineWidth = 2;
+  for (const r of rastro){
+    cx.globalAlpha = r.v/14*0.5;
+    cx.beginPath(); cx.arc(px(r.x), py(r.y), 2, 0, 7); cx.stroke();
+  }
+  cx.globalAlpha = 1;
+
+  // Premios
+  for (const p of premios){
+    const sx = px(p.x), sy = py(p.y) + Math.sin(performance.now()/400 + p.f)*6;
+    if (sx < -40 || sx > W+40) continue;
+    const P = PREMIOS[p.t];
+    cx.globalAlpha = .32; cx.fillStyle = P.col;
+    cx.beginPath(); cx.arc(sx, sy, 22, 0, 7); cx.fill();
+    cx.globalAlpha = 1;
+    cx.fillStyle = 'rgba(20,12,36,.85)';
+    cx.beginPath(); cx.roundRect(sx-13, sy-13, 26, 26, 7); cx.fill();
+    cx.strokeStyle = P.col; cx.lineWidth = 2; cx.stroke();
+    cx.font = '15px sans-serif'; cx.textAlign = 'center'; cx.textBaseline = 'middle';
+    cx.fillText(P.e, sx, sy+1);
+    cx.textBaseline = 'alphabetic';
+    // Paracaídas
+    cx.strokeStyle = P.col; cx.lineWidth = 1.4;
+    cx.beginPath(); cx.arc(sx, sy-24, 13, Math.PI, 0); cx.stroke();
+    cx.beginPath(); cx.moveTo(sx-13, sy-24); cx.lineTo(sx-5, sy-13);
+    cx.moveTo(sx+13, sy-24); cx.lineTo(sx+5, sy-13); cx.stroke();
+  }
+
+  // Proyectiles
+  for (const b of balas){
+    const A = ARMAS[b.arma];
+    const sx = px(b.x), sy = py(b.y);
+    if (sx < -30 || sx > W+30) continue;
+    const ang = Math.atan2(b.vy, b.vx);
+    cx.save(); cx.translate(sx, sy); cx.rotate(-ang);
+    cx.fillStyle = A.col + '66';
+    cx.beginPath(); cx.ellipse(-6, 0, 12, A.radio*1.6, 0, 0, 7); cx.fill();
+    cx.fillStyle = A.col;
+    cx.beginPath(); cx.ellipse(0, 0, A.radio*2, A.radio, 0, 0, 7); cx.fill();
+    if (b.busca){
+      cx.fillStyle = '#FFE9A8';
+      cx.beginPath(); cx.moveTo(-6,-2); cx.lineTo(-14,0); cx.lineTo(-6,2); cx.closePath(); cx.fill();
+    }
+    cx.restore();
+  }
+
+  // Aviones
+  for (const [rol, a] of Object.entries(todosAviones()))
+    if (a) dibujarAvion(a, COL_J[rol] || '#FFC94A', rol === miRol ? null : (sala ? sala.nombre(rol) : rol));
+  bots.forEach((b,i) => dibujarAvion(b, '#FF7B7B', 'Enemigo'));
+
+  // Humo y chispas
+  for (const h of humo){
+    cx.globalAlpha = Math.min(0.35, h.v/120);
+    cx.fillStyle = '#C8C0DA';
+    cx.beginPath(); cx.arc(px(h.x), py(h.y), h.r, 0, 7); cx.fill();
+  }
+  for (const c of chispas){
+    cx.globalAlpha = Math.min(1, c.v/18);
+    cx.fillStyle = c.c;
+    cx.fillRect(px(c.x)-2, py(c.y)-2, 4, 4);
+  }
+  cx.globalAlpha = 1;
+
+  dibujarHud();
+}
+
+function dibujarHud(){
+  if (!yo) return;
+  // Altímetro y velocímetro
+  const R = rangoDe(yo.derribos);
+  cx.fillStyle = 'rgba(16,10,32,.62)';
+  cx.beginPath(); cx.roundRect(12, 12, 150, 62, 12); cx.fill();
+  cx.textAlign = 'left';
+  cx.fillStyle = '#F3ECFF';
+  cx.font = '800 19px "Bricolage Grotesque", sans-serif';
+  cx.fillText(Math.round(yo.vel) + ' km/h', 22, 36);
+  cx.fillText(Math.round(yo.y) + ' m', 22, 62);
+  cx.font = '700 10px "DM Sans", sans-serif';
+  cx.fillStyle = 'rgba(243,236,255,.55)';
+  cx.fillText('VEL', 122, 36); cx.fillText('ALT', 122, 62);
+
+  // Aviso de pérdida
+  if (!yo.suelo && yo.vel < VMIN_VUELO && yo.vivo){
+    cx.textAlign = 'center';
+    cx.fillStyle = Math.floor(performance.now()/220)%2 ? '#FF7B7B' : 'rgba(255,123,123,.35)';
+    cx.font = '800 26px "Bricolage Grotesque", sans-serif';
+    cx.fillText('¡PÉRDIDA! ACELERA Y PICA', W/2, 60);
+  }
+  // En pista
+  if (yo.suelo && yo.vivo){
+    cx.textAlign = 'center';
+    cx.fillStyle = '#F3ECFF';
+    cx.font = '800 20px "Bricolage Grotesque", sans-serif';
+    cx.fillText(yo.vel < V_DESPEGUE ? 'ACELERA PARA DESPEGAR'
+                                    : '¡TIRA DEL MORRO!', W/2, 56);
+    cx.fillStyle = 'rgba(16,10,32,.5)';
+    cx.beginPath(); cx.roundRect(W/2-90, 66, 180, 10, 5); cx.fill();
+    cx.fillStyle = yo.vel < V_DESPEGUE ? '#F2D65C' : '#7BE8A0';
+    cx.beginPath(); cx.roundRect(W/2-88, 68, 176*Math.min(1, yo.vel/V_DESPEGUE), 6, 3); cx.fill();
+  }
+  // Rango y turbo
+  cx.textAlign = 'right';
+  cx.fillStyle = 'rgba(243,236,255,.75)';
+  cx.font = '700 12px "DM Sans", sans-serif';
+  cx.fillText(R.n + ' · ' + yo.derribos + ' derribos', W-16, 30);
+  if (yo.turbo > 0){
+    cx.fillStyle = '#F2D65C';
+    cx.fillText('POSTCOMBUSTIÓN ' + yo.turbo.toFixed(1) + 's', W-16, 48);
+  }
+  // Aviso central
+  if (performance.now() < avisoHasta){
+    cx.textAlign = 'center';
+    cx.fillStyle = '#FFC94A';
+    cx.font = '800 32px "Bricolage Grotesque", sans-serif';
+    cx.fillText('¡' + aviso.toUpperCase() + '!', W/2, H*0.24);
+  }
+}
+
+/* ── Escuadra ──────────────────────────────────────────── */
+function pintarEscuadra(e){
+  const cont = $('escuadra');
+  const lista = jugadores();
+  cont.innerHTML = '';
+  const marc = soloBot ? marcadorLocal : (e.marcador || {});
+  for (const r of lista){
+    const a = r === miRol ? yo : otros[r];
+    const d = document.createElement('div');
+    d.className = 'piloto' + (r === miRol ? ' yo' : '') +
+                  ((soloBot || sala.enLinea(r)) ? '' : ' fuera');
+    d.style.color = COL_J[r];
+    const vida = a ? Math.max(0, Math.round(a.vida/a.vidaMax*100)) : 100;
+    d.innerHTML = '<div class="fila"><span class="nm">' + sala.nombre(r) +
+                  (r === miRol ? ' (tú)' : '') + '</span>' +
+                  '<span class="dr">' + (marc[r] || 0) + '</span></div>' +
+                  '<div class="rango">' + (a ? rangoDe(a.derribos).n : 'Avioneta') + '</div>' +
+                  '<div class="barra"><i style="width:' + vida + '%"></i></div>';
+    cont.appendChild(d);
+  }
+  if (soloBot){
+    const d = document.createElement('div');
+    d.className = 'piloto'; d.style.color = '#FF7B7B';
+    d.innerHTML = '<div class="fila"><span class="nm">Escuadra enemiga</span>' +
+                  '<span class="dr">' + (marcadorLocal.bot || 0) + '</span></div>' +
+                  '<div class="rango">' + bots.filter(b=>b.vivo).length + ' en vuelo</div>';
+    cont.appendChild(d);
+  }
+}
+
+/* ── Bucle ─────────────────────────────────────────────── */
+let ultimo = performance.now();
+function bucle(ahora){
+  requestAnimationFrame(bucle);
+  try {
+    const dt = Math.min(0.045, (ahora - ultimo)/1000);
+    ultimo = ahora;
+    if (corriendo) paso(dt);
+    if (sala && corriendo && !soloBot && ahora - ultimoEnvio > 90){
+      ultimoEnvio = ahora;
+      if (yo) sala.escribir('estado/pos/' + miRol, {
+        x:+yo.x.toFixed(1), y:+yo.y.toFixed(1), a:+yo.ang.toFixed(3),
+        v:yo.vivo?1:0, s:yo.suelo?1:0, d:yo.derribos, vi:Math.round(yo.vida),
+        vm:yo.vidaMax, w:yo.arma, es:yo.escudo, tu:yo.turbo>0?1:0
+      });
+    }
+    dibujar();
+  } catch(err){ mostrarFallo('bucle: ' + err.message); }
+}
+
+/* ── Sincronización ────────────────────────────────────── */
+function pintar(s){
+  const e = s && s.estado;
+  if (!e) return;
+  escena = escPorId(e.escenario);
+  pintarEscuadra(e);
+
+  if (!soloBot){
+    for (const r of jugadores()){
+      if (r === miRol) continue;
+      const q = e.pos && e.pos[r];
+      if (!q) continue;
+      if (!otros[r]) { otros[r] = nuevoAvion(jugadores().indexOf(r)); otros[r].rol = r; }
+      const a = otros[r];
+      a.x += (q.x - a.x)*0.4; a.y += (q.y - a.y)*0.4;
+      let d = q.a - a.ang;
+      while (d > Math.PI) d -= 2*Math.PI;
+      while (d < -Math.PI) d += 2*Math.PI;
+      a.ang += d*0.4;
+      a.vivo = !!q.v; a.suelo = !!q.s; a.derribos = q.d || 0;
+      a.vida = q.vi; a.vidaMax = q.vm || 100; a.arma = q.w || 'canon';
+      a.escudo = q.es || 0; a.turbo = q.tu ? 1 : 0;
+    }
+    if (!anfitrion && e.premios) premios = e.premios.slice();
+    if (anfitrion && e.impactos) for (const r of jugadores()){
+      const im = e.impactos[r];
+      if (r !== miRol && im && im.n > (vistos[r] || 0)){
+        vistos[r] = im.n; aplicarDerribo(r, im.v);
+      }
+    }
+  }
+
+  if (e.fase === 'preparando'){
+    $('zona-prep').hidden = false;
+    $('zona-vuelo').hidden = true;
+    pintarEscenarios(e);
+    const listo = e.listos && e.listos[miRol];
+    $('b-listo').textContent = listo ? '✓ Listo — esperando…' : 'A los aviones';
+    $('b-listo').disabled = !!listo || (!soloBot && !sala.completa);
+    const faltan = jugadores().filter(r => !(e.listos && e.listos[r]));
+    $('txt-prep').textContent = (!soloBot && !sala.completa)
+      ? 'Esperando a que lleguen más pilotos…'
+      : (faltan.length ? 'Faltan por confirmar: ' + faltan.map(r => sala.nombre(r)).join(', ')
+                       : '¡Todos listos!');
+  }
+
+  if (e.fase === 'jugando' && $('zona-vuelo').hidden){
+    $('zona-prep').hidden = true;
+    $('zona-vuelo').hidden = false;
+    arrancar(e);
+  }
+
+  if (e.fase === 'fin' && corriendo){
+    corriendo = false;
+    const gano = e.ganador === miRol;
+    $('capa-t').textContent = gano ? '🏆 ¡As del aire!' : 'Gana ' + sala.nombre(e.ganador);
+    $('capa-s').textContent = gano
+      ? 'Llegaste a ' + META + ' derribos.'
+      : sala.nombre(e.ganador) + ' llegó primero a ' + META + ' derribos.';
+    $('capa').classList.remove('oculta');
+    gano ? sonido.victoria() : sonido.derrota();
+  }
+}
+
+function arrancar(e){
+  const k = jugadores().indexOf(miRol);
+  yo = nuevoAvion(k < 0 ? 0 : k); yo.rol = miRol;
+  otros = {}; balas = []; premios = []; humo = []; chispas = []; rastro = [];
+  marcadorLocal = {}; proxPremio = 240;
+  bots = soloBot ? Array.from({length: 1 + nivelBot}, (_,i) => crearBot(nivelBot, i)) : [];
+  camX = Math.max(0, yo.x - W/2); camY = 0;
+  corriendo = true;
+  pintarArmas();
+  $('capa').classList.add('oculta');
+  aviso2('¡Despega!');
+}
+
+function pintarEscenarios(e){
+  const cont = $('escenarios'); cont.innerHTML = '';
+  ESCENARIOS.forEach(x => {
+    const b = document.createElement('button');
+    b.className = 'opcion' + (e.escenario === x.id ? ' sel' : '');
+    b.innerHTML = '<b>' + x.e + '</b><span>' + x.n + '</span>';
+    b.disabled = miRol !== 'A';
+    b.addEventListener('click', () => sala.actualizar(s => {
+      if (s.estado.fase !== 'preparando') return false;
+      s.estado.escenario = x.id;
+    }));
+    cont.appendChild(b);
+  });
+}
+
+$('b-listo').addEventListener('click', () => sala.actualizar(s => {
+  const e = s.estado;
+  if (e.fase !== 'preparando') return false;
+  e.listos = e.listos || {};
+  e.listos[miRol] = true;
+  if (soloBot) jugadores().forEach(r => { e.listos[r] = true; });
+  if (jugadores().every(r => e.listos[r])){
+    e.fase = 'jugando'; e.marcador = {}; e.pos = {}; e.impactos = {}; e.premios = [];
+  }
+}));
+
+$('capa-b').addEventListener('click', () => {
+  marcadorLocal = {};
+  sala.actualizar(s => {
+    const e = s.estado;
+    e.fase = 'preparando'; e.listos = {}; e.marcador = {};
+    e.pos = {}; e.impactos = {}; e.premios = []; e.ganador = '';
+  });
+});
+
+requestAnimationFrame(bucle);
+
+const estadoInicial = () => ({
+  fase:'preparando', escenario:'dia', listos:{}, pos:{}, marcador:{},
+  premios:[], impactos:{}, ganador:''
+});
+
+new Lobby({
+  juego: 'aviones',
+  titulo: 'Alas de <em>combate</em>',
+  lema: 'Despega, sube y no te quedes sin velocidad.',
+  maxJugadores: MAX_J,
+  textoOnline: 'En línea · de 2 a 4 pilotos',
+  textoSolo: '✈️ Un jugador · contra la escuadra',
+  tituloNivel: '¿Qué tan <em>dura</em> la escuadra?',
+  lemaNivel: 'Cuantos más cazas, más difícil.',
+  niveles: [
+    { n:1, t:'Novatos',   d:'Dos avionetas que apuntan mal.' },
+    { n:2, t:'Escuadra',  d:'Tres cazas con buena puntería.' },
+    { n:3, t:'Ases',      d:'Cuatro jets que casi no fallan.' }
+  ],
+  estadoInicial,
+  nombreRobot: n => ['Novatos','Escuadra','Ases'][n-1],
+  alEntrar: s => {
+    sala = s; miRol = s.rol; anfitrion = (miRol === 'A'); soloBot = false;
+    s.alCambiar(pintar);
+    s.alJugador((r, q) => aviso2(s.nombre(r) + (q === 'entra' ? ' se unió' : ' salió')));
+  },
+  alSolo: (s, n) => {
+    sala = s; miRol = 'A'; anfitrion = true; soloBot = true; nivelBot = n;
+    marcadorLocal = {};
+    s.alCambiar(pintar);
+  }
+});
+</script>
+
+<script>
+window.addEventListener('load', () => setTimeout(() => {
+  const l = document.getElementById('lobby');
+  if (l && l.children.length) return;
+  const faltan = ['lobby.js','sala.js','sala-local.js','sonido.js','config.js','estilo.css'];
+  Promise.all(faltan.map(f => fetch(f, {cache:'no-store'}).then(r => r.ok ? null : f).catch(() => f)))
+    .then(res => {
+      const rotos = res.filter(Boolean);
+      const d = document.createElement('div');
+      d.style.cssText = 'position:fixed;inset:0;z-index:999;display:grid;place-content:center;' +
+        'gap:10px;padding:24px;text-align:center;background:#241634;color:#F3ECFF;font-family:system-ui,sans-serif';
+      d.innerHTML = '<h2 style="font-size:20px">El juego no pudo cargar</h2>' +
+        (rotos.length
+          ? '<p style="color:#FF7B7B;font-size:14px">Faltan estos archivos:<br><b>' + rotos.join('<br>') + '</b></p>'
+          : '<p style="font-size:14px;color:#A794C4">Recarga forzando la caché: <b>Ctrl+Shift+R</b></p>') +
+        '<a href="index.html" style="color:#FFC94A;font-size:13px">◀ Volver a la sala de juegos</a>';
+      document.body.appendChild(d);
+    });
+}, 2500));
+</script>
+</body>
+</html>

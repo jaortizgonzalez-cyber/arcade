@@ -50,6 +50,7 @@ En un par de minutos queda en `https://TU-USUARIO.github.io/sala-de-juegos/`.
 |---|---|
 | `index.html` | Catálogo |
 | `furia-callejera.html` | Beat'em up cooperativo (Double Dragon) |
+| `aviones.html` | Combate aéreo en línea |
 | `motocross.html` | Carrera de motocross en línea |
 | `batalla-naval.html` | Batalla naval en línea |
 | `tres-en-raya.html` | Tres en raya en línea (y local) |
@@ -215,12 +216,42 @@ Lo que separa los niveles no es solo la puntería: es la **predicción**. El niv
 apunta a donde va a estar el rival, no a donde está. Medido contra un rival errático
 (3 repeticiones × 4 mapas, 90 s cada una):
 
-| Nivel | Impactos en 90 s | Una partida a 7 dura |
-|---|---|---|
-| Recluta | 5.4 | ~116 s |
-| Veterano | 10.1 | ~62 s |
-| As | 11.8 | ~54 s |
+| Nivel | Impactos en 90 s (rival errático) |
+|---|---|
+| Recluta | 14.0 |
+| Veterano | 18.8 |
+| As | 21.0 |
+
+La mala puntería se modela **desviando el disparo** unos grados, no ampliando el
+margen para apretar el gatillo: con proyectiles que rebotan cuatro veces, un tiro
+mal apuntado acaba acertando igual, y así los tres niveles daban lo mismo.
 
 Nota metodológica: medir bot contra bot no servía — ambos saturan la cadencia de
 recarga y los tres niveles daban lo mismo. La diferencia solo aparece frente a un
 rival que se mueve de forma imprevisible.
+
+## Alas de combate
+
+De uno a cuatro pilotos. Se arranca en la pista: hay que acelerar hasta la velocidad
+de despegue y tirar del morro. En el aire no hay sustentación mágica — el avión avanza
+en la dirección de su morro, subir cuesta velocidad y picar la regala.
+
+**El ajuste que decide si el juego funciona** es la relación entre gravedad y empuje.
+Con la gravedad original (150 frente a 44 de empuje), subir en pendiente pronunciada
+era imposible: el avión entraba en pérdida en cuanto levantaba el morro y se caía.
+Medido con un piloto automático de crucero: 15 choques en 60 s. Con la gravedad en 55
+el mismo piloto mantiene 743 m indefinidamente sin un segundo en pérdida.
+
+| Prueba | Resultado |
+|---|---|
+| Despegue | 1.7 s de carreteo |
+| Crucero a 700 m (90 s) | altura final 743 m, 0 s en pérdida |
+| Pérdida provocada | se recupera picando, sin estrellarse |
+
+Los aviones **evolucionan con los derribos**: avioneta de hélice → caza (alas en
+flecha y cañones bajo las alas) → jet (toberas y postcombustión). Cada salto sube
+velocidad, empuje, maniobra y blindaje.
+
+Los bots vuelan con la misma física y nunca se estrellan contra el suelo: descienden
+como mínimo a 116 m. Los tres niveles cambian cuántos son, su rango de partida y su
+puntería — de 41 a 175 disparos por minuto.
