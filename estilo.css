@@ -95,15 +95,17 @@ canvas{touch-action:none}
 
 /* Volver al catálogo desde dentro de cualquier juego */
 a.inicio{
+  flex:none;
   align-self:flex-start;
   display:inline-flex;align-items:center;gap:6px;
-  margin:0 0 8px;padding:7px 13px;
-  font-size:12px;font-weight:700;text-decoration:none;
-  color:var(--tenue);background:var(--panel);
-  border:2px solid var(--borde);border-radius:11px;
-  transition:color .15s,border-color .15s;
+  margin:0 0 8px;padding:8px 14px;
+  font-family:var(--texto);font-size:13px;font-weight:700;text-decoration:none;
+  color:var(--tinta);background:var(--panel);
+  border:2px solid var(--borde);border-radius:12px;
+  transition:color .15s,border-color .15s,transform .15s;
 }
-a.inicio:hover{color:var(--tinta);border-color:var(--ambar)}
+a.inicio:hover{border-color:var(--ambar);transform:translateX(-2px)}
+a.inicio:active{transform:scale(.97)}
 
 [data-niveles]{display:flex;flex-direction:column;gap:10px}
 

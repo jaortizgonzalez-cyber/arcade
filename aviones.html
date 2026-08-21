@@ -12,7 +12,6 @@
   body{overflow-x:hidden}
   main{max-width:900px;margin:0 auto}
   [data-juego]{display:flex;flex-direction:column;gap:8px}
-  a.inicio{flex:none;margin:0 0 6px}
   #fallo{position:fixed;left:0;right:0;bottom:0;z-index:200;background:#5A1E28;
          color:#FFE3E3;font-size:12px;padding:10px 14px;font-family:ui-monospace,monospace;
          border-top:2px solid var(--rojo)}
@@ -144,7 +143,7 @@ const escPorId = id => ESCENARIOS.find(x => x.id === id) || ESCENARIOS[0];
 /* ── Mundo ─────────────────────────────────────────────── */
 const W = 960, H = 540;
 const MUNDO = 7000, TECHO = 1500;
-const PISTA_X0 = 300, PISTA_X1 = 1300;
+const PISTA_X0 = 260, PISTA_X1 = 2100;
 const META = 10, MAX_J = 4;
 const COL_J = { A:'#FFC94A', B:'#6FE7C4', C:'#C58CF0', D:'#FF8C6B' };
 
@@ -210,11 +209,10 @@ function pasoAvion(a, ent, dt){
     a.vel = Math.max(0, Math.min(vmax, a.vel));
     a.x += a.vel*dt;
     if (ent.arriba && a.vel >= V_DESPEGUE){ a.suelo = false; a.ang = 0.22; }
-    if (a.x > PISTA_X1 && a.vel > 10 && a.y <= 0){
-      // Se acabó la pista: si no ha despegado, frena en seco
-      a.vel *= 0.94;
-      if (a.x > PISTA_X1 + 160) a.x = PISTA_X1 + 160;
-    }
+    // Fuera del asfalto rueda peor, pero nunca se queda clavado: si frenara
+    // del todo, quien no tirara del morro a tiempo no podría despegar jamás.
+    if (a.x > PISTA_X1 || a.x < PISTA_X0) a.vel -= 14*dt;
+    if (a.x >= MUNDO - 80){ a.x = MUNDO - 80; a.vel = Math.min(a.vel, V_DESPEGUE*1.2); }
     return;
   }
 
@@ -861,8 +859,8 @@ function dibujarHud(){
     cx.textAlign = 'center';
     cx.fillStyle = '#F3ECFF';
     cx.font = '800 20px "Bricolage Grotesque", sans-serif';
-    cx.fillText(yo.vel < V_DESPEGUE ? 'ACELERA PARA DESPEGAR'
-                                    : '¡TIRA DEL MORRO!', W/2, 56);
+    cx.fillText(yo.vel < V_DESPEGUE ? 'MANTÉN GAS PARA DESPEGAR'
+                                    : '¡AHORA! TIRA DEL MORRO ▲', W/2, 56);
     cx.fillStyle = 'rgba(16,10,32,.5)';
     cx.beginPath(); cx.roundRect(W/2-90, 66, 180, 10, 5); cx.fill();
     cx.fillStyle = yo.vel < V_DESPEGUE ? '#F2D65C' : '#7BE8A0';

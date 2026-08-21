@@ -61,7 +61,6 @@
   .acciones2 .sa{color:#C58CF0;grid-column:span 2;padding:14px 0}
   button.on{background:#3F2A5C}
   .ayuda{font-size:11px;color:var(--tenue);text-align:center;line-height:1.5}
-  a.inicio{flex:none;margin:0 0 6px}
 </style>
 </head>
 <body>
@@ -470,7 +469,7 @@ function dibujarFondo(){
    Cada miembro es un polígono que se estrecha hacia el extremo,
    con contorno oscuro: así se leen como sprites de arcade y no
    como palitos. Las poses salen de mover unos pocos puntos. */
-function hueso(ax, ay, bx, by, w1, w2, col){
+function hueso(ax, ay, bx, by, w1, w2, col, sombra){
   const dx = bx-ax, dy = by-ay, L = Math.hypot(dx,dy) || 1;
   const nx = -dy/L, ny = dx/L;
   cx.beginPath();
@@ -480,125 +479,219 @@ function hueso(ax, ay, bx, by, w1, w2, col){
   cx.lineTo(ax - nx*w1, ay - ny*w1);
   cx.closePath();
   cx.fillStyle = col; cx.fill(); cx.stroke();
+  // Un filo de luz en el borde superior da volumen al miembro
+  if (sombra){
+    cx.save(); cx.clip();
+    cx.fillStyle = 'rgba(255,255,255,.16)';
+    cx.beginPath();
+    cx.moveTo(ax + nx*w1, ay + ny*w1);
+    cx.lineTo(bx + nx*w2, by + ny*w2);
+    cx.lineTo(bx + nx*w2*0.2, by + ny*w2*0.2);
+    cx.lineTo(ax + nx*w1*0.2, ay + ny*w1*0.2);
+    cx.closePath(); cx.fill();
+    cx.restore();
+  }
+}
+
+/** Músculo: dos curvas que se abomban hacia fuera. */
+function musculo(ax, ay, bx, by, w, col){
+  const dx = bx-ax, dy = by-ay, L = Math.hypot(dx,dy) || 1;
+  const nx = -dy/L, ny = dx/L, mx = (ax+bx)/2, my = (ay+by)/2;
+  cx.beginPath();
+  cx.moveTo(ax, ay);
+  cx.quadraticCurveTo(mx + nx*w*1.5, my + ny*w*1.5, bx, by);
+  cx.quadraticCurveTo(mx - nx*w*1.1, my - ny*w*1.1, ax, ay);
+  cx.closePath();
+  cx.fillStyle = col; cx.fill(); cx.stroke();
 }
 
 function dibujarPersona(o, look, etiqueta){
   const [sx, sy] = aPantalla(o.x, o.y, o.z);
   if (sx < -110 || sx > W+110) return;
-  const s = escala(o.y)*1.28*(look.ancho || 1);
+  const s = escala(o.y)*1.34*(look.ancho || 1);
 
   const [ssx, ssy] = aPantalla(o.x, o.y, 0);
-  cx.fillStyle = 'rgba(0,0,0,.42)';
-  cx.beginPath(); cx.ellipse(ssx, ssy, 17*s, 5.5*s, 0, 0, 7); cx.fill();
+  cx.fillStyle = 'rgba(0,0,0,.45)';
+  cx.beginPath(); cx.ellipse(ssx, ssy, 18*s, 6*s, 0, 0, 7); cx.fill();
 
   cx.save();
   cx.translate(sx, sy);
   cx.scale(o.dir*s, s);
   if (o.invul > 0 && Math.floor(o.invul/3)%2) cx.globalAlpha = .45;
-  if (o.est === 'suelo'){ cx.rotate(-Math.PI/2); cx.translate(-16, 4); }
+  if (o.est === 'suelo'){ cx.rotate(-Math.PI/2); cx.translate(-18, 6); }
 
-  cx.lineWidth = 1.6; cx.lineJoin = 'round';
-  cx.strokeStyle = '#140D28';
+  cx.lineWidth = 1.7; cx.lineJoin = 'round';
+  cx.strokeStyle = '#120B24';
   const piel = look.piel, ropa = look.ropa, pant = look.pant;
+  const oscuro = look.oscuro || 'rgba(0,0,0,.3)';
   const t = o.marco, anda = o.est === 'anda';
-  const bal = anda ? Math.sin(t)*9 : 0;
-  const resp = o.est === 'quieto' ? Math.sin(t*0.06)*0.8 : 0;
+  const bal = anda ? Math.sin(t)*10 : 0;
+  const resp = o.est === 'quieto' ? Math.sin(t*0.05)*1.1 : 0;
 
-  // ── Piernas
+  /* ── Piernas: muslo grueso, pantorrilla y bota ── */
+  function pierna(caderaX, rodX, rodY, pieX, pieY, atras){
+    const c = atras ? oscuro : pant;
+    hueso(caderaX, -26, rodX, rodY, 7.5, 5.5, c, !atras);
+    hueso(rodX, rodY, pieX, pieY, 5.5, 4.2, c, !atras);
+    // Bota
+    cx.fillStyle = atras ? 'rgba(0,0,0,.45)' : '#1E1730';
+    cx.beginPath();
+    cx.roundRect(pieX - 5, pieY - 3.5, 12, 5.5, 2);
+    cx.fill(); cx.stroke();
+  }
+
   if (o.est === 'patada'){
-    hueso(-2,-26, -8,-13, 6,5, pant); hueso(-8,-13, -6,-1, 5,4.5, '#2A2038');
-    hueso(-2,-26, 14,-30, 6.5,5, pant); hueso(14,-30, 32,-30, 5,4.5, '#2A2038');
+    pierna(-2, -8, -13, -6, -1, true);
+    pierna(-1, 16, -26, 33, -26, false);
   } else if (o.est === 'salto'){
-    hueso(-2,-26, -10,-16, 6,5, pant); hueso(-10,-16, -2,-10, 5,4.5, '#2A2038');
-    hueso(2,-26, 12,-18, 6,5, pant);   hueso(12,-18, 18,-8, 5,4.5, '#2A2038');
+    pierna(-2, -11, -16, -3, -11, true);
+    pierna(2, 13, -17, 20, -7, false);
   } else {
-    hueso(-3,-26, -4+bal*0.5,-13, 6.5,5, pant);
-    hueso(-4+bal*0.5,-13, -6+bal,-1, 5,4.5, '#2A2038');
-    hueso(3,-26, 4-bal*0.5,-13, 6.5,5, pant);
-    hueso(4-bal*0.5,-13, 6-bal,-1, 5,4.5, '#2A2038');
+    pierna(-3, -4+bal*0.5, -13, -6+bal, -1, true);
+    pierna(3, 4-bal*0.5, -13, 6-bal, -1, false);
   }
 
-  // ── Torso: trapecio de hombros anchos y cintura estrecha
-  cx.beginPath();
-  cx.moveTo(-11,-50+resp); cx.lineTo(11,-50+resp);
-  cx.lineTo(8,-26); cx.lineTo(-8,-26);
-  cx.closePath();
-  cx.fillStyle = ropa; cx.fill(); cx.stroke();
-  cx.fillStyle = 'rgba(0,0,0,.22)';
-  cx.beginPath(); cx.moveTo(4,-50+resp); cx.lineTo(11,-50+resp);
-  cx.lineTo(8,-26); cx.lineTo(3,-26); cx.closePath(); cx.fill();
-  if (look.chaleco){                                   // chaleco abierto
-    cx.fillStyle = look.chaleco;
-    cx.beginPath(); cx.moveTo(-11,-50+resp); cx.lineTo(-4,-50+resp);
-    cx.lineTo(-3,-27); cx.lineTo(-8,-26); cx.closePath(); cx.fill(); cx.stroke();
-  }
-  cx.fillStyle = '#241A38';                            // cinturón
-  cx.fillRect(-8.5,-29, 17, 4); cx.strokeRect(-8.5,-29, 17, 4);
-  cx.fillStyle = look.hebilla || '#C9B24A';
-  cx.fillRect(-1.5,-29.5, 4, 5);
-
-  // ── Brazos
+  /* ── Torso: pecho ancho, cintura estrecha ── */
   const hy = -47 + resp;
-  if (o.est === 'puno'){
-    hueso(6,hy, 20,hy+2, 5.5,4.5, piel);
-    hueso(20,hy+2, 33,hy+2, 4.5,4, piel);
-    cx.fillStyle = look.venda || '#F3ECFF';
-    cx.beginPath(); cx.arc(35,hy+2,5,0,7); cx.fill(); cx.stroke();
-    hueso(-6,hy, -12,hy+9, 5.5,4.5, piel);
-    cx.fillStyle = look.venda || '#F3ECFF';
-    cx.beginPath(); cx.arc(-13,hy+11,4.4,0,7); cx.fill(); cx.stroke();
-  } else if (o.est === 'patada'){
-    hueso(6,hy, 16,hy-8, 5.5,4.5, piel);
-    hueso(-6,hy, -16,hy-6, 5.5,4.5, piel);
-  } else if (o.est === 'herido'){
-    hueso(6,hy, 14,hy-12, 5.5,4.5, piel);
-    hueso(-6,hy, -14,hy-10, 5.5,4.5, piel);
-  } else {
-    // Guardia: puños arriba, como un boxeador
-    hueso(6,hy, 12,hy+6-bal*0.3, 5.5,4.5, piel);
-    hueso(12,hy+6-bal*0.3, 15,hy-3, 4.5,4, piel);
-    cx.fillStyle = look.venda || '#F3ECFF';
-    cx.beginPath(); cx.arc(16,hy-5,4.6,0,7); cx.fill(); cx.stroke();
-    hueso(-6,hy, -12,hy+6+bal*0.3, 5.5,4.5, piel);
-    hueso(-12,hy+6+bal*0.3, -9,hy-3, 4.5,4, piel);
-    cx.fillStyle = look.venda || '#F3ECFF';
-    cx.beginPath(); cx.arc(-8,hy-5,4.6,0,7); cx.fill(); cx.stroke();
+  cx.beginPath();
+  cx.moveTo(-12.5, -50+resp);
+  cx.quadraticCurveTo(0, -53+resp, 12.5, -50+resp);
+  cx.lineTo(8.5, -32); cx.quadraticCurveTo(0, -29, -8.5, -32);
+  cx.closePath();
+  const gt = cx.createLinearGradient(-12, -50, 12, -30);
+  gt.addColorStop(0, ropa); gt.addColorStop(1, oscuro);
+  cx.fillStyle = gt; cx.fill(); cx.stroke();
+  // Pectorales
+  cx.strokeStyle = 'rgba(0,0,0,.28)'; cx.lineWidth = 1.2;
+  cx.beginPath(); cx.moveTo(0, -49+resp); cx.lineTo(0, -40); cx.stroke();
+  cx.beginPath(); cx.arc(-5, -43+resp, 4.6, 0.2, 2.6); cx.stroke();
+  cx.beginPath(); cx.arc(5, -43+resp, 4.6, 0.5, 2.9); cx.stroke();
+  cx.strokeStyle = '#120B24'; cx.lineWidth = 1.7;
+  // Chaleco abierto
+  if (look.chaleco){
+    cx.fillStyle = look.chaleco;
+    cx.beginPath();
+    cx.moveTo(-12.5,-50+resp); cx.lineTo(-5,-50+resp);
+    cx.lineTo(-4,-33); cx.lineTo(-8.5,-32); cx.closePath(); cx.fill(); cx.stroke();
+    cx.beginPath();
+    cx.moveTo(12.5,-50+resp); cx.lineTo(5,-50+resp);
+    cx.lineTo(4,-33); cx.lineTo(8.5,-32); cx.closePath(); cx.fill(); cx.stroke();
+  }
+  // Abdomen y cinturón
+  hueso(0, -34, 0, -27, 8, 8.5, piel, true);
+  cx.strokeStyle = 'rgba(0,0,0,.3)'; cx.lineWidth = 1;
+  for (const yy of [-33, -30]){
+    cx.beginPath(); cx.moveTo(-5, yy); cx.lineTo(5, yy); cx.stroke();
+  }
+  cx.strokeStyle = '#120B24'; cx.lineWidth = 1.7;
+  cx.fillStyle = '#241A38';
+  cx.beginPath(); cx.roundRect(-9,-29.5, 18, 5, 1.5); cx.fill(); cx.stroke();
+  cx.fillStyle = look.hebilla || '#E8C25C';
+  cx.beginPath(); cx.roundRect(-2.5,-30, 5.5, 6, 1.5); cx.fill(); cx.stroke();
+
+  /* ── Brazos con bíceps y puños vendados ── */
+  function puno(x, y, r){
+    cx.fillStyle = piel;
+    cx.beginPath(); cx.arc(x, y, r, 0, 7); cx.fill(); cx.stroke();
+    cx.strokeStyle = look.venda || '#F3ECFF'; cx.lineWidth = 2.1;
+    cx.beginPath(); cx.moveTo(x-r*0.9, y-1.4); cx.lineTo(x+r*0.9, y-1.4); cx.stroke();
+    cx.beginPath(); cx.moveTo(x-r*0.9, y+1.6); cx.lineTo(x+r*0.9, y+1.6); cx.stroke();
+    cx.strokeStyle = '#120B24'; cx.lineWidth = 1.7;
+  }
+  function brazo(hx, hy0, cx1, cy1, mx, my, atras){
+    const c = atras ? oscuro : piel;
+    musculo(hx, hy0, cx1, cy1, 3.4, c);
+    hueso(cx1, cy1, mx, my, 4.4, 3.6, c, !atras);
+    puno(mx, my, atras ? 4.2 : 5);
   }
 
-  // ── Cuello y cabeza
-  hueso(0,-50+resp, 0,-56+resp, 4.5,4.5, piel);
+  if (o.est === 'puno'){
+    brazo(-6, hy, -12, hy+8, -14, hy+12, true);
+    brazo(6, hy, 20, hy+1, 33, hy+2, false);
+    // Ráfaga de velocidad tras el puño
+    cx.strokeStyle = 'rgba(255,233,168,.75)'; cx.lineWidth = 2;
+    for (const dy of [-4, 0, 4]){
+      cx.beginPath(); cx.moveTo(16, hy+2+dy); cx.lineTo(26, hy+2+dy); cx.stroke();
+    }
+    cx.strokeStyle = '#120B24'; cx.lineWidth = 1.7;
+  } else if (o.est === 'patada'){
+    brazo(-6, hy, -14, hy-4, -19, hy-9, true);
+    brazo(6, hy, 15, hy-6, 19, hy-13, false);
+  } else if (o.est === 'herido'){
+    brazo(-6, hy, -13, hy-6, -16, hy-13, true);
+    brazo(6, hy, 13, hy-8, 15, hy-16, false);
+  } else if (o.est === 'salto'){
+    brazo(-6, hy, -13, hy-5, -17, hy-12, true);
+    brazo(6, hy, 14, hy-4, 19, hy-11, false);
+  } else {
+    // Guardia alta de boxeador
+    brazo(-6, hy, -12, hy+6+bal*0.3, -9, hy-4, true);
+    brazo(6, hy, 12, hy+6-bal*0.3, 15, hy-5, false);
+  }
+
+  /* ── Cuello y cabeza ── */
+  hueso(0, -50+resp, 0, -55+resp, 5, 5, piel, true);
   cx.beginPath();
-  cx.moveTo(-7,-58+resp); cx.lineTo(7,-58+resp); cx.lineTo(8,-66+resp);
-  cx.quadraticCurveTo(0,-73+resp, -8,-66+resp);
+  cx.moveTo(-7.5, -57+resp);
+  cx.quadraticCurveTo(-8.5, -63+resp, -7, -68+resp);
+  cx.quadraticCurveTo(0, -74+resp, 7, -68+resp);
+  cx.quadraticCurveTo(9, -62+resp, 7.5, -57+resp);
+  cx.quadraticCurveTo(2, -53+resp, -3, -55+resp);
   cx.closePath();
-  cx.fillStyle = piel; cx.fill(); cx.stroke();
-  // Pelo o accesorio de cabeza
+  const gc = cx.createLinearGradient(-8, -70, 8, -55);
+  gc.addColorStop(0, '#FFFFFF22'); gc.addColorStop(0.25, piel); gc.addColorStop(1, oscuro);
+  cx.fillStyle = gc; cx.fill(); cx.stroke();
+  // Oreja y mandíbula
+  cx.beginPath(); cx.arc(-4, -61+resp, 2.2, 0, 7); cx.fillStyle = piel; cx.fill(); cx.stroke();
+
   if (look.tipoPelo === 'cresta'){
     cx.fillStyle = look.pelo;
-    cx.beginPath(); cx.moveTo(-6,-68+resp);
-    cx.lineTo(-2,-80+resp); cx.lineTo(1,-70+resp);
-    cx.lineTo(4,-79+resp); cx.lineTo(7,-67+resp);
+    cx.beginPath(); cx.moveTo(-6,-69+resp);
+    cx.lineTo(-3,-82+resp); cx.lineTo(0,-71+resp);
+    cx.lineTo(3,-83+resp); cx.lineTo(6,-70+resp);
+    cx.lineTo(7,-66+resp); cx.lineTo(-7,-66+resp);
     cx.closePath(); cx.fill(); cx.stroke();
   } else if (look.tipoPelo === 'calvo'){
-    cx.fillStyle = 'rgba(255,255,255,.14)';
-    cx.beginPath(); cx.ellipse(0,-68+resp, 6,3.4, 0,0,7); cx.fill();
+    cx.fillStyle = 'rgba(255,255,255,.16)';
+    cx.beginPath(); cx.ellipse(0.5,-69+resp, 6,3.4, 0,0,7); cx.fill();
+    cx.strokeStyle = 'rgba(0,0,0,.35)';
+    cx.beginPath(); cx.arc(-2,-63+resp, 3, 0.6, 2.4); cx.stroke();   // ceja dura
+    cx.strokeStyle = '#120B24';
   } else if (look.tipoPelo === 'gafas'){
     cx.fillStyle = look.pelo;
-    cx.beginPath(); cx.moveTo(-8,-67+resp); cx.quadraticCurveTo(0,-75+resp,8,-67+resp);
-    cx.lineTo(8,-70+resp); cx.quadraticCurveTo(0,-78+resp,-8,-70+resp);
+    cx.beginPath();
+    cx.moveTo(-8,-67+resp); cx.quadraticCurveTo(0,-77+resp,8,-67+resp);
+    cx.lineTo(8,-71+resp); cx.quadraticCurveTo(0,-80+resp,-8,-71+resp);
     cx.closePath(); cx.fill(); cx.stroke();
-    cx.fillStyle = '#100A1E'; cx.fillRect(0,-65+resp, 9, 4.5);
+    cx.fillStyle = '#0E0820';
+    cx.beginPath(); cx.roundRect(-1,-65+resp, 9.5, 5, 1.5); cx.fill();
+    cx.fillStyle = 'rgba(255,255,255,.5)';
+    cx.fillRect(5,-64.4+resp, 2.5, 1.4);
   } else {
-    cx.fillStyle = look.pelo;                          // cinta en la frente
-    cx.beginPath(); cx.moveTo(-8.4,-67+resp); cx.lineTo(8.4,-67+resp);
-    cx.lineTo(8.4,-62.5+resp); cx.lineTo(-8.4,-62.5+resp); cx.closePath();
+    // Pelo y cinta de guerrero
+    cx.fillStyle = '#2E2450';
+    cx.beginPath();
+    cx.moveTo(-7.6,-66+resp); cx.quadraticCurveTo(0,-76+resp,7.6,-66+resp);
+    cx.quadraticCurveTo(0,-70+resp,-7.6,-66+resp); cx.closePath();
     cx.fill(); cx.stroke();
-    cx.beginPath(); cx.moveTo(-8,-65+resp); cx.lineTo(-17,-60+resp);
-    cx.lineTo(-16,-63.5+resp); cx.closePath(); cx.fill(); cx.stroke();
+    cx.fillStyle = look.pelo;
+    cx.beginPath(); cx.roundRect(-8.2,-67+resp, 16.4, 5, 1.5); cx.fill(); cx.stroke();
+    cx.beginPath();
+    cx.moveTo(-8,-65.5+resp); cx.lineTo(-19,-59+resp + bal*0.35);
+    cx.lineTo(-18,-63.5+resp + bal*0.35); cx.closePath(); cx.fill(); cx.stroke();
   }
+
+  // Cara
   cx.fillStyle = '#241A38';
-  cx.fillRect(3.5,-62+resp, 3, 2.6);                   // ojo
-  if (o.est === 'herido'){ cx.fillRect(1,-58+resp, 5, 2); }
+  cx.beginPath(); cx.ellipse(4,-61.5+resp, 1.7, 2.1, 0, 0, 7); cx.fill();
+  cx.strokeStyle = 'rgba(0,0,0,.5)'; cx.lineWidth = 1.3;
+  cx.beginPath(); cx.moveTo(2,-64.6+resp); cx.lineTo(6.6,-63.6+resp); cx.stroke();  // ceja
+  if (o.est === 'herido' || o.est === 'suelo'){
+    cx.beginPath(); cx.arc(4.6,-57.5+resp, 2, 0, Math.PI); cx.stroke();             // mueca
+  } else if (o.est === 'puno' || o.est === 'patada'){
+    cx.beginPath(); cx.moveTo(2.4,-57.5+resp); cx.lineTo(6.8,-57.5+resp); cx.stroke();
+  }
+  cx.strokeStyle = '#120B24'; cx.lineWidth = 1.7;
 
   cx.globalAlpha = 1;
   cx.restore();
@@ -606,20 +699,22 @@ function dibujarPersona(o, look, etiqueta){
   if (etiqueta){
     cx.fillStyle = look.ropa;
     cx.font = '700 13px "DM Sans", sans-serif'; cx.textAlign = 'center';
-    cx.fillText(etiqueta, sx, sy - 92*s);
+    cx.fillText(etiqueta, sx, sy - 96*s);
   }
 }
 
-const LOOK_J = r => ({ ropa: COL_J[r] || '#6FA8FF', piel:'#F0C9A0', pant:'#2E2450',
-                       pelo:'#F3ECFF', venda:'#F3ECFF', tipoPelo:'cinta', ancho:1 });
+const OSCURO = { A:'#2E5AA8', B:'#A83E3E', C:'#3E9B5E', D:'#A88A2E' };
+const LOOK_J = r => ({ ropa: COL_J[r] || '#6FA8FF', oscuro: OSCURO[r] || '#2E5AA8',
+                       piel:'#F0C9A0', pant:'#2E2450', pelo:'#F3ECFF',
+                       venda:'#F3ECFF', tipoPelo:'cinta', ancho:1, hebilla:'#E8C25C' });
 const LOOK_E = {
-  maton: { ropa:TIPOS.maton.col, piel:'#D9A97F', pant:'#3A2A4E',
+  maton: { ropa:TIPOS.maton.col, oscuro:'#5E3A85', piel:'#D9A97F', pant:'#3A2A4E',
            pelo:TIPOS.maton.pelo, tipoPelo:'cresta', venda:'#D9A97F', ancho:0.95 },
-  bruto: { ropa:TIPOS.bruto.col, piel:'#C98F63', pant:'#4A3320',
-           pelo:'#3A2A22', tipoPelo:'calvo', venda:'#C98F63', ancho:1.3,
-           chaleco:'#6B4326' },
-  jefe:  { ropa:TIPOS.jefe.col, piel:'#E0B48C', pant:'#241830',
-           pelo:'#1B1233', tipoPelo:'gafas', venda:'#E0B48C', ancho:1.12,
+  bruto: { ropa:TIPOS.bruto.col, oscuro:'#7A4A22', piel:'#C98F63', pant:'#4A3320',
+           pelo:'#3A2A22', tipoPelo:'calvo', venda:'#C98F63', ancho:1.32,
+           chaleco:'#6B4326', hebilla:'#B08A3A' },
+  jefe:  { ropa:TIPOS.jefe.col, oscuro:'#7A2440', piel:'#E0B48C', pant:'#241830',
+           pelo:'#1B1233', tipoPelo:'gafas', venda:'#E0B48C', ancho:1.14,
            chaleco:'#7A1E3C', hebilla:'#E8C25C' }
 };
 
