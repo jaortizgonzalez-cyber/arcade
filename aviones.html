@@ -109,7 +109,8 @@
           <button class="fue" data-m="fuego">FUEGO</button>
         </div>
       </div>
-      <p class="ayuda">Teclado: W/↑ morro arriba · S/↓ picar · Shift gas · Espacio dispara · 1 2 3 armas</p>
+      <p class="ayuda">El motor empuja solo: basta con subir y bajar el morro.<br>
+         Teclado: W/↑ morro arriba · S/↓ picar · Shift acelera · Espacio dispara · 1 2 3 armas</p>
     </div>
   </section>
 </main>
@@ -149,9 +150,9 @@ const COL_J = { A:'#FFC94A', B:'#6FE7C4', C:'#C58CF0', D:'#FF8C6B' };
 
 /* ── Aviones: el rango sube con los derribos ───────────── */
 const RANGOS = [
-  { n:'Avioneta', derribos:0, vmax:150, empuje:44, giro:1.9, vida:100 },
-  { n:'Caza',     derribos:3, vmax:190, empuje:56, giro:2.2, vida:120 },
-  { n:'Jet',      derribos:6, vmax:240, empuje:72, giro:2.6, vida:140 }
+  { n:'Avioneta', derribos:0, vmax:160, empuje:60, giro:3.0, vida:100 },
+  { n:'Caza',     derribos:3, vmax:200, empuje:76, giro:3.4, vida:120 },
+  { n:'Jet',      derribos:6, vmax:250, empuje:96, giro:3.8, vida:140 }
 ];
 const rangoDe = d => RANGOS[d >= 6 ? 2 : d >= 3 ? 1 : 0];
 const nivelRango = d => (d >= 6 ? 2 : d >= 3 ? 1 : 0);
@@ -176,7 +177,10 @@ const PREMIOS = {
 // G es la gravedad a lo largo del rumbo. Debe quedar por debajo del empuje
 // dividido por sin(45°), o subir en pendiente pronunciada sería imposible y
 // el avión entraría en pérdida en cuanto levantara el morro.
-const G = 55, ROCE = 0.16, VMIN_VUELO = 58, V_DESPEGUE = 76;
+// Gravedad suave y sustentación generosa: se busca que volar sea cómodo,
+// no realista. La pérdida sigue existiendo, pero cuesta mucho llegar a ella.
+const G = 34, ROCE = 0.16, VMIN_VUELO = 46, V_DESPEGUE = 70;
+const AUTO_NIVEL = 1.7;      // sin tocar nada, el avión se endereza solo
 
 function nuevoAvion(k){
   return { x: PISTA_X0 + 60 + k*90, y:0, ang:0, vel:0, suelo:true,
@@ -205,7 +209,7 @@ function pasoAvion(a, ent, dt){
   if (a.suelo){
     // Carreteo por la pista
     a.ang = 0; a.y = 0;
-    a.vel += (ent.gas ? empuje : -30)*dt;
+    a.vel += (ent.gas ? empuje : empuje*0.55)*dt;   // carretea solo
     a.vel = Math.max(0, Math.min(vmax, a.vel));
     a.x += a.vel*dt;
     if (ent.arriba && a.vel >= V_DESPEGUE){ a.suelo = false; a.ang = 0.22; }
@@ -217,22 +221,28 @@ function pasoAvion(a, ent, dt){
   }
 
   // En el aire: cabeceo, empuje y gravedad a lo largo del rumbo
-  const mando = Math.min(1, a.vel/VMIN_VUELO);
+  const mando = 0.55 + 0.45*Math.min(1, a.vel/VMIN_VUELO);   // maniobra incluso lento
   const giro = R.giro * mando * dt;
   if (ent.arriba) a.ang += giro;
-  if (ent.abajo)  a.ang -= giro;
+  else if (ent.abajo) a.ang -= giro;
+  else {
+    // Sin mando, el avión se endereza solo: así no hay que pelear con él
+    const paso = AUTO_NIVEL*dt;
+    if (Math.abs(a.ang) < paso) a.ang = 0;
+    else a.ang -= Math.sign(a.ang)*paso;
+  }
 
-  a.vel += (ent.gas ? empuje : empuje*0.25)*dt;
+  // El motor siempre empuja; GAS es un extra, no una obligación
+  a.vel += (ent.gas ? empuje : empuje*0.8)*dt;
   a.vel -= G*Math.sin(a.ang)*dt;               // subir cuesta velocidad, picar la regala
   a.vel -= ROCE*a.vel*dt;
   a.vel = Math.max(0, Math.min(vmax, a.vel));
 
-  // Pérdida: sin velocidad no hay sustentación y el morro cae
+  // Pérdida: solo si de verdad te quedas sin aire bajo las alas
   if (a.vel < VMIN_VUELO){
-    // Sin sustentación el morro cae solo y el avión pierde altura
-    const caida = (1 - a.vel/VMIN_VUELO)*1.6*dt;
+    const caida = (1 - a.vel/VMIN_VUELO)*0.9*dt;
     if (a.ang > -Math.PI/2) a.ang -= caida;
-    a.y -= (VMIN_VUELO - a.vel)*0.35*dt;
+    a.y -= (VMIN_VUELO - a.vel)*0.22*dt;
   }
 
   a.x += Math.cos(a.ang)*a.vel*dt;
@@ -246,7 +256,7 @@ function pasoAvion(a, ent, dt){
   // Suelo
   if (a.y <= 0){
     a.y = 0;
-    const suave = Math.abs(a.ang) < 0.22 && a.vel < R.vmax*0.75 &&
+    const suave = Math.abs(a.ang) < 0.42 && a.vel < R.vmax*0.9 &&
                   a.x > PISTA_X0 - 200 && a.x < PISTA_X1 + 400;
     if (suave){ a.suelo = true; a.ang = 0; }
     else { estrellar(a); }
@@ -562,6 +572,11 @@ function paso(dt){
   rastro = rastro.filter(r => r.v > 0);
   if (yo.hum && Math.random() < 0.35) humo.push({ x:yo.x, y:yo.y, r:4, v:22 });
 
+  // El motor suena según las vueltas; el reactor entra con el jet
+  const Rn = rangoDe(yo.derribos);
+  const mezclaJet = [0, 0.35, 1][nivelRango(yo.derribos)];
+  sonido.avionEstado(yo.vel/Rn.vmax, mezclaJet);
+
   // Cámara
   const objX = yo.x + Math.cos(yo.ang)*120;
   camX += (objX - W/2 - camX)*0.08;
@@ -575,6 +590,7 @@ function paso(dt){
 
 function terminarLocal(quien){
   corriendo = false;
+  sonido.avionApagar();
   const gano = quien === miRol;
   $('capa-t').textContent = gano ? '🏆 ¡As del aire!' : 'Te derribaron';
   $('capa-s').textContent = gano
@@ -859,7 +875,7 @@ function dibujarHud(){
     cx.textAlign = 'center';
     cx.fillStyle = '#F3ECFF';
     cx.font = '800 20px "Bricolage Grotesque", sans-serif';
-    cx.fillText(yo.vel < V_DESPEGUE ? 'MANTÉN GAS PARA DESPEGAR'
+    cx.fillText(yo.vel < V_DESPEGUE ? 'COGIENDO VELOCIDAD…'
                                     : '¡AHORA! TIRA DEL MORRO ▲', W/2, 56);
     cx.fillStyle = 'rgba(16,10,32,.5)';
     cx.beginPath(); cx.roundRect(W/2-90, 66, 180, 10, 5); cx.fill();
@@ -988,6 +1004,7 @@ function pintar(s){
 
   if (e.fase === 'fin' && corriendo){
     corriendo = false;
+    sonido.avionApagar();
     const gano = e.ganador === miRol;
     $('capa-t').textContent = gano ? '🏆 ¡As del aire!' : 'Gana ' + sala.nombre(e.ganador);
     $('capa-s').textContent = gano
@@ -1007,6 +1024,7 @@ function arrancar(e){
   camX = Math.max(0, yo.x - W/2); camY = 0;
   corriendo = true;
   pintarArmas();
+  sonido.avionEncender();
   $('capa').classList.add('oculta');
   aviso2('¡Despega!');
 }
@@ -1056,7 +1074,7 @@ const estadoInicial = () => ({
 new Lobby({
   juego: 'aviones',
   titulo: 'Alas de <em>combate</em>',
-  lema: 'Despega, sube y no te quedes sin velocidad.',
+  lema: 'Despega y a cazar. El motor empuja solo.',
   maxJugadores: MAX_J,
   textoOnline: 'En línea · de 2 a 4 pilotos',
   textoSolo: '✈️ Un jugador · contra la escuadra',

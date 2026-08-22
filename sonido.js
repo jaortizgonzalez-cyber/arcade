@@ -31,7 +31,11 @@ export class Sonido {
     this.activo = !this.activo;
     localStorage.setItem(this.clave, this.activo ? 'si' : 'no');
     if (this.activo) this._abrir();
-    if (!this.activo){ this.patinar(false); if (this.motor) this.motorEstado(0,false,true); }
+    if (!this.activo){
+      this.patinar(false);
+      if (this.motor) this.motorEstado(0,false,true);
+      if (this.avion) this.avionEstado(0,0);
+    }
     return this.activo;
   }
 
@@ -261,6 +265,68 @@ export class Sonido {
     if (!this._listo()) return;
     [784, 988, 1319].forEach((f,i) => this._tono(0.16, f, f, 0.16, 'triangle', i*0.07));
     this._tono(0.5, 1568, 1568, 0.1, 'sine', 0.2);
+  }
+
+  /* ── Motor de avión ─────────────────────────────────────
+     La hélice es un zumbido grave con batido de palas; el reactor,
+     un silbido de aire. Se mezclan según el tipo de avión. */
+  avionEncender(){
+    if (!this._listo() || this.avion) return;
+    const c = this.ctx, t = c.currentTime;
+
+    const salida = c.createGain();
+    salida.gain.value = 0;
+    salida.connect(c.destination);
+
+    const filtro = c.createBiquadFilter();
+    filtro.type = 'lowpass'; filtro.frequency.value = 900; filtro.Q.value = 2;
+    filtro.connect(salida);
+    const osc = c.createOscillator(); osc.type = 'sawtooth'; osc.frequency.value = 90;
+    const sub = c.createOscillator(); sub.type = 'triangle'; sub.frequency.value = 45;
+    const gOsc = c.createGain(); gOsc.gain.value = 0.42;
+    const gSub = c.createGain(); gSub.gain.value = 0.3;
+    osc.connect(gOsc).connect(filtro);
+    sub.connect(gSub).connect(filtro);
+
+    const lfo = c.createOscillator(); lfo.type = 'sine'; lfo.frequency.value = 22;
+    const gLfo = c.createGain(); gLfo.gain.value = 0.18;
+    lfo.connect(gLfo).connect(gOsc.gain);
+
+    const jet = c.createBufferSource();
+    jet.buffer = this.ruido; jet.loop = true;
+    const bp = c.createBiquadFilter(); bp.type = 'bandpass';
+    bp.frequency.value = 1800; bp.Q.value = 0.9;
+    const gJet = c.createGain(); gJet.gain.value = 0;
+    jet.connect(bp).connect(gJet).connect(salida);
+
+    osc.start(t); sub.start(t); lfo.start(t); jet.start(t);
+    this.avion = { salida, filtro, osc, sub, lfo, bp, gJet };
+  }
+
+  avionEstado(rpm, jet){
+    const m = this.avion;
+    if (!m || !this.ctx) return;
+    const t = this.ctx.currentTime, s = 0.08;
+    const r = Math.max(0, Math.min(1, rpm));
+    const f = 70 + r*150;
+    m.osc.frequency.setTargetAtTime(f, t, s);
+    m.sub.frequency.setTargetAtTime(f/2, t, s);
+    m.lfo.frequency.setTargetAtTime(16 + r*26, t, s);
+    m.filtro.frequency.setTargetAtTime(500 + f*7, t, s);
+    m.bp.frequency.setTargetAtTime(1200 + r*3200, t, s);
+    m.gJet.gain.setTargetAtTime(this.activo ? jet*(0.05 + r*0.1) : 0, t, s);
+    const vol = this.activo ? (0.05 + r*0.08)*(1 - jet*0.45) : 0;
+    m.salida.gain.setTargetAtTime(vol, t, 0.06);
+  }
+
+  avionApagar(){
+    const m = this.avion;
+    if (!m || !this.ctx) return;
+    m.salida.gain.setTargetAtTime(0, this.ctx.currentTime, 0.15);
+    setTimeout(() => {
+      try { m.osc.stop(); m.sub.stop(); m.lfo.stop(); } catch(e){}
+      this.avion = null;
+    }, 600);
   }
 
   /** Fanfarria de victoria: arpegio ascendente sobre un retumbo. */
